@@ -1,0 +1,17 @@
+export const PROFILE_CONSTANTS = {
+    PROFILE_EDIT_TITLE: "Edit Account Details",
+    PROFILE_EDIT_SUBTITLE: "Update your information",
+    PROFILE_EDIT_NAME_LABEL: "Full Name",
+    PROFILE_EDIT_EMAIL_LABEL: "Email Address",
+    PROFILE_EDIT_PHONE_LABEL: "Phone Number",
+    PROFILE_EDIT_ADDRESS_LABEL: "Address",
+    PROFILE_EDIT_SAVE_BUTTON: "Save Changes",
+    PROFILE_EDIT_CHANGE_PHOTO: "Tap to change photo",
+    PROFILE_EDIT_PHOTO: "Edit",
+    PROFILE_EDIT_PINCODE: "Pincode",
+    PROFILE_EDIT_CITY: "City",
+    PROFILE_EDIT_STATE: "State",
+    PROFILE_EDIT_SOCIETY: "Society Name",
+    PROFILE_EDIT_TOWER: "Select your Tower",
+    PROFILE_EDIT_FLAT_NO: "Flat / Apartment No.",
+};
