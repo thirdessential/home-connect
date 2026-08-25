@@ -172,7 +172,7 @@ const RequestGridCard = memo(function RequestGridCard({
               elevation: 2,
             }}
           >
-            <Ionicons name="share-social-outline" size={16} color="#ea580c" />
+            <Ionicons name="share-social-outline" size={16} color="#15803D" />
           </TouchableOpacity>
         </View>
       </View>

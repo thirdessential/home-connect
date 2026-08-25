@@ -1,13 +1,15 @@
 import { API_BASE, Post, PostPublic } from "@/lib/httpMethods";
-import { zustandStorage } from "@/lib/storage";
+import { secureStorage } from "@/lib/storage";
 import { registerAuthStore } from "@/lib/tokenManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { AuthStore, User } from "./auth.type";
 import { useAdminStore } from "./useAdminStore";
+import { useBusinessRegistrationStore } from "./useBusinessRegistrationStore";
 import { useProductStore } from "./useBusinessStore";
 import { useDailyHelperStore } from "./useDailyHelper";
+import { useEventStore } from "./useEventStore";
 import { useFeedsStore } from "./useFeedsStore";
 import { useSocietyStore } from "./useSocietyStore";
 import { useUserStore } from "./useUserStore";
@@ -35,6 +37,11 @@ export const useAuthStore = create<AuthStore>()(
         useDailyHelperStore.getState().clear();
         useWholesaleDealStore.getState().clear();
         useAdminStore.getState().clear();
+        useBusinessRegistrationStore.getState().clear();
+        useEventStore.getState().clear();
+        // Nulling the token above already overwrites the persisted secret, but
+        // drop the SecureStore entry outright so no stale session blob is left.
+        void useAuthStore.persist?.clearStorage?.();
       },
       clearAllStoreData: () => {
         // Clears all society-scoped data without touching auth or society list.
@@ -44,6 +51,7 @@ export const useAuthStore = create<AuthStore>()(
         useDailyHelperStore.getState().clear();
         useWholesaleDealStore.getState().clear();
         useAdminStore.getState().clear();
+        useEventStore.getState().clear();
       },
       _setHasHydrated: (v) => set({ _hasHydrated: v }),
 
@@ -152,7 +160,7 @@ export const useAuthStore = create<AuthStore>()(
       name: "auth-store",
       // Store auth data in expo-secure-store (Keychain/Keystore) instead of
       // plaintext AsyncStorage so tokens are protected at rest on-device.
-      storage: createJSONStorage(() => zustandStorage),
+      storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({
         token: state.token,
         roles: state.roles,

@@ -67,9 +67,11 @@ export default function UserTypeScreen() {
   );
 
   const handleContinue = useCallback(() => {
-    // Only the Resident flow is active in the current scope.
-    console.log("[Terrace] Onboarding complete as:", selected);
-    router.replace("/(tabs)/home");
+    if (selected === "business") {
+      router.push("/onboarding/business");
+      return;
+    }
+    router.replace("/onboarding/select-society");
   }, [selected]);
 
   return (

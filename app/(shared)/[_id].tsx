@@ -97,6 +97,19 @@ function ProductDetail() {
   const [showAddReviewModal, setShowAddReviewModal] = useState(false);
   const [selectedProduct, setSelectedProductState] = useState<any>(null);
 
+  // Events are served exclusively by the MySQL Event API (/(shared)/event-details).
+  // Nothing in the app routes here with flow=event any more; a stale deep link or
+  // a previously shared link is bounced to Home instead of rendering the retired
+  // feed-based event UI below.
+  useEffect(() => {
+    if (!isEventFlow) return;
+    Alert.alert(
+      "Event unavailable",
+      "This event link is no longer supported. Please open the event from your feed.",
+    );
+    router.replace("/(tabs)/home");
+  }, [isEventFlow]);
+
   // Ensure selected deal is fetched when viewing a deal; clear any previous state first
   useEffect(() => {
     if (!id) return;
@@ -147,10 +160,11 @@ function ProductDetail() {
     const description = (selectedProduct as any)?.description || undefined;
     const price = (selectedProduct as any)?.price?.sellingPrice || undefined;
     // Build a deep link into this screen using expo-linking
-    const path = `/(shared)/${id}?flow=${isEventFlow ? "event" : "deal"}`;
+    // Only deals are served by this screen — never mint a legacy flow=event link.
+    const path = `/(shared)/${id}?flow=deal`;
     const link = ExpoLinking.createURL(path);
     shareProduct({ name, description, price, link });
-  }, [selectedProduct, id, isEventFlow]);
+  }, [selectedProduct, id]);
 
   // Memoize user data extraction with more specific dependencies
   const userData = useMemo(() => {

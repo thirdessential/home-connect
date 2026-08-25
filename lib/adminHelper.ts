@@ -54,9 +54,16 @@ export const transformDataForDisplay = (
     const daysDiff = Math.floor((nowMs - createdMs) / (1000 * 3600 * 24));
     const createdDateStr = formatDate(new Date(createdMs));
 
+    // Raw sortable timestamp. `appliedDate` is a locale-formatted string, so the
+    // admin list can't order on it — sorting uses this numeric value instead.
+    const appliedParsedMs = item?.applied_at ? new Date(item.applied_at).getTime() : NaN;
+    const appliedAtMs = Number.isFinite(appliedParsedMs) ? appliedParsedMs : createdMs;
+
     // Destructure frequently used fields once
     const {
         _id,
+        id: rawId,
+        user_id,
         fullName,
         profilePhotoUrl,
         completeAddress,
@@ -70,19 +77,37 @@ export const transformDataForDisplay = (
         city,
         categoryId,
         userId,
+        phone,
+        email,
+        owner_or_tenant,
+        residence_proof,
+        selfie,
+        latitude,
+        longitude,
+        unit_flat,
+        building_block,
+        location,
+        applied_at,
     } = item;
 
     if (type === "user") {
         const towerName = getTowerName(tower, society);
+        // MySQL-backed resident requests (adminRequest.service.js) expose
+        // `user_id`/`id`, not `_id` — only legacy Mongo user docs have `_id`.
+        // Without this fallback, approve/reject buttons fire with id=undefined.
+        const residentId = _id ?? user_id ?? rawId;
 
         return {
-            id: _id,
+            id: residentId,
             type: UserType.RESIDENT,
             name: fullName || "Unknown User",
             society: society?.name || "Unknown Society",
-            flatTower: `${towerName}, Apt ${flatNo || "Unknown"}`,
-            appliedDate: createdDateStr,
-            from: completeAddress || "Unknown Address",
+            flatTower: unit_flat && building_block
+                ? `${building_block}, ${unit_flat}`
+                : `${towerName}, Apt ${flatNo || "Unknown"}`,
+            appliedDate: applied_at ? formatDate(new Date(applied_at)) : createdDateStr,
+            appliedAtMs,
+            from: location || completeAddress || "Unknown Address",
             pendingDays: daysDiff,
             isVerified: status === "approved",
             proofType: "View Document",
@@ -91,16 +116,28 @@ export const transformDataForDisplay = (
                 profilePhotoUrl ||
                 fullName?.substring(0, 2).toUpperCase() ||
                 "US",
+            // Passed through only when the API actually returns them — never fabricated.
+            phone,
+            email,
+            ownerOrTenant: owner_or_tenant,
+            residenceProof: residence_proof,
+            selfie,
+            latitude,
+            longitude,
+            unitFlat: unit_flat,
+            buildingBlock: building_block,
+            locationName: location,
         };
     } else if (type === "business") {
         return {
-            id: _id,
+            id: _id ?? (item.businessId != null ? `biz-${item.businessId}` : undefined),
             type: UserType.BUSINESS,
             name: title || name || "Unknown Business",
-            location: completeAddress || "Unknown Location",
+            location: item.location || completeAddress || "Unknown Location",
             address: completeAddress || "Unknown Address",
             category: category || "Unknown Category",
-            appliedDate: createdDateStr,
+            appliedDate: item.applied_at ? formatDate(new Date(item.applied_at)) : createdDateStr,
+            appliedAtMs,
             from: city || "Unknown City",
             pendingDays: daysDiff,
             isVerified: status === "approved",
@@ -109,6 +146,17 @@ export const transformDataForDisplay = (
             status: status,
             avatar: images?.[0] || "BU",
             ownerId: typeof userId === "object" ? userId?._id : userId,
+            // MySQL business registrations carry these; Mongo ones leave them undefined.
+            source: item.source,
+            businessId: item.businessId,
+            phone: item.phone,
+            email: item.email,
+            ownerName: item.owner_name,
+            registrationProof: item.registration_proof,
+            logoUrl: item.logo_url,
+            photos: item.photos,
+            latitude: item.latitude,
+            longitude: item.longitude,
         };
     } else if (type === "deal") {
         // deal
@@ -120,6 +168,7 @@ export const transformDataForDisplay = (
             address: completeAddress || "Unknown Address",
             category: category || "Unknown Category",
             appliedDate: createdDateStr,
+            appliedAtMs,
             from: city || "Unknown City",
             pendingDays: daysDiff,
             isVerified: status === "approved",
@@ -140,6 +189,7 @@ export const transformDataForDisplay = (
             address: completeAddress || "Unknown Address",
             category: categoryId || "Unknown Category",
             appliedDate: createdDateStr,
+            appliedAtMs,
             from: city || "Pune",
             pendingDays: daysDiff,
             isVerified: status === "approved",

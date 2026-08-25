@@ -40,7 +40,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BusinessForm, { type BusinessFormData } from "../form/BusinessForm";
-import EventForm from "../form/EventForm";
 import ManageProfileForm from "../form/ManageProfileForm";
 import PollForm from "../form/PollForm";
 import PostForm from "../form/PostForm";
@@ -388,10 +387,14 @@ function CreatePostModal({
           return;
         }
         setActiveForm(path);
+      } else if (path === "event") {
+        // Event creation now lives in its own 4-step flow against the new
+        // MySQL-backed Event API — see app/(shared)/create-event.tsx.
+        onClose();
+        router.push("/(shared)/create-event" as any);
       } else if (
         path === "post" ||
         path === "poll" ||
-        path === "event" ||
         path === "service" ||
         path === "residentAccount"
       ) {
@@ -726,132 +729,6 @@ function CreatePostModal({
     ],
   );
 
-  // Helper to build event feed object for both optimistic UI and backend
-
-  // Define the onEventSubmit handler (DRY)
-  const onEventSubmit = useCallback(
-    async (eventFormData: {
-      banner?: string;
-      title: string;
-      date: string;
-      location: string;
-      description: string;
-      price?: string;
-      eventDate?: string;
-      eventTime?: string;
-      maxParticipants?: string;
-      minParticipants?: string;
-      regDeadline?: string;
-      details?: {
-        freeChildren: boolean;
-        guests: boolean;
-        materials: boolean;
-        refreshments: boolean;
-      };
-    }) => {
-      // Create optimistic feed item
-      // Ensure we have user data for immediate rendering
-      const optimisticFeed = {
-        _id: `temp-${Date.now()}`,
-        type: "event" as const,
-        title: eventFormData.title,
-        images: eventFormData.banner
-          ? [eventFormData.banner]
-          : ["https://images.unsplash.com/photo-1464983953574-0892a716854b"],
-        content: eventFormData.description,
-        description: `${eventFormData.description ||
-          `${eventFormData.eventDate} at ${eventFormData.location}`
-          }`,
-        user: currentUser
-          ? {
-            _id: currentUser._id,
-            fullName: currentUser.fullName,
-            profilePhotoUrl: currentUser.profilePhotoUrl,
-            flatNo: currentUser.flatNo,
-            tower: currentUser.tower,
-            phone: currentUser.phone,
-            roles: currentUser.roles,
-          }
-          : undefined,
-        society: societyId,
-        flatNo: currentUser?.flatNo,
-        towerName:
-          typeof currentUser?.societyId === "object" &&
-            currentUser?.societyId !== null
-            ? currentUser.societyId.name
-            : undefined,
-        price: eventFormData.price,
-        eventDate: eventFormData.eventDate,
-        eventTime: eventFormData.eventTime,
-        maxParticipants: eventFormData.maxParticipants,
-        minParticipants: eventFormData.minParticipants,
-        regDeadline: eventFormData.regDeadline,
-        location: eventFormData.location || "pune",
-        eventDetails: {
-          freeChildren: eventFormData.details?.freeChildren || false,
-          guests: eventFormData.details?.guests || false,
-          materials: eventFormData.details?.materials || false,
-          refreshments: eventFormData.details?.refreshments || false,
-        },
-        likes: [],
-        comments: [],
-        rsvps: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Add feed to UI immediately
-      addFeedOptimistically(optimisticFeed);
-
-      // Show success message
-      setSubmissionState({
-        type: "success",
-        title: "Event created",
-        subtitle: "Your event has been scheduled.",
-      });
-
-      // Close modal after delay
-      setTimeout(() => {
-        setActiveForm(null);
-        setSubmissionState({ type: "idle" });
-        onClose();
-      }, 1600);
-
-      await createFeed({
-        type: "event",
-        title: eventFormData.title,
-        images: eventFormData.banner ? [eventFormData.banner] : [],
-        content: eventFormData.description,
-        description: `${eventFormData.description ||
-          `${eventFormData.eventDate} at ${eventFormData.location}`
-          }`,
-        user: userId,
-        society: societyId,
-        price: eventFormData.price,
-        eventDate: eventFormData.eventDate,
-        eventTime: eventFormData.eventTime,
-        maxParticipants: eventFormData.maxParticipants,
-        minParticipants: eventFormData.minParticipants,
-        location: eventFormData.location || "pune",
-        regDeadline: eventFormData.regDeadline,
-        eventDetails: {
-          freeChildren: eventFormData.details?.freeChildren || false,
-          guests: eventFormData.details?.guests || false,
-          materials: eventFormData.details?.materials || false,
-          refreshments: eventFormData.details?.refreshments || false,
-        },
-      });
-    },
-    [
-      createFeed,
-      addFeedOptimistically,
-      currentUser,
-      userId,
-      societyId,
-      onClose,
-    ],
-  );
-
   const onPollSubmit = useCallback(
     async (pollFormData: { question: string; options: BusinessCategory[] }) => {
       // Create optimistic feed item
@@ -1001,8 +878,6 @@ function CreatePostModal({
         return "New Post";
       case "poll":
         return "Create Poll";
-      case "event":
-        return "Create Event";
       case "service":
         return "Add Service";
       case "createWholesaleDeal":
@@ -1332,18 +1207,6 @@ function CreatePostModal({
                       loading={loading}
                       error={error}
                     />
-                  </ScrollView>
-                )}
-
-                {activeForm === "event" && (
-                  <ScrollView
-                    contentContainerStyle={styles.contentContainer}
-                    keyboardShouldPersistTaps="handled"
-                    scrollEnabled={true}
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                  >
-                    <EventForm onSubmit={onEventSubmit} />
                   </ScrollView>
                 )}
 

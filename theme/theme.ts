@@ -26,6 +26,28 @@ export type ColorRoles = {
     skeletonBase: string;
     skeletonHighlight: string;
     gray1: string;
+
+    // ---- Post-login global design system additions (additive; auth screens
+    // use assets/constants/auth.constant.ts and never read these) ----
+    white: string;
+    black: string;
+    cardBackground: string;
+    text: string; // alias of textPrimary
+    secondaryText: string; // alias of textSecondary
+    // Centralized post-login brand accent (green) — kept separate from
+    // `primary` (orange, still used by pre-existing screens) so this rollout
+    // never silently recolors unrelated buttons.
+    brand: string;
+    brandDark: string;
+    brandWeak: string;
+    /** Foreground for content sitting on a `brand`-filled surface. */
+    onBrand: string;
+    heading1: string;
+    heading2: string;
+    heading3: string;
+    heading4: string;
+    heading5: string;
+    heading6: string;
 };
 
 export type Typography = {
@@ -33,17 +55,23 @@ export type Typography = {
     h2: { fontSize: number; lineHeight: number; fontWeight: '800' | '700' | '600' };
     h3: { fontSize: number; lineHeight: number; fontWeight: '700' | '600' };
     h4: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
+    h5: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
+    h6: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
     button1: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
+    buttonText: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
     body: { fontSize: number; lineHeight: number; fontWeight: '400' | '500', color?: string };
+    bodySmall: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
     small: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
     text: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
+    label: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
+    caption: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
     iconText: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
     fontFamily?: string; // Add font family support
 };
 
 export type Spacing = { xs: number; s: number; m: number; l: number; xl: number; xxl: number };
 
-export type Radii = { s: number; m: number; l: number; pill: number };
+export type Radii = { s: number; m: number; l: number; pill: number; small: number; medium: number; large: number; round: number };
 
 export type IconSizes = {
     xs: number;
@@ -91,7 +119,12 @@ const radii: Radii = {
     s: getWidth(8),
     m: getWidth(12),
     l: getWidth(16),
-    pill: getWidth(24)
+    pill: getWidth(24),
+    // Aliases matching the global-design-system naming (`radius.small` etc.)
+    small: getWidth(8),
+    medium: getWidth(12),
+    large: getWidth(16),
+    round: 999,
 };
 const iconSizes: IconSizes = {
     xs: getWidth(16),
@@ -108,9 +141,15 @@ const typography: Typography = {
     h2: { fontSize: getWidth(22), lineHeight: getHeight(28), fontWeight: '800' },
     h3: { fontSize: getWidth(18), lineHeight: getHeight(24), fontWeight: '700' },
     h4: { fontSize: getWidth(16), lineHeight: getHeight(20), fontWeight: '600' },
+    h5: { fontSize: getWidth(15), lineHeight: getHeight(20), fontWeight: '600' },
+    h6: { fontSize: getWidth(13), lineHeight: getHeight(18), fontWeight: '600' },
     body: { fontSize: getWidth(16), lineHeight: getHeight(22), fontWeight: '400', color: '#1F2937' }, // color: var(--text)
+    bodySmall: { fontSize: getWidth(13), lineHeight: getHeight(19), fontWeight: '400' },
     button1: { fontSize: getWidth(14), lineHeight: getHeight(20), fontWeight: '600' },
+    buttonText: { fontSize: getWidth(14), lineHeight: getHeight(20), fontWeight: '600' },
     text: { fontSize: getWidth(14), lineHeight: getHeight(20), fontWeight: '400' },
+    label: { fontSize: getWidth(13), lineHeight: getHeight(18), fontWeight: '600' },
+    caption: { fontSize: getWidth(11), lineHeight: getHeight(15), fontWeight: '400' },
     small: { fontSize: getWidth(12), lineHeight: getHeight(18), fontWeight: '400' },
     iconText: { fontSize: getWidth(12), lineHeight: getHeight(16), fontWeight: '600' },
     fontFamily: 'System', // React Native will use system font (San Francisco on iOS, Roboto on Android)
@@ -123,7 +162,7 @@ const lightColors: ColorRoles = {
     border: '#E2E8F0', // Slate 200 - from web app
     textPrimary: '#1F2937', // var(--text) from HTML - exact match
     textSecondary: '#6B7280', // var(--muted) from HTML - exact match
-    primary: '#EA580C', // var(--accent) from HTML - exact match
+    primary: '#15803D', // var(--accent) from HTML - exact match
     disablePrimary: '#FDBA74',
     themeTextColor: '#F97316',
     lightBackground: '#FFF7ED',
@@ -138,6 +177,22 @@ const lightColors: ColorRoles = {
     skeletonBase: '#E2E8F0',
     skeletonHighlight: '#F8FAFC',
     gray1: '#F9FAFB',
+
+    white: '#FFFFFF',
+    black: '#000000',
+    cardBackground: '#FFFFFF',
+    text: '#1F2937',
+    secondaryText: '#6B7280',
+    brand: '#15803D',
+    brandDark: '#166534',
+    brandWeak: '#E7F5EC',
+    onBrand: '#FFFFFF',
+    heading1: '#1F2937',
+    heading2: '#1F2937',
+    heading3: '#1F2937',
+    heading4: '#1F2937',
+    heading5: '#1F2937',
+    heading6: '#1F2937',
 };
 
 const darkColors: ColorRoles = {
@@ -162,6 +217,22 @@ const darkColors: ColorRoles = {
     skeletonBase: '#334155',
     skeletonHighlight: '#1E293B',
     gray1: '#1F2937',
+
+    white: '#FFFFFF',
+    black: '#000000',
+    cardBackground: '#1E293B',
+    text: '#F8FAFC',
+    secondaryText: '#CBD5E1',
+    brand: '#22C55E',
+    brandDark: '#16A34A',
+    brandWeak: '#0F2A1A',
+    onBrand: '#052E16',
+    heading1: '#F8FAFC',
+    heading2: '#F8FAFC',
+    heading3: '#F8FAFC',
+    heading4: '#F8FAFC',
+    heading5: '#F8FAFC',
+    heading6: '#F8FAFC',
 };
 
 const elevation = (isDark: boolean) => ({

@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { memo, useCallback } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const BANNER_ORANGE = "#EA580C";
+const BANNER_ORANGE = "#15803D";
 const BANNER_BG = "#FDEDE1";
 
 const WelcomeVerificationCard = memo(() => {

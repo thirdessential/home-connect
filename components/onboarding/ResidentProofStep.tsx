@@ -1,8 +1,8 @@
 import ActionButton from "@/components/inputs/ActionButton";
 import { useImageUpload } from "@/lib/cloudinary";
+import { pickImageCropped } from "@/lib/ImagePicker";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { memo, useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -35,14 +35,11 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
   const [uploadingSelfie, setUploadingSelfie] = useState(false);
 
   const handleUploadDocument = useCallback(async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-    });
-    if (res.canceled || !res.assets?.[0]?.uri) return;
+    const asset = await pickImageCropped("library", { quality: 0.85 });
+    if (!asset?.uri) return;
     setUploadingDoc(true);
     try {
-      const result = await upload(res.assets[0].uri, "resident-proof");
+      const result = await upload(asset.uri, "resident-proof");
       setDocumentUrl(result.secure_url);
     } catch {
       // upload() already tracks its own error state; nothing to add here
@@ -52,14 +49,11 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
   }, [upload]);
 
   const handleTakeSelfie = useCallback(async () => {
-    const res = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-    });
-    if (res.canceled || !res.assets?.[0]?.uri) return;
+    const asset = await pickImageCropped("camera", { quality: 0.85 });
+    if (!asset?.uri) return;
     setUploadingSelfie(true);
     try {
-      const result = await upload(res.assets[0].uri, "resident-selfies");
+      const result = await upload(asset.uri, "resident-selfies");
       setSelfieUrl(result.secure_url);
     } catch {
       // upload() already tracks its own error state; nothing to add here

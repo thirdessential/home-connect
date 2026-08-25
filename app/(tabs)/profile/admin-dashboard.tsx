@@ -26,7 +26,7 @@ import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole, UserType } from "@/types/roles";
 import { Society } from "@/types/society.type";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Platform,
@@ -67,6 +67,10 @@ export default function AdminDashboard() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectingType, setRejectingType] = useState<string | null>(null);
+  const [isRejecting, setIsRejecting] = useState(false);
+  // When true the reject modal's reason applies to every selected request.
+  const [isBulkReject, setIsBulkReject] = useState(false);
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [societySelectorVisible, setSocietySelectorVisible] = useState(false);
   const [societySearch, setSocietySearch] = useState("");
@@ -82,7 +86,6 @@ export default function AdminDashboard() {
   const updateBusinessVerificationStatus = useProductStore(
     (state) => state.updateBusinessVerificationStatus,
   );
-  const updateUser = useUserStore((state) => state.updateUser);
   const updateDailyService = useDailyHelperStore(
     (state) => state.updateDailyService,
   );
@@ -95,6 +98,14 @@ export default function AdminDashboard() {
   const getAllPendingContent = useAdminStore(
     (state) => state.getAllPendingContent,
   );
+  const approveMysqlBusiness = useAdminStore(
+    (state) => state.approveMysqlBusiness,
+  );
+  const rejectMysqlBusiness = useAdminStore(
+    (state) => state.rejectMysqlBusiness,
+  );
+  const approveResident = useAdminStore((state) => state.approveResident);
+  const rejectResident = useAdminStore((state) => state.rejectResident);
   const approvedContent = useAdminStore((state) => state.approvedContent);
   const getAllApprovedContent = useAdminStore(
     (state) => state.getAllApprovedContent,
@@ -238,11 +249,11 @@ export default function AdminDashboard() {
   // ── Approve / Reject ──────────────────────────────────────────────────────────
   const approvalHandlers = useMemo(
     () => ({
-      [UserType.RESIDENT]: (id: string) =>
-        updateUser(
-          { isAddressVerified: { status: verificationStatus.APPROVED } },
-          id,
-        ),
+      // MySQL-backed contract (source of truth) — grants the `resident` role
+      // and refreshes the society's resident count server-side. The old
+      // `updateUser` PATCH only touched the legacy Mongo mirror, so approving
+      // never actually changed status and the request stayed "pending".
+      [UserType.RESIDENT]: (id: string) => approveResident(id),
       [UserType.SERVICE]: (id: string) =>
         updateDailyService(
           {
@@ -260,15 +271,7 @@ export default function AdminDashboard() {
   const rejectionHandlers = useMemo(
     () => ({
       [UserType.RESIDENT]: (id: string, reason: string) =>
-        updateUser(
-          {
-            isAddressVerified: {
-              status: verificationStatus.REJECTED,
-              rejectionReason: reason,
-            },
-          },
-          id,
-        ),
+        rejectResident(id, reason),
       [UserType.SERVICE]: (id: string, reason: string) =>
         updateDailyService(
           {
@@ -289,30 +292,59 @@ export default function AdminDashboard() {
     await getAllPendingContent(sid);
   }, []);
 
+  // Prevent duplicate approve/reject taps while one is in flight.
+  const processingRef = useRef<Set<string>>(new Set());
+
+  // Approves a single request. Extracted so bulk approve reuses the exact same
+  // per-type branching (mirrors rejectOne) instead of re-running the whole
+  // refetch + success-modal cycle once per selected item. Throws on failure so
+  // the caller decides how to surface it.
+  const approveOne = useCallback(
+    async (targetId: string, targetType: string) => {
+      if (targetType === UserType.BUSINESS) {
+        const req = displayData.requests.find((r) => r.id === targetId);
+        if (req?.source === "mysql") {
+          // New MySQL business contract — do NOT use the Mongo status endpoint.
+          await approveMysqlBusiness(req.businessId);
+          return;
+        }
+        if (!req?.ownerId) {
+          throw new Error("Missing business owner reference");
+        }
+        await updateBusinessVerificationStatus(
+          targetId,
+          req.ownerId,
+          verificationStatus.APPROVED,
+        );
+        return;
+      }
+
+      const handler =
+        approvalHandlers[targetType as keyof typeof approvalHandlers];
+      if (!handler) {
+        throw new Error(`Unknown request type: ${targetType}`);
+      }
+      await handler(targetId);
+      if (targetType === "deal" || targetType === "service") {
+        const req = displayData.requests.find((r) => r.id === targetId);
+        if (req?.ownerId) await syncUserBusinessIdsWithStatus(req.ownerId);
+      }
+    },
+    [
+      displayData.requests,
+      approveMysqlBusiness,
+      approvalHandlers,
+      updateBusinessVerificationStatus,
+      syncUserBusinessIdsWithStatus,
+    ],
+  );
+
   const handleApprove = useCallback(
     async (id: string, type: string) => {
+      if (processingRef.current.has(id)) return;
+      processingRef.current.add(id);
       try {
-        if (type === UserType.BUSINESS) {
-          const req = displayData.requests.find((r) => r.id === id);
-          if (!req?.ownerId) return;
-          await updateBusinessVerificationStatus(
-            id,
-            req.ownerId,
-            verificationStatus.APPROVED,
-          );
-        } else {
-          const handler =
-            approvalHandlers[type as keyof typeof approvalHandlers];
-          if (!handler) {
-            console.warn("Unknown type:", type);
-            return;
-          }
-          await handler(id);
-          if (type === "deal" || type === "service") {
-            const req = displayData.requests.find((r) => r.id === id);
-            if (req?.ownerId) await syncUserBusinessIdsWithStatus(req.ownerId);
-          }
-        }
+        await approveOne(id, type);
         const sid = resolveSid();
         if (sid) await refetchBySid(type, sid);
         await new Promise((res) => setTimeout(res, 100));
@@ -320,9 +352,12 @@ export default function AdminDashboard() {
         setTimeout(() => setShowSuccessModal(false), 1500);
       } catch (error) {
         console.error("Failed to approve:", error);
+        Alert.alert("Approval Failed", "Could not approve this request. Please try again.");
+      } finally {
+        processingRef.current.delete(id);
       }
     },
-    [displayData.requests, resolveSid],
+    [approveOne, resolveSid, refetchBySid],
   );
 
   const handleReject = useCallback((id: string, type: string) => {
@@ -331,58 +366,130 @@ export default function AdminDashboard() {
     setShowRejectModal(true);
   }, []);
 
-  const handleRejectSubmit = useCallback(
-    async (reason: string) => {
-      if (!rejectingId || !rejectingType) return;
-      try {
-        if (rejectingType === UserType.BUSINESS) {
-          const req = displayData.requests.find((r) => r.id === rejectingId);
-          if (!req?.ownerId) return;
+  // Rejects a single request. Extracted so bulk reject reuses the exact same
+  // per-type branching instead of duplicating it.
+  const rejectOne = useCallback(
+    async (targetId: string, targetType: string, reason: string) => {
+      if (targetType === UserType.BUSINESS) {
+        const req = displayData.requests.find((r) => r.id === targetId);
+        if (req?.source === "mysql") {
+          await rejectMysqlBusiness(req.businessId, reason);
+        } else {
+          if (!req?.ownerId) {
+            throw new Error("Missing business owner reference");
+          }
           await updateBusinessVerificationStatus(
-            rejectingId,
+            targetId,
             req.ownerId,
             verificationStatus.REJECTED,
             reason,
           );
-          const sid = resolveSid();
-          if (sid) {
-            await refetchBySid(rejectingType, sid);
-            setShowRejectModal(false);
-          }
-        } else {
-          const handler =
-            rejectionHandlers[rejectingType as keyof typeof rejectionHandlers];
-          if (!handler) {
-            console.warn("Unknown type:", rejectingType);
-            return;
-          }
-          await handler(rejectingId, reason);
-          const sid = resolveSid();
-          if (sid) {
-            await refetchBySid(rejectingType, sid);
-            setShowRejectModal(false);
-          }
-          if (rejectingType === "deal" || rejectingType === "service") {
-            const req = displayData.requests.find((r) => r.id === rejectingId);
-            if (req?.ownerId) await syncUserBusinessIdsWithStatus(req.ownerId);
-          }
         }
-        await new Promise((res) => setTimeout(res, 100));
+      } else {
+        const handler =
+          rejectionHandlers[targetType as keyof typeof rejectionHandlers];
+        if (!handler) {
+          throw new Error(`Unknown request type: ${targetType}`);
+        }
+        await handler(targetId, reason);
+        if (targetType === "deal" || targetType === "service") {
+          const req = displayData.requests.find((r) => r.id === targetId);
+          if (req?.ownerId) await syncUserBusinessIdsWithStatus(req.ownerId);
+        }
+      }
+    },
+    [
+      displayData.requests,
+      rejectMysqlBusiness,
+      rejectionHandlers,
+      updateBusinessVerificationStatus,
+      syncUserBusinessIdsWithStatus,
+    ],
+  );
+
+  const handleRejectSubmit = useCallback(
+    async (reason: string) => {
+      // Bulk mode: one shared reason applied to every selected request.
+      if (isBulkReject) {
+        const ids = Array.from(selectedRequests);
+        setIsRejecting(true);
+        let failed = 0;
+        try {
+          for (const id of ids) {
+            const req = displayData.requests.find((r) => r.id === id);
+            if (!req?.type) continue;
+            try {
+              await rejectOne(id, req.type, reason);
+            } catch (error) {
+              failed += 1;
+              console.error("Failed to reject:", id, error);
+            }
+          }
+          const sid = resolveSid();
+          if (sid) await getAllPendingContent(sid);
+
+          setShowRejectModal(false);
+          setIsBulkReject(false);
+          setSelectedRequests(new Set());
+          if (failed > 0) {
+            Alert.alert(
+              "Some Rejections Failed",
+              `${ids.length - failed} of ${ids.length} were rejected. Please retry the rest.`,
+            );
+          } else {
+            setShowSuccessModal(true);
+            setTimeout(() => setShowSuccessModal(false), 1500);
+          }
+        } finally {
+          setIsRejecting(false);
+        }
+        return;
+      }
+
+      if (!rejectingId || !rejectingType) return;
+      if (processingRef.current.has(rejectingId)) return;
+      processingRef.current.add(rejectingId);
+      setIsRejecting(true);
+      try {
+        await rejectOne(rejectingId, rejectingType, reason);
+
+        // Close the popup and refresh the list unconditionally on success —
+        // this must never depend on resolveSid() being truthy, otherwise the
+        // modal stays stuck open even though the rejection already went through.
+        const sid = resolveSid();
+        if (sid) await refetchBySid(rejectingType, sid);
+
+        setShowRejectModal(false);
         setRejectingId(null);
         setRejectingType(null);
         setShowSuccessModal(true);
         setTimeout(() => setShowSuccessModal(false), 1500);
       } catch (error) {
         console.error("Failed to reject:", error);
+        Alert.alert("Rejection Failed", "Could not reject this request. Please try again.");
+      } finally {
+        processingRef.current.delete(rejectingId);
+        setIsRejecting(false);
       }
     },
-    [rejectingId, rejectingType, displayData.requests, resolveSid],
+    [
+      isBulkReject,
+      selectedRequests,
+      rejectingId,
+      rejectingType,
+      displayData.requests,
+      rejectOne,
+      resolveSid,
+      refetchBySid,
+      getAllPendingContent,
+    ],
   );
 
   const handleRejectModalClose = useCallback(() => {
     setShowRejectModal(false);
     setRejectingId(null);
     setRejectingType(null);
+    setIsBulkReject(false);
   }, []);
 
   const handleSuccessDismiss = useCallback(
@@ -401,21 +508,58 @@ export default function AdminDashboard() {
     setIsRefreshing(false);
   }, [adminSocietyId]);
 
+  // Bulk reject reuses the single-item reason modal; the reason entered there is
+  // applied to every selected request (see handleRejectSubmit's bulk branch).
   const handleBulkReject = useCallback(() => {
-    Alert.alert(
-      "Bulk Reject",
-      `Rejecting ${selectedRequests.size} selected requests`,
-    );
-    setSelectedRequests(new Set());
+    if (selectedRequests.size === 0) return;
+    setRejectingId(null);
+    setRejectingType(null);
+    setIsBulkReject(true);
+    setShowRejectModal(true);
   }, [selectedRequests.size]);
 
-  const handleBulkApprove = useCallback(() => {
-    Alert.alert(
-      "Bulk Approve",
-      `Approving ${selectedRequests.size} selected requests`,
-    );
-    setSelectedRequests(new Set());
-  }, [selectedRequests.size]);
+  // No bulk endpoint exists, so this drives the same per-item approve path —
+  // but refetches and reports once for the whole batch rather than once per
+  // item, and reports partial failure the same way bulk reject does.
+  const handleBulkApprove = useCallback(async () => {
+    const ids = Array.from(selectedRequests);
+    if (ids.length === 0) return;
+    setIsBulkApproving(true);
+    let failed = 0;
+    try {
+      for (const id of ids) {
+        const req = displayData.requests.find((r) => r.id === id);
+        if (!req?.type) continue;
+        try {
+          await approveOne(id, req.type);
+        } catch (error) {
+          failed += 1;
+          console.error("Failed to approve:", id, error);
+        }
+      }
+      const sid = resolveSid();
+      if (sid) await getAllPendingContent(sid);
+      setSelectedRequests(new Set());
+
+      if (failed > 0) {
+        Alert.alert(
+          "Some Approvals Failed",
+          `${ids.length - failed} of ${ids.length} were approved. Please retry the rest.`,
+        );
+      } else {
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 1500);
+      }
+    } finally {
+      setIsBulkApproving(false);
+    }
+  }, [
+    selectedRequests,
+    displayData.requests,
+    approveOne,
+    resolveSid,
+    getAllPendingContent,
+  ]);
 
   // ── Society selector ──────────────────────────────────────────────────────────
   const openSocietySelector = useCallback(() => {
@@ -507,6 +651,13 @@ export default function AdminDashboard() {
                   requests={displayData.requests}
                   allRequestsSelected={allRequestsSelected}
                   isRequestSelected={isRequestSelected}
+                  activeFilter={selectedEntityType}
+                  counts={{
+                    all: pendingContent.totalCount,
+                    user: pendingContent.residents?.total ?? 0,
+                    business: pendingContent.businesses?.total ?? 0,
+                    service: pendingContent.dailyServices?.total ?? 0,
+                  }}
                   onFilterChange={handleFilterChange}
                   onSelectAll={handleSelectAll}
                   onApprove={handleApprove}
@@ -550,6 +701,7 @@ export default function AdminDashboard() {
               selectedCount={selectedRequests.size}
               onBulkReject={handleBulkReject}
               onBulkApprove={handleBulkApprove}
+              isBusy={isBulkApproving || isRejecting}
             />
           )}
 
@@ -558,6 +710,7 @@ export default function AdminDashboard() {
             onClose={handleRejectModalClose}
             onSubmit={handleRejectSubmit}
             title="Rejection Reason"
+            isLoading={isRejecting}
           />
 
           <OrderSuccessModal

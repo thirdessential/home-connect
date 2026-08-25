@@ -21,7 +21,7 @@ export interface FeedsState {
     removeFeed: (feedId: string) => Promise<void>;
     getFeedById: (feedId: string) => Promise<void>;
     toggleLike: (feedId: string, userId: string) => Promise<void>;
-    addComment: (feedId: string, comment: any) => void;
+    addComment: (feedId: string, comment: any) => Promise<void>;
     addReply: (feedId: string, commentId: string, reply: any) => void;
     votePoll: (feedId: string, optionId: string, userId: string) => Promise<void>;
     addOrUpdateRSVP: (feedId: string, rsvpData: RsvpUser) => Promise<void>;
@@ -51,6 +51,12 @@ export type RsvpData = {
 export type FeedItem = {
     _id: string;
     type?: "post" | "poll" | "event";
+    /**
+     * Id of the row in the MySQL `events` table, set by the server when an event
+     * is created through the Event API. Events are served exclusively by that API,
+     * so a feed event without this id predates the migration and cannot be opened.
+     */
+    mysqlEventId?: number | string | null;
     title?: string;
     content?: string;
     user?: string | User;

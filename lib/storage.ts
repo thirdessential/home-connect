@@ -1,84 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import * as Keychain from 'react-native-keychain';
 import type { StateStorage } from 'zustand/middleware';
 
-const SERVICE = 'homeconnect.auth';
-const LEGACY_KEY = 'userToken';
-
-export async function getToken(): Promise<string | null> {
-    // 1) Try Keychain (best)
-    try {
-        const creds = await Keychain.getGenericPassword({ service: SERVICE });
-        if (creds) return creds.password;
-    } catch { }
-
-    // 2) Migrate from SecureStore (if present)
-    try {
-        if (Platform.OS !== 'web') {
-            const ss = await SecureStore.getItemAsync(LEGACY_KEY);
-            if (ss) {
-                try {
-                    await Keychain.setGenericPassword('token', ss, {
-                        service: SERVICE,
-                        accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED,
-                    });
-                    await SecureStore.deleteItemAsync(LEGACY_KEY);
-                } catch { }
-                return ss;
-            }
-        } else {
-            if (typeof window === 'undefined') return null;
-            // Browser web session: read from localStorage-backed persist adapter.
-            return window.localStorage.getItem(LEGACY_KEY);
-        }
-    } catch { }
-
-    // 3) Migrate from AsyncStorage (last resort)
-    try {
-        const as = await AsyncStorage.getItem(LEGACY_KEY);
-        if (as) {
-            try {
-                await Keychain.setGenericPassword('token', as, {
-                    service: SERVICE,
-                    accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED,
-                });
-                await AsyncStorage.removeItem(LEGACY_KEY);
-            } catch { }
-            return as;
-        }
-    } catch { }
-
-    return null;
-}
-
-export async function setToken(value: string): Promise<void> {
-    // Prefer Keychain
-    try {
-        await Keychain.setGenericPassword('token', value, {
-            service: SERVICE,
-            accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED,
-        });
-        return;
-    } catch { }
-    // Fallbacks (don’t crash if native module is unavailable)
-    try { if (Platform.OS !== 'web') await SecureStore.setItemAsync(LEGACY_KEY, value); } catch { }
-    try { await AsyncStorage.setItem(LEGACY_KEY, value); } catch { }
-}
-
-export async function deleteToken(): Promise<void> {
-    try { await Keychain.resetGenericPassword({ service: SERVICE }); } catch { }
-    try { if (Platform.OS !== 'web') await SecureStore.deleteItemAsync(LEGACY_KEY); } catch { }
-    try { await AsyncStorage.removeItem(LEGACY_KEY); } catch { }
-}
-
 /**
- * Cross-platform storage adapter for Zustand persist.
+ * Cross-platform storage adapter for Zustand persist (NON-SENSITIVE state).
  *
  * Why:
  * - On web server render (Node), AsyncStorage can throw (`window is not defined`).
  * - We use `localStorage` on browser client and a no-op storage on SSR.
+ *
+ * Do NOT use this for auth tokens — use `secureStorage` below.
  */
 export const zustandStorage: StateStorage = {
     getItem: async (name) => {
@@ -103,5 +35,56 @@ export const zustandStorage: StateStorage = {
             return;
         }
         await AsyncStorage.removeItem(name);
+    },
+};
+
+/**
+ * Encrypted storage adapter for Zustand persist (SENSITIVE state — auth tokens).
+ *
+ * Native: expo-secure-store (iOS Keychain / Android Keystore) so the JWT is
+ * encrypted at rest and unreadable by other apps or by an adb backup.
+ * Web: localStorage (no OS keystore exists in the browser).
+ *
+ * SecureStore caps a single value at 2048 bytes. The persisted auth slice is
+ * only { token, roles, expiresAt }, which is well under that, but the write is
+ * guarded so an oversized JWT degrades loudly instead of silently losing the
+ * session.
+ */
+export const secureStorage: StateStorage = {
+    getItem: async (name) => {
+        if (Platform.OS === 'web') {
+            if (typeof window === 'undefined') return null;
+            return window.localStorage.getItem(name);
+        }
+        try {
+            return await SecureStore.getItemAsync(name);
+        } catch (e) {
+            console.warn('[secureStorage] read failed', e);
+            return null;
+        }
+    },
+    setItem: async (name, value) => {
+        if (Platform.OS === 'web') {
+            if (typeof window === 'undefined') return;
+            window.localStorage.setItem(name, value);
+            return;
+        }
+        try {
+            await SecureStore.setItemAsync(name, value);
+        } catch (e) {
+            console.warn('[secureStorage] write failed — session will not persist', e);
+        }
+    },
+    removeItem: async (name) => {
+        if (Platform.OS === 'web') {
+            if (typeof window === 'undefined') return;
+            window.localStorage.removeItem(name);
+            return;
+        }
+        try {
+            await SecureStore.deleteItemAsync(name);
+        } catch (e) {
+            console.warn('[secureStorage] delete failed', e);
+        }
     },
 };

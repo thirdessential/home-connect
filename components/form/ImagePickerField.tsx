@@ -1,5 +1,5 @@
+import { pickImageCropped } from "@/lib/ImagePicker";
 import { ImagePickerFieldProps } from "@/types/form.type";
-import * as ImagePicker from "expo-image-picker";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../theme/theme";
 import { Card } from "../UI/Card";
@@ -10,7 +10,6 @@ export default function ImagePickerField({
   value,
   onChange,
   max,
-  allowsEditing = false,
   quality = 0.85,
   style,
   tileSize = 96,
@@ -19,77 +18,26 @@ export default function ImagePickerField({
   const t = useTheme();
   const MAX = max ?? (mode === "single" ? 1 : 6);
 
-  const addFromLibrary = async () => {
+  // Every pick — camera or gallery — goes through the shared ratio+crop
+  // flow (lib/ImagePicker.ts) one image at a time, so cropping can never be
+  // bypassed even for the "multiple" mode (native multi-select cannot crop).
+  const addOne = async (source: "camera" | "library") => {
     if (disabled) return;
-    try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission needed", "Please allow photo library access.");
-        return;
-      }
-      const remaining = Math.max(0, MAX - value.length);
-      if (!remaining) {
-        Alert.alert(
-          "Limit reached",
-          `You can add up to ${MAX} photo${MAX > 1 ? "s" : ""}.`
-        );
-        return;
-      }
-
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: mode === "multiple",
-        selectionLimit: mode === "multiple" ? remaining : 1,
-        quality,
-        allowsEditing,
-      });
-      if (res.canceled) return;
-
-      const picked = (res.assets ?? [])
-        .map((a) => a.uri)
-        .filter(Boolean) as string[];
-      const next =
-        mode === "single"
-          ? picked[0]
-            ? [picked[0]]
-            : []
-          : [...value, ...picked].slice(0, MAX);
-      onChange(next);
-    } catch (e) {
-      Alert.alert("Could not open gallery", String(e));
+    if (value.length >= MAX) {
+      Alert.alert(
+        "Limit reached",
+        `You can add up to ${MAX} photo${MAX > 1 ? "s" : ""}.`
+      );
+      return;
     }
+    const asset = await pickImageCropped(source, { quality });
+    if (!asset?.uri) return;
+    const next = mode === "single" ? [asset.uri] : [...value, asset.uri].slice(0, MAX);
+    onChange(next);
   };
 
-  const addFromCamera = async () => {
-    if (disabled) return;
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission needed", "Please allow camera access.");
-        return;
-      }
-      if (value.length >= MAX) {
-        Alert.alert(
-          "Limit reached",
-          `You can add up to ${MAX} photo${MAX > 1 ? "s" : ""}.`
-        );
-        return;
-      }
-      const res = await ImagePicker.launchCameraAsync({
-        quality,
-        allowsEditing,
-      });
-      if (res.canceled) return;
-      const uri = res.assets?.[0]?.uri;
-      if (!uri) return;
-
-      const next = mode === "single" ? [uri] : [...value, uri].slice(0, MAX);
-      onChange(next);
-    } catch (e) {
-      Alert.alert("Could not open camera", String(e));
-    }
-  };
+  const addFromLibrary = () => addOne("library");
+  const addFromCamera = () => addOne("camera");
 
   const removeImage = (uri: string) => {
     if (disabled) return;

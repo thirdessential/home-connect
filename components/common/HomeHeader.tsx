@@ -34,10 +34,17 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
     <View
       style={[
         styles.container,
-        { paddingTop: insets.top + 16, backgroundColor: t.colors.background },
+        {
+          paddingTop: insets.top + 12,
+          backgroundColor: t.colors.surface,
+          borderBottomColor: t.colors.border,
+        },
       ]}
     >
-      <View style={styles.row}>
+      
+      <View style={styles.headerRow}>
+       
+
         {canChangeSociety ? (
           <TouchableOpacity
             onPress={handleSocietyPress}
@@ -45,21 +52,23 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
           >
             <Text
               numberOfLines={1}
-              style={[styles.societyName, { color: t.colors.textPrimary }]}
+              ellipsizeMode="tail"
+              style={[styles.societyName, { color: t.colors.brand }]}
             >
               {displayName}
             </Text>
             <Ionicons
               name="chevron-down"
-              size={22}
-              color={t.colors.textPrimary}
+              size={20}
+              color={t.colors.brand}
               style={styles.chevron}
             />
           </TouchableOpacity>
         ) : (
           <Text
             numberOfLines={1}
-            style={[styles.societyName, { color: t.colors.textPrimary, flex: 1 }]}
+            ellipsizeMode="tail"
+            style={[styles.societyName, styles.societyNameFull, { color: t.colors.brand }]}
           >
             {displayName}
           </Text>
@@ -71,7 +80,7 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
             onPress={handleComingSoon}
             style={styles.iconButton}
           >
-            <Ionicons name="search-outline" size={22} color={t.colors.textPrimary} />
+            <Ionicons name="search-outline" size={22} color={t.colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -82,10 +91,10 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
             <Ionicons
               name="notifications-outline"
               size={22}
-              color={t.colors.textPrimary}
+              color={t.colors.textSecondary}
             />
             {hasUnread ? (
-              <View style={[styles.unreadDot, { borderColor: t.colors.background }]} />
+              <View style={[styles.unreadDot, { borderColor: t.colors.surface }]} />
             ) : null}
           </TouchableOpacity>
 
@@ -97,11 +106,14 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
             <Ionicons
               name="chatbubble-ellipses-outline"
               size={22}
-              color={t.colors.textPrimary}
+              color={t.colors.textSecondary}
             />
           </TouchableOpacity>
         </View>
       </View>
+
+      
+
     </View>
   );
 }
@@ -109,29 +121,50 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  row: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    // backgroundColor: "#000"
+  },
+  headerRowGredint:{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '250%',
+    width: "120%",
+    zIndex: 0
   },
   societyButton: {
     flexDirection: "row",
     alignItems: "center",
-    flexShrink: 1,
+    flex: 1,
+    minWidth: 0, // required for numberOfLines truncation to respect flex, not content width
+    marginRight: 8,
   },
   societyName: {
-    fontSize: 22,
-    fontWeight: "800",
+    fontSize: 20,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  societyNameFull: {
+    flex: 1,
+    marginRight: 8,
   },
   chevron: {
     marginLeft: 2,
+    flexShrink: 0,
   },
   iconRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexShrink: 0,
   },
   iconButton: {
     width: 38,

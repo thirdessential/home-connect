@@ -77,7 +77,7 @@ const ServiceProviderCard = memo(({ provider }: { provider: any }) => {
             <Ionicons
               name="chevron-forward"
               size={12}
-              color="#EA580C"
+              color="#15803D"
               style={{ marginLeft: 4 }}
             />
           </TouchableOpacity>
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   viewProfileText: {
-    color: "#EA580C",
+    color: "#15803D",
     fontWeight: "600",
     fontSize: 13,
     marginRight: 2,

@@ -3,14 +3,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { memo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 
-export type HomeFeedFilter = "all" | "updates" | "photos" | "polls" | "deals" | "events";
+export type HomeFeedFilter = "all" | "updates" | "photos" | "polls" | "events";
 
 const CHIPS: { key: HomeFeedFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: "all", label: "All Posts", icon: "grid" },
   { key: "updates", label: "Updates", icon: "megaphone-outline" },
   { key: "photos", label: "Photos", icon: "image-outline" },
   { key: "polls", label: "Polls", icon: "bar-chart-outline" },
-  { key: "deals", label: "Deals", icon: "pricetag-outline" },
   { key: "events", label: "Events", icon: "calendar-outline" },
 ];
 
@@ -35,23 +34,26 @@ function HomeFilterChips({ selected, onSelect }: Props) {
             key={chip.key}
             onPress={() => onSelect(chip.key)}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
             style={[
               styles.chip,
-              isSelected
-                ? { backgroundColor: "#15803D" }
-                : { backgroundColor: t.colors.surfaceAlt },
+              {
+                backgroundColor: isSelected ? t.colors.brand : t.colors.surface,
+                borderColor: isSelected ? t.colors.brand : t.colors.border,
+              },
             ]}
           >
             <Ionicons
               name={chip.icon}
               size={14}
-              color={isSelected ? "#fff" : t.colors.textSecondary}
+              color={isSelected ? t.colors.onBrand : t.colors.textSecondary}
               style={styles.chipIcon}
             />
             <Text
               style={[
                 styles.chipLabel,
-                { color: isSelected ? "#fff" : t.colors.textSecondary },
+                { color: isSelected ? t.colors.onBrand : t.colors.textPrimary },
               ]}
             >
               {chip.label}
@@ -68,7 +70,7 @@ export default memo(HomeFilterChips);
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
     paddingVertical: 4,
     paddingBottom: 12,
   },
@@ -76,14 +78,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    // Matches the reference's soft chip shadow.
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   chipIcon: {
     marginRight: 6,
   },
   chipLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
 });

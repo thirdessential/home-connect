@@ -6,12 +6,16 @@ type Props = {
   selectedCount: number;
   onBulkReject: () => void;
   onBulkApprove: () => void;
+  // Batches run item-by-item (no bulk endpoint), so the bar locks while one
+  // is in flight to stop a second tap firing duplicate approvals.
+  isBusy?: boolean;
 };
 
 const BulkActionBar = memo(function BulkActionBar({
   selectedCount,
   onBulkReject,
   onBulkApprove,
+  isBusy = false,
 }: Props) {
   const t = useTheme();
 
@@ -27,8 +31,9 @@ const BulkActionBar = memo(function BulkActionBar({
       </Text>
       <View style={styles.buttons}>
         <TouchableOpacity
-          style={[styles.button, styles.rejectButton]}
+          style={[styles.button, styles.rejectButton, isBusy && styles.disabled]}
           onPress={onBulkReject}
+          disabled={isBusy}
         >
           <Text
             style={[t.typography.button1, { color: t.colors.textSecondary }]}
@@ -37,10 +42,13 @@ const BulkActionBar = memo(function BulkActionBar({
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.button, styles.approveButton]}
+          style={[styles.button, styles.approveButton, isBusy && styles.disabled]}
           onPress={onBulkApprove}
+          disabled={isBusy}
         >
-          <Text style={[t.typography.button1, { color: "#fff" }]}>Approve</Text>
+          <Text style={[t.typography.button1, { color: "#fff" }]}>
+            {isBusy ? "Working…" : "Approve"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -74,4 +82,5 @@ const styles = StyleSheet.create({
   button: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
   rejectButton: { backgroundColor: "#F5F5F5" },
   approveButton: { backgroundColor: "#FF6B35" },
+  disabled: { opacity: 0.5 },
 });

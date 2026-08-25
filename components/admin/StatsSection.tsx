@@ -41,9 +41,12 @@ const StatsSection = memo(function StatsSection({
     <View style={styles.container}>
       <View style={styles.itemFull}>
         <StatsCard
-          title="Reported Contents"
+          title="Reported Content"
           value={stats.reportedContents}
-          icon="alert-circle-outline"
+          icon="flag"
+          caption="Posts, comments, deals, events & more"
+          color="#DC2626"
+          tint="#FDECEC"
           onPress={onReportedContentsPress}
           isSelected={selectedCard === "reported-contents"}
           type="pending"
@@ -53,7 +56,10 @@ const StatsSection = memo(function StatsSection({
         <StatsCard
           title="Pending Requests"
           value={stats.pendingRequests}
-          icon="alert-circle-outline"
+          icon="people-outline"
+          caption="Needs your review"
+          color="#15803D"
+          tint="#FDEEE1"
           onPress={onPendingPress}
           isSelected={selectedCard === "pending"}
           type="pending"
@@ -63,7 +69,10 @@ const StatsSection = memo(function StatsSection({
         <StatsCard
           title="Approved Residents"
           value={stats.approvedResidents}
-          icon="people-outline"
+          icon="person-add-outline"
+          caption="Total approved"
+          color="#16A34A"
+          tint="#E7F6ED"
           onPress={onApprovedResidentsPress}
           isSelected={selectedCard === "approved-residents"}
           type="approved"
@@ -71,9 +80,12 @@ const StatsSection = memo(function StatsSection({
       </View>
       <View style={styles.item}>
         <StatsCard
-          title="Approved Business"
+          title="Approved Businesses"
           value={stats.approvedBusinesses}
-          icon="business-outline"
+          icon="storefront-outline"
+          caption="Total approved"
+          color="#7C3AED"
+          tint="#F1EAFE"
           onPress={onApprovedBusinessPress}
           isSelected={selectedCard === "approved-business"}
           type="approved"
@@ -83,7 +95,10 @@ const StatsSection = memo(function StatsSection({
         <StatsCard
           title="Approved Services"
           value={stats.approvedServices}
-          icon="business-outline"
+          icon="people-circle-outline"
+          caption="Total approved"
+          color="#2563EB"
+          tint="#E8F0FE"
           onPress={onApprovedServicesPress}
           isSelected={selectedCard === "approved-services"}
           type="approved"
@@ -101,6 +116,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    rowGap: 12,
+    marginBottom: 8,
   },
   item: { width: "48%" },
   itemFull: { width: "100%" },

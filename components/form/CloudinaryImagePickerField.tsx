@@ -1,5 +1,6 @@
 // Placeholder: implement this in your cloudinary helper
 import { deleteImage } from "@/lib/cloudinary";
+import { pickImageCropped } from "@/lib/ImagePicker";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
@@ -29,23 +30,21 @@ function CloudinaryImagePickerField({
   // Remove upload logic from picker field; parent handles upload
   const [error, setError] = useState<string | null>(null);
 
-  const handleAddImage = useCallback(async () => {
-    if (disabled) return;
-    setError(null);
-    try {
-      const picker = await import("expo-image-picker");
-      const res = await picker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        quality: 0.85,
-      });
-      if (res.canceled || !res.assets?.[0]?.uri) return;
-      // Only add local URI, do not upload
-      onChange([...value, res.assets[0].uri]);
-    } catch {
-      // Error handled by setError above
-    }
-  }, [disabled, value, onChange]);
+  const handleAddImage = useCallback(
+    async (source: "camera" | "library") => {
+      if (disabled) return;
+      setError(null);
+      try {
+        const asset = await pickImageCropped(source, { quality: 0.85 });
+        if (!asset?.uri) return;
+        // Only add local URI, do not upload
+        onChange([...value, asset.uri]);
+      } catch {
+        // Error handled by setError above
+      }
+    },
+    [disabled, value, onChange]
+  );
 
   // Extracts the Cloudinary public ID from a full URL
   function extractCloudinaryPublicId(url: string): string | null {
@@ -86,7 +85,7 @@ function CloudinaryImagePickerField({
       value.length < max && (
         <View style={{ width: tileSize, height: tileSize }}>
           <TouchableOpacity
-            onPress={handleAddImage}
+            onPress={() => handleAddImage("library")}
             style={{
               flex: 1,
               borderWidth: 1,
@@ -115,6 +114,15 @@ function CloudinaryImagePickerField({
               }}
             >
               Gallery
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleAddImage("camera")}
+            disabled={disabled}
+            style={{ alignItems: "center", marginTop: 6 }}
+          >
+            <Text style={{ color: t.colors.brandDark, fontSize: 12, fontWeight: "600" }}>
+              Use Camera
             </Text>
           </TouchableOpacity>
         </View>

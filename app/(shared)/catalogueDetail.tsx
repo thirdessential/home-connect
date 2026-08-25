@@ -1,10 +1,12 @@
 import ActionButton from "@/components/inputs/ActionButton";
 import ImageCarousel from "@/components/UI/ImageCarousel";
+import { sendWhatsAppMessage } from "@/lib/utils";
 import { useProductStore } from "@/store/useBusinessStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -71,9 +73,25 @@ export default function CatalogueDetail() {
     router.back();
   }, [router]);
 
+  // No ordering endpoint exists for catalogue items, so the enquiry goes to the
+  // business owner over WhatsApp — same pattern as the business detail screen.
   const handleOrderEnquire = useCallback(() => {
-    // TODO: Implement order/enquire functionality
-  }, []);
+    const phone = product?.businessPhone || product?.phone;
+    if (!phone) {
+      Alert.alert(
+        "Contact unavailable",
+        "This business has not published a contact number yet.",
+      );
+      return;
+    }
+    void sendWhatsAppMessage({
+      phone,
+      productDetails: {
+        name: catalogueItem?.title ?? "this item",
+        price: catalogueItem?.price,
+      },
+    });
+  }, [product?.businessPhone, product?.phone, catalogueItem?.title, catalogueItem?.price]);
 
   // Memoized specifications
   const specifications = useMemo(() => {

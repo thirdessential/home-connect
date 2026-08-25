@@ -7,9 +7,9 @@ import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Share, Text, TouchableOpacity, View } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
-import LikeButton from "../inputs/LikeButton";
+import FeedActions from "../home/FeedActions";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import FormSheetModal from "../modals/FormSheetModal";
 import OrderSuccessModal from "../modals/OrderSuccessModal";
@@ -152,7 +152,20 @@ const PollCard = React.memo(function PollCard({
   const handleCloseReportModal = useCallback(() => setReportVisible(false), []);
   const handleRemovePost = useCallback(() => setConfirmDeleteVisible(true), []);
   const handleReportUser = useCallback(() => { }, []);
-  const handleShare = useCallback(() => { }, []);
+
+  // OS share sheet — no deep link, feed polls have no route in the app scheme.
+  const handleShare = useCallback(async () => {
+    const title = pollData?.title;
+    if (!title) return;
+    try {
+      await Share.share({
+        title,
+        message: [title, "Shared via HomeConnect"].join("\n\n"),
+      });
+    } catch {
+      // Sheet dismissed or unavailable.
+    }
+  }, [pollData?.title]);
 
   const handleConfirmDelete = useCallback(async () => {
     const feedId = pollData?._id;
@@ -194,7 +207,7 @@ const PollCard = React.memo(function PollCard({
   if (!pollData) return null;
 
   return (
-    <Card>
+    <Card style={{ borderRadius: 12 }}>
       {/* Header */}
       <ImageTitleHeader
         imageUri={
@@ -270,11 +283,11 @@ const PollCard = React.memo(function PollCard({
                 }
               }}
               style={{
-                padding: 10,
-                borderRadius: 8,
-                backgroundColor: isSelected ? "#FEF6EC" : "#F3F4F6",
-                borderWidth: isSelected ? 2 : 1,
-                borderColor: isSelected ? "#F59E42" : "#F3F4F6",
+                padding: 12,
+                borderRadius: 10,
+                backgroundColor: t.colors.surfaceAlt,
+                borderWidth: 1,
+                borderColor: isSelected ? t.colors.brand : t.colors.border,
                 overflow: "hidden",
               }}
             >
@@ -287,8 +300,8 @@ const PollCard = React.memo(function PollCard({
                     top: 0,
                     bottom: 0,
                     width: `${pct}%`,
-                    backgroundColor: isSelected ? "#FEF0DC" : "#E5E7EB",
-                    borderRadius: 8,
+                    backgroundColor: t.colors.brandWeak,
+                    borderRadius: 10,
                   }}
                 />
               )}
@@ -299,7 +312,7 @@ const PollCard = React.memo(function PollCard({
                     style={{
                       fontWeight: "600",
                       fontSize: 15,
-                      color: isSelected ? "#B45309" : "#222",
+                      color: t.colors.textPrimary,
                     }}
                   >
                     {option.name}
@@ -308,7 +321,7 @@ const PollCard = React.memo(function PollCard({
                     <Text
                       style={{
                         fontSize: 12,
-                        color: isSelected ? "#B45309" : "#6B7280",
+                        color: isSelected ? t.colors.brand : t.colors.textSecondary,
                         marginTop: 2,
                         fontWeight: isSelected ? "600" : "400",
                       }}
@@ -323,7 +336,7 @@ const PollCard = React.memo(function PollCard({
                     style={{
                       fontWeight: "700",
                       fontSize: 14,
-                      color: isSelected ? "#B45309" : "#374151",
+                      color: t.colors.brand,
                       minWidth: 38,
                       textAlign: "right",
                     }}
@@ -336,7 +349,7 @@ const PollCard = React.memo(function PollCard({
                   <Ionicons
                     name="checkmark-circle"
                     size={18}
-                    color="#F59E42"
+                    color={t.colors.brand}
                     style={{ marginLeft: 6 }}
                   />
                 )}
@@ -361,30 +374,21 @@ const PollCard = React.memo(function PollCard({
       )}
 
       {/* Social Actions */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }}>
-        <LikeButton
-          feedId={pollData._id ?? ""}
-          likes={pollData.likes}
-          onBeforeLike={handleLikePress}
-        />
-        <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-          onPress={handleCommentPress}
-        >
-          <Ionicons name="chatbubble-ellipses-outline" size={16} color="#6B7280" />
-          <Text style={{ color: "#6B7280", fontSize: 14 }}>
-            {pollData.comments?.length || 0} Comments
-          </Text>
-        </TouchableOpacity>
-        {onDelete && (
-          <TouchableOpacity
-            onPress={onDelete}
-            style={{ flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto" }}
-          >
-            <Ionicons name="trash-outline" size={16} color="#EF4444" />
-          </TouchableOpacity>
-        )}
-      </View>
+      <FeedActions
+        feedId={pollData._id ?? ""}
+        likes={pollData.likes}
+        commentCount={pollData.comments?.length || 0}
+        shareTitle={pollData.title}
+        onBeforeAction={handleLikePress}
+        onCommentPress={handleCommentPress}
+        trailing={
+          onDelete ? (
+            <TouchableOpacity onPress={onDelete}>
+              <Ionicons name="trash-outline" size={16} color={t.colors.error} />
+            </TouchableOpacity>
+          ) : null
+        }
+      />
 
       {/* Verification Sheet */}
       {verifySheetVisible && (

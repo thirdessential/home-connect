@@ -13,6 +13,34 @@ const defaultOpts: PickImageOptions = {
     quality: 0.9,
 };
 
+export const CROP_RATIOS: Record<"1:1" | "4:5" | "16:9", [number, number]> = {
+    "1:1": [1, 1],
+    "4:5": [4, 5],
+    "16:9": [16, 9],
+};
+
+/** Ask the user which crop ratio to apply; resolves to a native aspect tuple. */
+export async function chooseCropRatio(): Promise<[number, number] | null> {
+    return new Promise((resolve) => {
+        const opts: Array<keyof typeof CROP_RATIOS> = ["1:1", "4:5", "16:9"];
+        if (Platform.OS === "ios") {
+            ActionSheetIOS.showActionSheetWithOptions(
+                { options: ["Cancel", ...opts], cancelButtonIndex: 0 },
+                (idx) => resolve(idx === 0 ? null : CROP_RATIOS[opts[idx - 1]]),
+            );
+        } else {
+            Alert.alert(
+                "Choose crop ratio",
+                undefined,
+                [
+                    ...opts.map((r) => ({ text: r, onPress: () => resolve(CROP_RATIOS[r]) })),
+                    { text: "Cancel", style: "cancel" as const, onPress: () => resolve(null) },
+                ],
+            );
+        }
+    });
+}
+
 async function ensureLibraryPermission() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     return perm.status === "granted";
@@ -32,9 +60,10 @@ export async function pickFromLibrary(
         return null;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: opts.allowsEditing,
-        aspect: opts.aspect,
+        mediaTypes: ["images"],
+        // Cropping is mandatory for every flow — never let a caller disable it.
+        allowsEditing: true,
+        aspect: opts.aspect ?? defaultOpts.aspect,
         quality: opts.quality,
     });
     if (res.canceled) return null;
@@ -50,12 +79,31 @@ export async function takePhoto(
         return null;
     }
     const res = await ImagePicker.launchCameraAsync({
-        allowsEditing: opts.allowsEditing,
-        aspect: opts.aspect,
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: opts.aspect ?? defaultOpts.aspect,
         quality: opts.quality,
     });
     if (res.canceled) return null;
     return res.assets[0];
+}
+
+/**
+ * THE single reusable crop flow: choose ratio → capture/pick → native crop →
+ * confirm. Every Camera/Gallery entry point in the app should call this
+ * (directly, or via pickImageWithMenu) instead of hitting expo-image-picker
+ * itself, so cropping can never be skipped and there is one place to change
+ * behaviour.
+ */
+export async function pickImageCropped(
+    source: "camera" | "library",
+    opts: PickImageOptions = defaultOpts,
+): Promise<ImagePicker.ImagePickerAsset | null> {
+    const aspect = await chooseCropRatio();
+    if (!aspect) return null; // user cancelled the ratio step
+    return source === "camera"
+        ? takePhoto({ ...opts, aspect })
+        : pickFromLibrary({ ...opts, aspect });
 }
 
 /**
@@ -86,10 +134,10 @@ export async function pickImageWithMenu(
                 },
                 async (idx) => {
                     if (idx === 1) {
-                        const asset = await takePhoto(opts);
+                        const asset = await pickImageCropped("camera", opts);
                         resolve(asset ? { asset } : null);
                     } else if (idx === 2) {
-                        const asset = await pickFromLibrary(opts);
+                        const asset = await pickImageCropped("library", opts);
                         resolve(asset ? { asset } : null);
                     } else if (allowRemove && idx === options.length - 1) {
                         resolve({ removed: true });
@@ -107,13 +155,13 @@ export async function pickImageWithMenu(
                 [
                     {
                         text: "Take Photo", onPress: async () => {
-                            const asset = await takePhoto(opts);
+                            const asset = await pickImageCropped("camera", opts);
                             resolve(asset ? { asset } : null);
                         }
                     },
                     {
                         text: "Choose from Library", onPress: async () => {
-                            const asset = await pickFromLibrary(opts);
+                            const asset = await pickImageCropped("library", opts);
                             resolve(asset ? { asset } : null);
                         }
                     },

@@ -38,14 +38,14 @@ export default function FilterChips({
             paddingHorizontal: 14,
             borderRadius: 9999,
             borderWidth: 1,
-            borderColor: selected === opt.id ? "#EA580C" : "#F3F4F6",
+            borderColor: selected === opt.id ? "#15803D" : "#F3F4F6",
             backgroundColor: selected === opt.id ? "#FFF7ED" : "#F3F4F6",
           }}
           onPress={() => handleSelect(opt.id)}
         >
           <Text
             style={{
-              color: selected === opt.id ? "#EA580C" : "#374151",
+              color: selected === opt.id ? "#15803D" : "#374151",
               fontSize: 14,
               fontWeight: "500",
               lineHeight: 21,

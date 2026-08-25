@@ -9,6 +9,7 @@ import { Card } from "@/components/UI/Card";
 import OrderProgressBar from "@/components/UI/OrderProgress";
 import Skeleton from "@/components/UI/Skeleton";
 import TitleHeader from "@/components/UI/TitleHeader";
+import { shareProduct } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
 import { useWholesaleDealStore } from "@/store/useWholesaleDealStore";
 import { useTheme } from "@/theme/theme";
@@ -17,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   FlatList,
   Platform,
@@ -444,13 +446,24 @@ export default function EventRequestScreen() {
     [selectedDeal?._id, updateOrderStatus, getDealsByUserId, getDealById, user?._id],
   );
 
+  // Broadcasting to society members needs a server-side notification endpoint,
+  // which the API does not expose yet. Kept inert rather than faking a send.
   const handleBroadcast = useCallback(() => {
-    // TODO: Implement broadcast logic
+    Alert.alert(
+      "Broadcast unavailable",
+      "Sending a broadcast to your society is not supported yet.",
+    );
   }, []);
 
   const handleShare = useCallback(() => {
-    // TODO: Implement share logic
-  }, []);
+    if (!selectedDeal) return;
+    void shareProduct({
+      name: selectedDeal.title ?? "Deal",
+      description: selectedDeal.description,
+      price: selectedDeal.price?.sellingPrice,
+      link: `homeconnect://deal/${selectedDeal._id}`,
+    });
+  }, [selectedDeal]);
 
   const handleTabChange = useCallback((tab: "approved" | "rejected") => {
     setActiveTab(tab);

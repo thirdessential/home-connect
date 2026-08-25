@@ -1,4 +1,4 @@
-import { Get } from "@/lib/httpMethods";
+import { Get, Patch, Post } from "@/lib/httpMethods";
 import { ReportItem } from "@/types/business.type";
 import { create } from "zustand";
 import { User } from "./auth.type";
@@ -273,6 +273,14 @@ export interface AdminStore {
 
     /** Fetch all pending approval requests for a specific society */
     getAllPendingContent: (societyId: string) => Promise<void>;
+    /** Approve a MySQL business registration (new backend contract). */
+    approveMysqlBusiness: (businessId: number | string) => Promise<void>;
+    /** Reject a MySQL business registration (requires a reason). */
+    rejectMysqlBusiness: (businessId: number | string, reason: string) => Promise<void>;
+    /** Approve a resident verification (MySQL, grants the `resident` role). */
+    approveResident: (userId: string | number) => Promise<void>;
+    /** Reject a resident verification (requires a reason). */
+    rejectResident: (userId: string | number, reason: string) => Promise<void>;
 
     /** Fetch all approved content for a specific society */
     getAllApprovedContent: (societyId: string) => Promise<void>;
@@ -348,6 +356,31 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
                 reportedContentLoading: false,
             });
         }
+    },
+
+    approveMysqlBusiness: async (businessId) => {
+        await Patch(`/api/admin/business/${businessId}/approve`, {});
+    },
+
+    rejectMysqlBusiness: async (businessId, reason) => {
+        await Patch(`/api/admin/business/${businessId}/reject`, {
+            rejection_reason: reason,
+        });
+    },
+
+    approveResident: async (userId) => {
+        await Post(`/api/admin/resident/approve`, {
+            user_id: userId,
+            status: "approved",
+        });
+    },
+
+    rejectResident: async (userId, reason) => {
+        await Post(`/api/admin/resident/approve`, {
+            user_id: userId,
+            status: "rejected",
+            rejection_reason: reason,
+        });
     },
 
     getAllPendingContent: async (societyId: string) => {

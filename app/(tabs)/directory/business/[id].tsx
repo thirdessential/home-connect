@@ -64,7 +64,7 @@ const ProfileHeaderCard = memo(
             <CircularImage uri={business.images[0]} size={96} mode="view" />
           ) : (
             <View style={styles.profileAvatarPlaceholder}>
-              <Ionicons name="storefront" size={48} color="#EA580C" />
+              <Ionicons name="storefront" size={48} color="#15803D" />
             </View>
           )}
         </View>
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   callButton: {
-    backgroundColor: "#EA580C",
+    backgroundColor: "#15803D",
   },
   callButtonText: {
     color: "white",
@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#EA580C",
+    color: "#15803D",
   },
   viewFullMenuButton: {
     paddingVertical: 12,
@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
   viewFullMenuText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#EA580C",
+    color: "#15803D",
   },
   detailsCard: {
     borderRadius: 12,

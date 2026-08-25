@@ -284,7 +284,7 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
           <InfoBanner
             title="Add your service to the directory after admin approval."
             backgroundColor="#FFF7ED"
-            borderColor="#EA580C"
+            borderColor="#15803D"
             titleColor="#F97316"
           />
           <TextField

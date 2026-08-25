@@ -130,6 +130,8 @@ function TerraceSelectField({
                 );
               }}
               keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: getHeight(28) }}
+              style={{ maxHeight: getHeight(360) }}
             />
           </SafeAreaView>
         </TouchableOpacity>

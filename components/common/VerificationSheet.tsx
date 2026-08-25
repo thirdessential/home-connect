@@ -401,7 +401,7 @@ function VerificationSheetInner({
                               <View
                                 style={[
                                   styles.stepperCircle,
-                                  { backgroundColor: active ? "#EA580C" : "#E5E7EB" },
+                                  { backgroundColor: active ? "#15803D" : "#E5E7EB" },
                                 ]}
                               >
                                 <Text

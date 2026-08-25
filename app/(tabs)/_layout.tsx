@@ -1,5 +1,6 @@
 import { COMMON_CONSTANTS } from "@/assets/constants/common.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
+import GlobalBottomNavigation from "@/components/UI/GlobalBottomNavigation";
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import { useCreatePostModal } from "@/hooks/useCreatePostModal";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -38,18 +39,6 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     [userStatus],
   );
 
-  // Memoize tab colors
-  const ACTIVE_TAB_COLOR = "#15803D";
-  const tabColors = useMemo(
-    () => [
-      state.index === 0 ? ACTIVE_TAB_COLOR : t.colors.textSecondary,
-      state.index === 1 ? ACTIVE_TAB_COLOR : t.colors.textSecondary,
-      state.index === 2 ? ACTIVE_TAB_COLOR : t.colors.textSecondary,
-      state.index === 3 ? ACTIVE_TAB_COLOR : t.colors.textSecondary,
-    ],
-    [state.index, t.colors],
-  );
-
   // Memoize tab labels
   const tabLabels = useMemo(
     () => [
@@ -65,10 +54,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabIcons = useMemo(
     () =>
       [
-        state.index === 0 ? "home-sharp" : "home-sharp",
-        state.index === 1 ? "lock-closed-outline" : "lock-closed-outline",
-        state.index === 2 ? "book-outline" : "book-outline",
-        state.index === 3 ? "person-outline" : "person-outline",
+        state.index === 0 ? "home" : "home-outline",
+        state.index === 1 ? "lock-closed" : "lock-closed-outline",
+        state.index === 2 ? "book" : "book-outline",
+        state.index === 3 ? "person" : "person-outline",
       ] as const,
     [state.index],
   );
@@ -99,128 +88,26 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Fix bottom bar height for Android and iOS
   const tabBarHeight = insets.bottom + 56; // 56 is a good default for both platforms
+  const activeKey = ["home", "business", "directory", "profile"][state.index] ?? "home";
+  const handleCenterPress = useCallback(() => {
+    if (isUserAllowed) setUnverifiedModalVisible(true);
+    else if (modalOpen) close();
+    else open();
+  }, [isUserAllowed, modalOpen, close, open]);
+
   return (
     <>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-around",
-          backgroundColor: t.colors.surface,
-          borderTopColor: t.colors.border,
-          borderTopWidth: 1,
-          paddingBottom: insets.bottom,
-          height: tabBarHeight,
-        }}
-      >
-        {/* Home */}
-        <Pressable
-          onPress={handleHomePress}
-          style={{ flex: 1, alignItems: "center" }}
-        >
-          <Ionicons
-            name={tabIcons[0]}
-            size={t.iconSizes.sm}
-            color={tabColors[0]}
-          />
-          <Text style={{ ...t.typography.iconText, color: tabColors[0] }}>
-            {tabLabels[0]}
-          </Text>
-        </Pressable>
-        {/* Business */}
-        <Pressable
-          onPress={handleBusinessPress}
-          style={{ flex: 1, alignItems: "center" }}
-        >
-          <Ionicons
-            name={tabIcons[1]}
-            size={t.iconSizes.sm}
-            color={tabColors[1]}
-          />
-          <Text style={{ ...t.typography.iconText, color: tabColors[1] }}>
-            {tabLabels[1]}
-          </Text>
-        </Pressable>
-        {/* Middle + / × */}
-        <View style={{ width: BTN_SIZE, alignItems: "center" }}>
-          {modalOpen && !isUserAllowed && (
-            <View
-              style={{
-                position: "absolute",
-                top: -70,
-                left: -30,
-                right: -30,
-                bottom: -30,
-                backgroundColor: "rgba(0,0,0,0))",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.2)",
-                borderRadius: 999,
-              }}
-            />
-          )}
-          <Pressable
-            onPress={() => {
-              if (isUserAllowed) {
-                setUnverifiedModalVisible(true);
-              } else {
-                if (modalOpen) close();
-                else open();
-              }
-            }}
-            style={{
-              width: BTN_SIZE,
-              height: BTN_SIZE,
-              borderRadius: BTN_SIZE / 2,
-              backgroundColor: t.colors.primary,
-              alignItems: "center",
-              justifyContent: "center",
-              display: "flex",
-              position: "absolute",
-              left: "50%",
-              marginLeft: -BTN_SIZE / 2,
-              borderColor: t.colors.surface,
-              borderWidth: 4,
-              top: -42,
-              marginBottom: 20,
-              zIndex: 9999,
-            }}
-          >
-            <Ionicons
-              name={modalOpen ? "close" : "add"}
-              size={t.iconSizes.md}
-              color="#fff"
-            />
-          </Pressable>
-        </View>
-        {/* Directory */}
-        <Pressable
-          onPress={handleDirectoryPress}
-          style={{ flex: 1, alignItems: "center" }}
-        >
-          <Ionicons
-            name={tabIcons[2]}
-            size={t.iconSizes.sm}
-            color={tabColors[2]}
-          />
-          <Text style={{ ...t.typography.iconText, color: tabColors[2] }}>
-            {tabLabels[2]}
-          </Text>
-        </Pressable>
-        {/* Profile */}
-        <Pressable
-          onPress={handleProfilePress}
-          style={{ flex: 1, alignItems: "center" }}
-        >
-          <Ionicons
-            name={tabIcons[3]}
-            size={t.iconSizes.sm}
-            color={tabColors[3]}
-          />
-          <Text style={{ ...t.typography.iconText, color: tabColors[3] }}>
-            {tabLabels[3]}
-          </Text>
-        </Pressable>
-      </View>
+      <GlobalBottomNavigation
+        activeKey={activeKey}
+        centerIcon={modalOpen ? "close" : "add"}
+        onCenterPress={handleCenterPress}
+        items={[
+          { key: "home", label: tabLabels[0], icon: tabIcons[0], onPress: handleHomePress },
+          { key: "business", label: tabLabels[1], icon: tabIcons[1], onPress: handleBusinessPress },
+          { key: "directory", label: tabLabels[2], icon: tabIcons[2], onPress: handleDirectoryPress },
+          { key: "profile", label: tabLabels[3], icon: tabIcons[3], onPress: handleProfilePress },
+        ]}
+      />
       {unverifiedModalVisible && (
         <FormSheetModal
           visible={unverifiedModalVisible}

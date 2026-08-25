@@ -1,4 +1,5 @@
 import { usePermissions } from "@/hooks/usePermissions";
+import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
@@ -23,6 +24,12 @@ interface ImageTitleHeaderProps {
   // Shows a small green checkmark next to the title — used when the poster's
   // identity is verified but withheld from the current (unverified) viewer.
   verified?: boolean;
+  // Optional pill label rendered next to the title (e.g. "EVENT").
+  badge?: string;
+  // "onImage" renders light text for headers drawn over a photo (the event
+  // card's hero). "default" follows the theme so the header stays legible on
+  // a plain card in both light and dark mode.
+  variant?: "default" | "onImage";
 }
 
 // Static default functions to prevent re-rendering
@@ -51,7 +58,9 @@ const areEqual = (
     prevProps.onReportUser === nextProps.onReportUser &&
     prevProps.onShare === nextProps.onShare &&
     prevProps.onRemovePost === nextProps.onRemovePost &&
-    prevProps.verified === nextProps.verified
+    prevProps.verified === nextProps.verified &&
+    prevProps.badge === nextProps.badge &&
+    prevProps.variant === nextProps.variant
   );
 };
 
@@ -71,9 +80,17 @@ const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
     onShare,
     onRemovePost,
     verified = false,
+    badge,
+    variant = "default",
   }) => {
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const { hasRole } = usePermissions();
+    const t = useTheme();
+
+    const onImage = variant === "onImage";
+    const titleColor = onImage ? "#FEFEFE" : t.colors.textPrimary;
+    const subtitleColor = onImage ? "#E3E3E3" : t.colors.textSecondary;
+    const optionsIconColor = onImage ? "#FFFFFF" : t.colors.textSecondary;
 
     const handleOptionsPress = useCallback(() => {
       setOptionsModalVisible(true);
@@ -133,6 +150,7 @@ const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
     return (
       <>
         <View style={styles.container}>
+          <View style={[styles.imageWrapper, { borderColor: onImage ? "#fff" : t.colors.border }]}>
           <CircularImage
             uri={imageUri}
             mode={imageMode}
@@ -140,28 +158,43 @@ const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
             size={imageSize}
             loading={imageLoading}
           />
+          </View>
+          
           <View style={styles.textContainer}>
             {/* username class */}
             <View style={styles.usernameRow}>
-              <Text style={styles.username}>{title}</Text>
+              <Text
+                style={[styles.username, { color: titleColor }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {title}
+              </Text>
               {verified && (
                 <Ionicons
                   name="checkmark-circle"
                   size={15}
                   color="#22C55E"
-                  style={styles.verifiedIcon}
+                  style={[styles.verifiedIcon, styles.verifiedIconWrap]}
                 />
+              )}
+              {badge && (
+                <View style={styles.badgePill}>
+                  <Text style={styles.badgePillText}>{badge}</Text>
+                </View>
               )}
             </View>
             {/* text-sm text-gray-500 */}
-            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            {subtitle && (
+              <Text style={[styles.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
+            )}
           </View>
           {showOptionsMenu && (
             <TouchableOpacity
               onPress={handleOptionsPress}
               style={styles.optionsButton}
             >
-              <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
+              <Ionicons name="ellipsis-vertical" size={20} color={optionsIconColor} />
             </TouchableOpacity>
           )}
         </View>
@@ -177,41 +210,47 @@ const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
             <View style={MODAL_CONTENT_STYLE}>
               <TouchableOpacity
                 onPress={handleReportPostPress}
-                style={styles.optionItem}
+                style={[styles.optionItem, { borderBottomColor: t.colors.border }]}
               >
                 <Ionicons
                   name="flag-outline"
                   size={24}
-                  color="#374151"
+                  color={t.colors.textPrimary}
                   style={ICON_STYLE}
                 />
-                <Text style={styles.optionText}>Report Post</Text>
+                <Text style={[styles.optionText, { color: t.colors.textPrimary }]}>
+                Report Post
+              </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleReportUserPress}
-                style={styles.optionItem}
+                style={[styles.optionItem, { borderBottomColor: t.colors.border }]}
               >
                 <Ionicons
                   name="person-outline"
                   size={24}
-                  color="#374151"
+                  color={t.colors.textPrimary}
                   style={ICON_STYLE}
                 />
-                <Text style={styles.optionText}>Report User</Text>
+                <Text style={[styles.optionText, { color: t.colors.textPrimary }]}>
+                  Report User
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleSharePress}
-                style={styles.optionItem}
+                style={[styles.optionItem, { borderBottomColor: t.colors.border }]}
               >
                 <Ionicons
                   name="share-outline"
                   size={24}
-                  color="#374151"
+                  color={t.colors.textPrimary}
                   style={ICON_STYLE}
                 />
-                <Text style={styles.optionText}>Share</Text>
+                <Text style={[styles.optionText, { color: t.colors.textPrimary }]}>
+                  Share
+                </Text>
               </TouchableOpacity>
               {(hasRole(UserRole.ADMIN) || isSameUser) && (
                 <TouchableOpacity
@@ -221,10 +260,12 @@ const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
                   <Ionicons
                     name="trash-outline"
                     size={24}
-                    color="#374151"
+                    color={t.colors.textPrimary}
                     style={ICON_STYLE}
                   />
-                  <Text style={styles.optionText}>Remove Post</Text>
+                  <Text style={[styles.optionText, { color: t.colors.textPrimary }]}>
+                    Remove Post
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -244,28 +285,47 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12, // gap-3 = 12px
+    // backdropFilter: 
   },
-  textContainer: {
+  imageWrapper:{
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderRadius: 50
+  },
+    textContainer: {
     flex: 1,
   },
   usernameRow: {
     flexDirection: "row",
     alignItems: "center",
   },
+  verifiedIconWrap: { flexShrink: 0 },
   // username class styling
   username: {
     fontWeight: "600",
     fontSize: 15,
-    color: "#1F2937",
+    flexShrink: 1,
   },
   verifiedIcon: {
     marginLeft: 4,
   },
+  badgePill: {
+    marginLeft: 6,
+    flexShrink: 0,
+    backgroundColor: "#A7F2CD",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  badgePillText: {
+    color: "#002114",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
   // text-sm text-gray-500
   subtitle: {
     fontSize: 14, // text-sm = 14px
-    color: "#6B7280", // text-gray-500
-    marginTop: 2,
   },
   optionsButton: {
     padding: 4,
@@ -275,11 +335,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
   },
   optionText: {
     fontSize: 16,
-    color: "#374151",
   },
 });
 

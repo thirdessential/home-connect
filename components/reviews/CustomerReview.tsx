@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   addReviewButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#EA580C",
+    color: "#15803D",
   },
   reviewCard: {
     borderRadius: 8,

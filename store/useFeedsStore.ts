@@ -1,8 +1,8 @@
 import { CACHE_TTL_MS } from "@/assets/constants/common.constant";
 import { Delete, Get, Patch, Post } from "@/lib/httpMethods";
+import { zustandStorage } from "@/lib/storage";
 import { ReportItem } from "@/types/business.type";
 import { FeedItem, FeedsState, RsvpUser } from "@/types/feeds.type";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -238,14 +238,25 @@ export const useFeedsStore = create<FeedsState>()(
                     set({ error: "Failed to delete feed" });
                 }
             },
-            addComment: (feedId, comment) =>
-                set((state) => ({
-                    feeds: state.feeds.map((f) =>
-                        f._id === feedId
-                            ? { ...f, comments: [...(f.comments || []), comment] }
-                            : f,
-                    ),
-                })),
+            addComment: async (feedId, comment) => {
+                try {
+                    const response = await Post<{ success: boolean; comments: any[] }>(
+                        `/api/feed/comment/${feedId}`,
+                        { userId: comment?.userId ?? comment?.user?._id, text: comment?.text },
+                    );
+                    if (response?.success) {
+                        set((state) => ({
+                            feeds: state.feeds.map((f) =>
+                                f._id === feedId ? { ...f, comments: response.comments } : f,
+                            ),
+                        }));
+                    }
+                } catch (error) {
+                    console.error("Failed to add comment:", error);
+                    set({ error: "Failed to add comment" });
+                    throw error;
+                }
+            },
             addReply: (feedId, commentId, reply) =>
                 set((state) => ({
                     feeds: state.feeds.map((f) =>
@@ -308,6 +319,16 @@ export const useFeedsStore = create<FeedsState>()(
                                             return option;
                                         }),
                                         totalVotes: response.totalVotes,
+                                        votes: [
+                                            ...(f.votes || []).filter((v: any) => {
+                                                const vid =
+                                                    typeof v.userId === "string"
+                                                        ? v.userId
+                                                        : v.userId?._id ?? v.userId?.toString();
+                                                return vid !== userId;
+                                            }),
+                                            { userId, optionId },
+                                        ],
                                     };
                                 }
                                 return f;
@@ -514,7 +535,9 @@ export const useFeedsStore = create<FeedsState>()(
         }),
         {
             name: "feeds-store",
-            storage: createJSONStorage(() => AsyncStorage),
+            // Use the shared adapter, not AsyncStorage directly — it guards the
+            // `window is not defined` throw on web/SSR.
+            storage: createJSONStorage(() => zustandStorage),
             partialize: (state) => ({
                 feeds: state.feeds,
                 lastFetchedAt: state.lastFetchedAt,

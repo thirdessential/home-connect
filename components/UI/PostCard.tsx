@@ -13,13 +13,14 @@ import {
   ImageStyle,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Share,
   Text,
   TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
-import LikeButton from "../inputs/LikeButton";
+import FeedActions from "../home/FeedActions";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import FormSheetModal from "../modals/FormSheetModal";
 import ReportModal from "../modals/ReportModal";
@@ -179,9 +180,23 @@ const PostCard = React.memo(function PostCard({
     setReportVisible(true);
   }, []);
 
-  const handleShare = useCallback(() => {
-    // TODO: Implement share functionality
-  }, []);
+  const handleShare = useCallback(async () => {
+    const body = postData?.title || postData?.content;
+    if (!body) return;
+    try {
+      await Share.share({
+        title: postData?.title || "Post from HomeConnect",
+        message: [postData?.title, postData?.content, "Shared via HomeConnect"]
+          .filter(Boolean)
+          .join("\n\n"),
+      });
+    } catch {
+      // Sheet dismissed or unavailable.
+    }
+  }, [postData?.title, postData?.content]);
+
+  // Cards render at the reference's rounded-xl (12), not the shared Card's 16.
+  const cardStyle = { padding: 0, overflow: "hidden" as const, borderRadius: 12 };
 
   const handleImageScrollEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -237,7 +252,7 @@ const PostCard = React.memo(function PostCard({
   }
 
   return (
-    <Card key={postData?.id} style={{ padding: 0, overflow: "hidden" }}>
+    <Card key={postData?.id} style={cardStyle}>
       <View style={{ padding: 16, paddingBottom: 0 }}>
         <ImageTitleHeader
           imageUri={displayAvatar}
@@ -334,40 +349,15 @@ const PostCard = React.memo(function PostCard({
           </TouchableOpacity>
         )}
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 14,
-            paddingTop: 12,
-            borderTopWidth: 1,
-            borderTopColor: "#F3F4F6",
-          }}
-        >
-          <LikeButton
-            feedId={postData?._id || postData?.id}
-            likes={postData?.likes}
-            onBeforeLike={handleGatedAction}
-          />
-          <TouchableOpacity
-            onPress={handleCommentPress}
-            style={{ flexDirection: "row", alignItems: "center", gap: 4, marginRight: 16 }}
-          >
-            <Ionicons name="chatbubble-ellipses-outline" size={16} color="#6B7280" />
-            <Text style={{ color: "#6B7280", fontSize: 14 }}>
-              {postData?.comments?.length || 0}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleShare}
-            style={{ flexDirection: "row", alignItems: "center", marginRight: 16 }}
-          >
-            <Ionicons name="share-social-outline" size={17} color="#6B7280" />
-          </TouchableOpacity>
-          <TouchableOpacity style={{ marginLeft: "auto" }}>
-            <Ionicons name="bookmark-outline" size={17} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
+        <FeedActions
+          feedId={postData?._id || postData?.id}
+          likes={postData?.likes}
+          commentCount={postData?.comments?.length || 0}
+          shareTitle={postData?.title || "Post from HomeConnect"}
+          shareBody={postData?.content}
+          onBeforeAction={handleGatedAction}
+          onCommentPress={handleCommentPress}
+        />
       </View>
 
       {verifySheetVisible && (

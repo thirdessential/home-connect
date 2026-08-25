@@ -17,6 +17,10 @@ export default function VerifyRoleScreen() {
 
   const handleContinue = useCallback(() => {
     if (!role) return;
+    if (role === "business") {
+      router.push("/onboarding/business");
+      return;
+    }
     router.push({ pathname: "/onboarding/verify-step1", params: { role } });
   }, [role]);
 

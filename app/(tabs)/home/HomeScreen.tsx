@@ -2,15 +2,15 @@ import { BUSINESS_LIMITS } from "@/assets/constants/common.constant";
 import { PRODUCTS_CONSTANTS } from "@/assets/constants/products.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
 import ProductCarousel from "@/components/business/ProductCarousel";
-import NoDataCard from "@/components/common/NoDataCard";
-import ProductCard from "@/components/product/ProductCard";
+import AdminDashboardButton from "@/components/home/AdminDashboardButton";
+import FeedList from "@/components/home/FeedList";
 import HomeFilterChips, { HomeFeedFilter } from "@/components/UI/HomeFilterChips";
 import InfoBanner from "@/components/UI/InfoBanner";
-import PollCard from "@/components/UI/PollCard";
-import PostCard from "@/components/UI/PostCard";
 import Skeleton from "@/components/UI/Skeleton";
 import WelcomeVerificationCard from "@/components/UI/WelcomeVerificationCard";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAdminStore } from "@/store/useAdminStore";
+import { useBusinessRegistrationStore } from "@/store/useBusinessRegistrationStore";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useFeedsStore } from "@/store/useFeedsStore";
@@ -21,10 +21,9 @@ import { useTheme } from "@/theme/theme";
 import { FeedItem } from "@/types/feeds.type";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const handlePressProductItem = () => {};
 
@@ -35,14 +34,19 @@ const matchesFilter = (item: FeedItem, filter: HomeFeedFilter) => {
   const hasImages = Array.isArray(item.images) && item.images.length > 0;
   if (filter === "photos") return hasImages;
   if (filter === "updates") return item.type === "post" && !hasImages;
-  // "deals" has no corresponding feed item — wholesale deals render via the
-  // ProductCarousel above, not as feed cards.
   return false;
 };
 
 function HomeScreen() {
   const t = useTheme();
   const userId = useUserStore((state) => state.user?._id);
+  // Refresh the user (verification/business status) whenever Home regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) fetchUser(userId).catch(() => {});
+      loadCurrentBusiness().catch(() => {});
+    }, [userId]),
+  );
   const userVerification = useUserStore(
     (state) => state.user?.isAddressVerified,
   );
@@ -52,6 +56,11 @@ function HomeScreen() {
   const pendingBusinessCount = useUserStore(
     (state) => state.user?.pendingBusinessCount,
   );
+  const businessStatus = useUserStore((state) => state.user?.businessStatus);
+  const fetchUser = useUserStore((state) => state.fetchUser);
+  // MySQL business registrations live in their own store, not on user.businessStatus.
+  const mysqlBusinessStatus = useBusinessRegistrationStore((state) => state.business?.business_status);
+  const loadCurrentBusiness = useBusinessRegistrationStore((state) => state.loadCurrent);
   const selectedSocietyId = useSocietyStore(
     (state) => state.selectedSociety?._id,
   );
@@ -74,6 +83,10 @@ function HomeScreen() {
   const updateExpiredDeals = useWholesaleDealStore(
     (state) => state.updateExpiredDeals,
   );
+  // Feeds the pending-count badge on the admin FAB — admins only.
+  const getAllPendingContent = useAdminStore(
+    (state) => state.getAllPendingContent,
+  );
 
   // Role only changes to "resident" once an admin approves — so a submitted-
   // but-still-pending user is still technically a "guest" role-wise. Use the
@@ -85,6 +98,12 @@ function HomeScreen() {
     hasSubmittedVerification && userVerification?.status === verificationStatus.PENDING;
   const hasExcessPendingBusinesses =
     (pendingBusinessCount ?? 0) >= BUSINESS_LIMITS.MAX_BUSINESSES_PER_USER;
+  // A submitted business (pending admin review) counts as "already submitted",
+  // so Home must stop nudging the user to verify.
+  const hasPendingBusiness =
+    businessStatus?.status === verificationStatus.PENDING ||
+    mysqlBusinessStatus === "pending" ||
+    (pendingBusinessCount ?? 0) > 0;
 
   // Memoize admin check so it's a stable boolean, not a new function call each render
   const isAdmin = useMemo(
@@ -115,12 +134,25 @@ function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Pending-request count behind the admin FAB badge. Kept out of fetchAllData
+  // so the request only ever fires for admins, and re-runs on its own if roles
+  // arrive after mount (initSession can refresh them a moment later).
+  useEffect(() => {
+    if (!isAdmin || !selectedSocietyId) return;
+    getAllPendingContent(selectedSocietyId).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, selectedSocietyId]);
+
   const onRefresh = useCallback(async () => {
     if (!userId || !selectedSocietyId) return;
     setRefreshing(true);
-    await fetchAllData(selectedSocietyId);
+    await Promise.allSettled([
+      fetchAllData(selectedSocietyId),
+      ...(isAdmin ? [getAllPendingContent(selectedSocietyId)] : []),
+    ]);
     setRefreshing(false);
-  }, [userId, selectedSocietyId, fetchAllData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, selectedSocietyId, fetchAllData, isAdmin]);
 
   // Sync user business status — once per session
   useEffect(() => {
@@ -146,41 +178,85 @@ function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSocietyId]);
 
-  const memoizedComponents = useMemo(() => {
-    const items = feeds
-      .filter((item: FeedItem) => matchesFilter(item, feedFilter))
-      .map((item: FeedItem) => {
-        if (item.type === "post") {
-          return <PostCard key={item._id} postData={item} />;
-        }
-        if (item.type === "poll") {
-          return <PollCard key={item._id} pollId={item._id} />;
-        }
-        if (item.type === "event") {
-          return (
-            <ProductCard
-              key={`event-${item._id}`}
-              productDetails={item}
-              type="event"
-            />
-          );
-        }
-        return null;
-      })
-      .filter(Boolean);
+  const visibleFeeds = useMemo(
+    () => feeds.filter((item: FeedItem) => matchesFilter(item, feedFilter)),
+    [feeds, feedFilter],
+  );
 
-    if (items.length === 0) {
-      return (
-        <NoDataCard
-          iconName="newspaper-outline"
-          message="No Posts Yet"
-          subText="There's nothing to show here yet. Check back later for updates from your society."
+  // Everything above the feed: status banners, filter chips, deals carousel.
+  const listHeader = useMemo(
+    () => (
+      <View>
+        {rejectedUser && (
+          <InfoBanner
+            title="Request Rejected"
+            description={`Your approval is rejected by the admin due to ${userVerification?.rejectionReason}, please contact support for further assistance.`}
+            backgroundColor="#FEF3C7" // amber-100
+            borderColor="#F59E0B" // amber-500
+            titleColor="#92400E" // amber-700
+            descriptionColor="#92400E" // amber-700
+          />
+        )}
+        {isGuest && !hasSubmittedVerification && !hasPendingBusiness && (
+          <WelcomeVerificationCard />
+        )}
+        {pendingReview && (
+          <InfoBanner
+            title="Verification Pending"
+            description="Your request has been submitted. Please wait for admin approval."
+            backgroundColor="#FEF3C7"
+            borderColor="#F59E0B"
+            titleColor="#92400E"
+            descriptionColor="#92400E"
+          />
+        )}
+        {hasPendingBusiness && !hasExcessPendingBusinesses && (
+          <InfoBanner
+            title="Verification Pending"
+            description="Your business verification request has been submitted. Please wait for admin approval."
+            backgroundColor="#FEF3C7"
+            borderColor="#F59E0B"
+            titleColor="#92400E"
+            descriptionColor="#92400E"
+          />
+        )}
+        {hasExcessPendingBusinesses && (
+          <InfoBanner
+            title="Business Verification Pending"
+            description={`You have ${pendingBusinessCount} businesses pending verification. Please wait for admin approval before adding more.`}
+            backgroundColor="#FEE2E2" // red-100
+            borderColor="#EF4444" // red-500
+            titleColor="#991B1B" // red-800
+            descriptionColor="#991B1B" // red-800
+          />
+        )}
+
+        <HomeFilterChips selected={feedFilter} onSelect={setFeedFilter} />
+
+        <ProductCarousel
+          products={activeDeals ?? []}
+          onPressProductItem={handlePressProductItem}
+          ctaName={PRODUCTS_CONSTANTS.VIEW_DEAL_}
+          key={PRODUCTS_CONSTANTS.WHOLESALE_DEAL_ID}
+          loading={wholesaleDealsLoading}
         />
-      );
-    }
+      </View>
+    ),
+    [
+      rejectedUser,
+      userVerification?.rejectionReason,
+      isGuest,
+      hasSubmittedVerification,
+      hasPendingBusiness,
+      pendingReview,
+      hasExcessPendingBusinesses,
+      pendingBusinessCount,
+      feedFilter,
+      activeDeals,
+      wholesaleDealsLoading,
+    ],
+  );
 
-    return items;
-  }, [feeds, feedFilter]);
   // Show skeleton loading until all data is loaded — skip during pull-to-refresh
   if (!refreshing && isLoading) {
     return (
@@ -193,21 +269,18 @@ function HomeScreen() {
 
           {/* Admin-specific skeleton loading */}
           {isAdmin && (
-            <>
-              {/* Skeleton for stats/users section */}
-              <View style={{ marginBottom: 16 }}>
-                <Skeleton
-                  width="100%"
-                  height={16}
-                  borderRadius={8}
-                  style={{ marginBottom: 8 }}
-                />
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  <Skeleton width="48%" height={80} borderRadius={12} />
-                  <Skeleton width="48%" height={80} borderRadius={12} />
-                </View>
+            <View style={{ marginBottom: 16 }}>
+              <Skeleton
+                width="100%"
+                height={16}
+                borderRadius={8}
+                style={{ marginBottom: 8 }}
+              />
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Skeleton width="48%" height={80} borderRadius={12} />
+                <Skeleton width="48%" height={80} borderRadius={12} />
               </View>
-            </>
+            </View>
           )}
 
           {/* Regular user or common skeleton for feed items */}
@@ -233,101 +306,37 @@ function HomeScreen() {
     );
   }
 
-  // const getPushToken = async () => {
-  //   // Alert.alert("push notifinction")
-    
-  //   const { status } = await Notifications.requestPermissionsAsync();
-
-  //   if (status !== "granted") {
-  //     console.log("Permission denied");
-  //     return;
-  //   }
-
-  //   const token = await Notifications.getExpoPushTokenAsync();
-
-  //   console.log("EXPO TOKEN =>", token.data);
-  // };
-
   return (
     <View style={{ flex: 1, backgroundColor: t.colors.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingBottom: showVerificationChrome ? 76 : 20,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={t.colors.primary}
-            colors={[t.colors.primary]}
-          />
-        }
-      >
-        <View style={{ paddingHorizontal: t.spacing.l }}>
-          {rejectedUser && (
-            <InfoBanner
-              title="Request Rejected"
-              description={`Your approval is rejected by the admin due to ${userVerification?.rejectionReason}, please contact support for further assistance.`}
-              backgroundColor="#FEF3C7" // amber-100
-              borderColor="#F59E0B" // amber-500
-              titleColor="#92400E" // amber-700
-              descriptionColor="#92400E" // amber-700
-            />
-          )}
-          {isGuest && !hasSubmittedVerification && <WelcomeVerificationCard />}
-          {pendingReview && (
-            <InfoBanner
-              title="Verification Pending"
-              description="Your request has been submitted. Please wait for admin approval."
-              backgroundColor="#FEF3C7" // amber-100
-              borderColor="#F59E0B" // amber-500
-              titleColor="#92400E" // amber-700
-              descriptionColor="#92400E" // amber-700
-            />
-          )}
-          {hasExcessPendingBusinesses && (
-            <InfoBanner
-              title="Business Verification Pending"
-              description={`You have ${pendingBusinessCount} businesses pending verification. Please wait for admin approval before adding more.`}
-              backgroundColor="#FEE2E2" // red-100
-              borderColor="#EF4444" // red-500
-              titleColor="#991B1B" // red-800
-              descriptionColor="#991B1B" // red-800
-            />
-          )}
+      <FeedList
+        feeds={visibleFeeds}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        ListHeaderComponent={listHeader}
+        contentPaddingBottom={showVerificationChrome ? 76 : 24}
+      />
 
-          <HomeFilterChips selected={feedFilter} onSelect={setFeedFilter} />
-
-          <ProductCarousel
-            products={activeDeals ?? []}
-            onPressProductItem={handlePressProductItem}
-            ctaName={PRODUCTS_CONSTANTS.VIEW_DEAL_}
-            key={PRODUCTS_CONSTANTS.WHOLESALE_DEAL_ID}
-            loading={wholesaleDealsLoading}
-          />
-          {memoizedComponents}
-        </View>
-      </ScrollView>
+      {/* Role-gated: renders nothing unless the session carries an admin role. */}
+      <AdminDashboardButton bottom={showVerificationChrome ? 110 : 24} />
 
       {showVerificationChrome && (
         <>
-          {!pendingReview && (
+          {!pendingReview && !hasPendingBusiness && (
             <TouchableOpacity
-              style={[styles.fab, { backgroundColor: t.colors.primary }]}
+              style={[styles.fab, { backgroundColor: t.colors.brand }]}
               onPress={() => router.push("/onboarding/verify-role")}
               activeOpacity={0.85}
             >
-              <Ionicons name="shield-checkmark" size={22} color="#fff" />
-              <Text style={styles.fabLabel}>Verify Now</Text>
+              <Ionicons name="shield-checkmark" size={22} color={t.colors.onBrand} />
+              <Text style={[styles.fabLabel, { color: t.colors.onBrand }]}>Verify Now</Text>
             </TouchableOpacity>
           )}
 
           <View style={[styles.lockStrip, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
-            <Ionicons name="lock-closed-outline" size={16} color="#EA580C" />
+            <Ionicons name="lock-closed-outline" size={16} color={t.colors.brand} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.lockStripTitle, { color: t.colors.textPrimary }]}>
-                {pendingReview
+                {pendingReview || hasPendingBusiness
                   ? "Your request is pending admin approval."
                   : "Verification is required to interact and access all features."}
               </Text>
@@ -362,7 +371,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabLabel: {
-    color: "#fff",
     fontSize: 13,
     fontWeight: "700",
   },

@@ -21,12 +21,12 @@ export const LOGIN_PAGE_IMAGE_URL = "https://images.pexels.com/photos/221540/pex
 
 // Auth brand colors (from the Terrace reference design)
 export const TERRACE_COLORS = {
-  screenBg: "#F9F4F1",
+  screenBg: "#fff",
   green: "#2E9E5B",
   greenTint: "#E7F5EC",
   blue: "#2F80ED",
   blueTint: "#E8F1FE",
-  orange: "#EA580C",
+  orange: "#15803D",
   orangeTint: "#FDEDE1",
   textDark: "#1F2430",
   textMuted: "#6B7280",
@@ -174,7 +174,7 @@ export const USER_TYPE_SCREEN = {
       icon: "storefront" as const,
       color: TERRACE_COLORS.blue,
       tint: TERRACE_COLORS.blueTint,
-      enabled: false,
+      enabled: true,
     },
     {
       key: "both",
