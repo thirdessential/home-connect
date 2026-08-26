@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Share, Text, TouchableOpacity, View } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
-import FeedActions from "../home/FeedActions";
+import LikeButton from "../inputs/LikeButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import FormSheetModal from "../modals/FormSheetModal";
 import OrderSuccessModal from "../modals/OrderSuccessModal";
@@ -374,21 +374,19 @@ const PollCard = React.memo(function PollCard({
       )}
 
       {/* Social Actions */}
-      <FeedActions
-        feedId={pollData._id ?? ""}
-        likes={pollData.likes}
-        commentCount={pollData.comments?.length || 0}
-        shareTitle={pollData.title}
-        onBeforeAction={handleLikePress}
-        onCommentPress={handleCommentPress}
-        trailing={
-          onDelete ? (
-            <TouchableOpacity onPress={onDelete}>
-              <Ionicons name="trash-outline" size={16} color={t.colors.error} />
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <LikeButton feedId={pollData._id ?? ""} likes={pollData.likes} size={18} showCount={false} onBeforeLike={handleLikePress} />
+            <TouchableOpacity onPress={handleCommentPress} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="chatbubble-outline" size={18} color={t.colors.textSecondary} />
+              <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>{pollData.comments?.length || 0}</Text>
             </TouchableOpacity>
-          ) : null
-        }
-      />
+          </View>
+          <TouchableOpacity onPress={handleShare} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="share-social-outline" size={18} color={t.colors.textSecondary} />
+            <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>Share</Text>
+          </TouchableOpacity>
+        </View>
 
       {/* Verification Sheet */}
       {verifySheetVisible && (

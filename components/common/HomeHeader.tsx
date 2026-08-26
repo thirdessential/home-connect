@@ -104,7 +104,7 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
             style={styles.iconButton}
           >
             <Ionicons
-              name="chatbubble-ellipses-outline"
+              name="chatbubble-outline"
               size={22}
               color={t.colors.textSecondary}
             />

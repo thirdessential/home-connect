@@ -3,14 +3,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { memo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 
-export type HomeFeedFilter = "all" | "updates" | "photos" | "polls" | "events";
+export type HomeFeedFilter = "all" | "updates" | "events" | "polls" | "posts";
 
 const CHIPS: { key: HomeFeedFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: "all", label: "All Posts", icon: "grid" },
+  // Ionicons equivalents of the reference's grid_view / campaign / event /
+  // poll symbols.
+  { key: "all", label: "All", icon: "grid-outline" },
   { key: "updates", label: "Updates", icon: "megaphone-outline" },
-  { key: "photos", label: "Photos", icon: "image-outline" },
-  { key: "polls", label: "Polls", icon: "bar-chart-outline" },
   { key: "events", label: "Events", icon: "calendar-outline" },
+  { key: "polls", label: "Polls", icon: "stats-chart-outline" },
+  { key: "posts", label: "Posts", icon: "document-text-outline" },
 ];
 
 type Props = {

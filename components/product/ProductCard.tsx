@@ -10,10 +10,10 @@ import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
-import FeedActions from "../home/FeedActions";
 import ActionButton from "../inputs/ActionButton";
+import LikeButton from "../inputs/LikeButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import FormSheetModal from "../modals/FormSheetModal";
 import ReportModal from "../modals/ReportModal";
@@ -129,6 +129,20 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
   const handleCommentPress = useCallback(() => {
     handleGatedAction();
   }, [handleGatedAction]);
+
+  const handleShareLegacy = useCallback(async () => {
+    if (!productDetails?.title) return;
+    try {
+      await Share.share({
+        title: productDetails.title,
+        message: [productDetails.title, productDetails?.description, "Shared via HomeConnect"]
+          .filter(Boolean)
+          .join("\n\n"),
+      });
+    } catch {
+      // Sheet dismissed.
+    }
+  }, [productDetails?.title, productDetails?.description]);
 
   const handleCloseSheet = useCallback(() => setVerifySheetVisible(false), []);
   const handleFormSubmit = useCallback(() => setVerifySheetVisible(false), []);
@@ -534,15 +548,19 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
         </View>
       )}
 
-      <FeedActions
-        feedId={productDetails?._id ?? ""}
-        likes={productDetails?.likes}
-        commentCount={productDetails?.comments?.length ?? 0}
-        shareTitle={productDetails?.title}
-        shareBody={productDetails?.description}
-        onBeforeAction={handleGatedAction}
-        onCommentPress={handleCommentPress}
-      />
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <LikeButton feedId={productDetails?._id ?? ""} likes={productDetails?.likes} size={18} showCount={false} onBeforeLike={handleGatedAction} />
+            <TouchableOpacity onPress={handleCommentPress} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="chatbubble-outline" size={18} color={t.colors.textSecondary} />
+              <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>{productDetails?.comments?.length ?? 0}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={handleShareLegacy} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="share-social-outline" size={18} color={t.colors.textSecondary} />
+            <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>Share</Text>
+          </TouchableOpacity>
+        </View>
     </>
   );
 

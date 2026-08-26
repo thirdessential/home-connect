@@ -5,6 +5,7 @@ import ProductCarousel from "@/components/business/ProductCarousel";
 import AdminDashboardButton from "@/components/home/AdminDashboardButton";
 import FeedList from "@/components/home/FeedList";
 import HomeFilterChips, { HomeFeedFilter } from "@/components/UI/HomeFilterChips";
+import { filterHomeFeed, useHomeFeed } from "@/hooks/useHomeFeed";
 import InfoBanner from "@/components/UI/InfoBanner";
 import Skeleton from "@/components/UI/Skeleton";
 import WelcomeVerificationCard from "@/components/UI/WelcomeVerificationCard";
@@ -18,7 +19,6 @@ import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useWholesaleDealStore } from "@/store/useWholesaleDealStore";
 import { useTheme } from "@/theme/theme";
-import { FeedItem } from "@/types/feeds.type";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
@@ -26,16 +26,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const handlePressProductItem = () => {};
-
-const matchesFilter = (item: FeedItem, filter: HomeFeedFilter) => {
-  if (filter === "all") return true;
-  if (filter === "polls") return item.type === "poll";
-  if (filter === "events") return item.type === "event";
-  const hasImages = Array.isArray(item.images) && item.images.length > 0;
-  if (filter === "photos") return hasImages;
-  if (filter === "updates") return item.type === "post" && !hasImages;
-  return false;
-};
 
 function HomeScreen() {
   const t = useTheme();
@@ -79,7 +69,6 @@ function HomeScreen() {
   const getAllApprovedDailyServices = useDailyHelperStore(
     (state) => state.getAllApprovedDailyServices,
   );
-  const feeds = useFeedsStore((state) => state.feeds);
   const updateExpiredDeals = useWholesaleDealStore(
     (state) => state.updateExpiredDeals,
   );
@@ -178,9 +167,11 @@ function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSocietyId]);
 
+  // Real API when it has data, isolated dummy layer when it doesn't.
+  const { items: homeItems, actions: homeActions } = useHomeFeed();
   const visibleFeeds = useMemo(
-    () => feeds.filter((item: FeedItem) => matchesFilter(item, feedFilter)),
-    [feeds, feedFilter],
+    () => filterHomeFeed(homeItems, feedFilter),
+    [homeItems, feedFilter],
   );
 
   // Everything above the feed: status banners, filter chips, deals carousel.
@@ -307,9 +298,10 @@ function HomeScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: t.colors.surface }}>
       <FeedList
-        feeds={visibleFeeds}
+        items={visibleFeeds}
+        actions={homeActions}
         refreshing={refreshing}
         onRefresh={onRefresh}
         ListHeaderComponent={listHeader}
@@ -317,7 +309,7 @@ function HomeScreen() {
       />
 
       {/* Role-gated: renders nothing unless the session carries an admin role. */}
-      <AdminDashboardButton bottom={showVerificationChrome ? 110 : 24} />
+      {/* <AdminDashboardButton bottom={showVerificationChrome ? 110 : 24} /> */}
 
       {showVerificationChrome && (
         <>

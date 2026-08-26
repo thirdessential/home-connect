@@ -20,7 +20,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
-import FeedActions from "../home/FeedActions";
+import LikeButton from "../inputs/LikeButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import FormSheetModal from "../modals/FormSheetModal";
 import ReportModal from "../modals/ReportModal";
@@ -349,15 +349,19 @@ const PostCard = React.memo(function PostCard({
           </TouchableOpacity>
         )}
 
-        <FeedActions
-          feedId={postData?._id || postData?.id}
-          likes={postData?.likes}
-          commentCount={postData?.comments?.length || 0}
-          shareTitle={postData?.title || "Post from HomeConnect"}
-          shareBody={postData?.content}
-          onBeforeAction={handleGatedAction}
-          onCommentPress={handleCommentPress}
-        />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <LikeButton feedId={postData?._id || postData?.id} likes={postData?.likes} size={18} showCount={false} onBeforeLike={handleGatedAction} />
+            <TouchableOpacity onPress={handleCommentPress} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="chatbubble-outline" size={18} color={t.colors.textSecondary} />
+              <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>{postData?.comments?.length || 0}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={handleShare} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="share-social-outline" size={18} color={t.colors.textSecondary} />
+            <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>Share</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {verifySheetVisible && (

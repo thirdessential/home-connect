@@ -55,8 +55,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     () =>
       [
         state.index === 0 ? "home" : "home-outline",
-        state.index === 1 ? "lock-closed" : "lock-closed-outline",
-        state.index === 2 ? "book" : "book-outline",
+        state.index === 1 ? "pricetag" : "pricetag-outline",
+        state.index === 2 ? "call" : "call-outline",
         state.index === 3 ? "person" : "person-outline",
       ] as const,
     [state.index],
