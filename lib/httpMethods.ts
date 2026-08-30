@@ -1,7 +1,7 @@
 import { getToken, signOutUser } from "@/lib/tokenManager";
 import Constants from "expo-constants";
 
-const PRODUCTION_URL = "http://98.81.148.66:4200/";
+const PRODUCTION_URL = "http://98.81.148.66:4200";
 // WARNING: cleartext HTTP — restricted to local development builds only.
 // `__DEV__` is false in production so this URL is never selected in release builds.
 // Avoid using on shared/untrusted networks; prefer HTTPS via a local tunnel
