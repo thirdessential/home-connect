@@ -128,7 +128,7 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit }: 
 }
 
 const styles = StyleSheet.create({
-  list: { maxHeight: 360 },
+  list: { maxHeight: 150 },
   empty: { textAlign: "center", paddingVertical: 28, fontSize: 13 },
   comment: { flexDirection: "row", gap: 10, paddingVertical: 10 },
   avatar: { width: 32, height: 32, borderRadius: 16 },

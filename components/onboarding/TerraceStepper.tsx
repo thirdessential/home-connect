@@ -12,62 +12,12 @@ type Props = {
   currentStep: number;
 };
 
-function TerraceStepper({ steps, currentStep }: Props) {
-  return (
-    <View style={styles.row}>
-      {steps.map((label, i) => {
-        const stepNum = i + 1;
-        const isActive = stepNum === currentStep;
-        const isDone = stepNum < currentStep;
-        const filled = isActive || isDone;
-        const isLast = i === steps.length - 1;
-
-        return (
-          <Fragment key={label}>
-            <View style={styles.item}>
-              <View
-                style={[
-                  styles.circle,
-                  { backgroundColor: filled ? TERRACE_COLORS.orange : "#E5E7EB" },
-                ]}
-              >
-                {isDone ? (
-                  <Text style={styles.circleText}>✓</Text>
-                ) : (
-                  <Text
-                    style={[
-                      styles.circleText,
-                      { color: filled ? "#fff" : "#6B7280" },
-                    ]}
-                  >
-                    {stepNum}
-                  </Text>
-                )}
-              </View>
-              <Text
-                style={[
-                  styles.label,
-                  isActive && { color: TERRACE_COLORS.orange, fontWeight: "700" },
-                ]}
-                numberOfLines={1}
-              >
-                {label}
-              </Text>
-            </View>
-
-            {!isLast && (
-              <View
-                style={[
-                  styles.line,
-                  { backgroundColor: stepNum < currentStep ? TERRACE_COLORS.orange : "#E5E7EB" },
-                ]}
-              />
-            )}
-          </Fragment>
-        );
-      })}
-    </View>
-  );
+// `steps`/`currentStep` are kept in the signature so every call site
+// (Resident + Business onboarding) needs no change — the step-count/progress
+// UI is hidden app-wide per product requirement; internal step navigation in
+// each screen is untouched.
+function TerraceStepper(_props: Props) {
+  return null;
 }
 
 export default memo(TerraceStepper);

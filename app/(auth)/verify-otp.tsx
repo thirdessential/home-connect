@@ -49,6 +49,7 @@ export default function VerifyOtpScreen() {
   const [secondsLeft, setSecondsLeft] = useState(TERRACE_AUTH.RESEND_SECONDS);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittingRef = useRef(false);
+  const navigatedRef = useRef(false);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -94,7 +95,12 @@ export default function VerifyOtpScreen() {
     try {
       await verifyOtp(phone, otp);
       showToast(TERRACE_AUTH.verifiedToast, "success");
-      router.replace("/onboarding/location-permission");
+      // Guard against navigating twice even if a success handler were ever
+      // triggered more than once (e.g. a duplicate resolved promise).
+      if (!navigatedRef.current) {
+        navigatedRef.current = true;
+        router.replace("/onboarding/location-permission");
+      }
     } catch (err: any) {
       setError(true);
       const message =

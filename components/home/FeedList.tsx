@@ -1,4 +1,5 @@
 import FormSheetModal from "@/components/modals/FormSheetModal";
+import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import { useToast } from "@/components/common/Toast";
 import NoDataCard from "@/components/common/NoDataCard";
 import { useTheme } from "@/theme/theme";
@@ -41,22 +42,61 @@ function FeedList({
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const [attendeesFor, setAttendeesFor] = useState<string | null>(null);
   const [moreFor, setMoreFor] = useState<string | null>(null);
+  // Frozen at the moment Delete is tapped so the confirm dialog's wording
+  // ("post" vs "poll") can't flip mid-flow once the item leaves `items`.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; kind: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const byId = useMemo(
     () => Object.fromEntries(items.map((i) => [i.id, i])),
     [items],
   );
 
+  const activeMoreItem = moreFor ? byId[moreFor] : null;
+  // Scoped to post/poll only — event deletion isn't part of this feature.
+  const canDeleteActive =
+    !!activeMoreItem?.isOwner &&
+    (activeMoreItem.kind === "post" || activeMoreItem.kind === "poll");
+  const menuOptions = canDeleteActive && activeMoreItem
+    ? [
+        ...MORE_OPTIONS,
+        {
+          key: "delete",
+          label: activeMoreItem.kind === "poll" ? "Delete Poll" : "Delete Post",
+          icon: "trash-outline" as const,
+          danger: true,
+        },
+      ]
+    : MORE_OPTIONS;
+
   const handleMoreSelect = useCallback(
     (key: string) => {
+      if (key === "delete") {
+        if (activeMoreItem) setDeleteTarget({ id: activeMoreItem.id, kind: activeMoreItem.kind });
+        setMoreFor(null);
+        return;
+      }
       setMoreFor(null);
       showToast(
         key === "hide" ? "Hidden from your feed" : "Report submitted for review",
         "info",
       );
     },
-    [showToast],
+    [showToast, activeMoreItem],
   );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await actions.deleteItem(deleteTarget.id);
+    } catch (e: any) {
+      showToast(e?.message || "Failed to delete. Please try again.", "error");
+      throw e;
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, actions, showToast]);
 
   const renderItem = useCallback(
     ({ item }: { item: HomeFeedItem }) => {
@@ -144,21 +184,40 @@ function FeedList({
           subtitle=""
         >
           <View style={styles.moreWrap}>
-            {MORE_OPTIONS.map((o) => (
-              <TouchableOpacity
-                key={o.key}
-                onPress={() => handleMoreSelect(o.key)}
-                style={[styles.moreItem, { borderBottomColor: t.colors.border }]}
-              >
-                <Ionicons name={o.icon} size={22} color={t.colors.textPrimary} />
-                <Text style={[styles.moreLabel, { color: t.colors.textPrimary }]}>
-                  {o.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {menuOptions.map((o) => {
+              const danger = "danger" in o && o.danger;
+              const color = danger ? "#DC2626" : t.colors.textPrimary;
+              return (
+                <TouchableOpacity
+                  key={o.key}
+                  onPress={() => handleMoreSelect(o.key)}
+                  style={[styles.moreItem, { borderBottomColor: t.colors.border }]}
+                >
+                  <Ionicons name={o.icon} size={22} color={color} />
+                  <Text style={[styles.moreLabel, { color }]}>{o.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </FormSheetModal>
       )}
+
+      <ConfirmationModal
+        visible={!!deleteTarget}
+        onClose={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        isLoading={deleting}
+        title="Are you sure?"
+        message={`Are you sure you want to delete this ${deleteTarget?.kind === "poll" ? "poll" : "post"}?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous
+        successTitle={deleteTarget?.kind === "poll" ? "Poll Deleted" : "Post Deleted"}
+        successMessage="It has been removed from the feed."
+        autoCloseDelay={900}
+      />
     </>
   );
 }

@@ -12,7 +12,7 @@ import { create } from "zustand";
  * back to the real feed store. Home also falls back automatically whenever the
  * real API returns items, so this only controls the empty-API case.
  */
-export const HOME_DUMMY_MODE = true;
+export const HOME_DUMMY_MODE = false;
 
 /**
  * When true the reference dataset renders even if the feed API returned rows —
@@ -20,7 +20,7 @@ export const HOME_DUMMY_MODE = true;
  * flat, category, poll option ids). Set to false to always prefer real data;
  * the empty-feed fallback still applies.
  */
-export const HOME_DUMMY_FORCE = true;
+export const HOME_DUMMY_FORCE = false;
 
 const AVATAR_AARAV =
   "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&q=80";
@@ -68,7 +68,7 @@ export const HOME_DUMMY_FEED: HomeFeedItem[] = [
     totalVotes: 110,
     pollEndsLabel: "Poll ends in 5 days",
     votedOptionId: "dummy-poll-2-o1",
-    likeCount: "18",
+    likeCount: 18,
     isLiked: false,
     commentCount: 3,
     comments: [
@@ -112,7 +112,7 @@ export const HOME_DUMMY_FEED: HomeFeedItem[] = [
       { id: "a4", name: "Priya" },
       { id: "a5", name: "Vikram" },
     ],
-    likeCount: "21",
+    likeCount: 21,
     isLiked: false,
     commentCount: 8,
     comments: [
@@ -146,7 +146,7 @@ export const HOME_DUMMY_FEED: HomeFeedItem[] = [
     isPublic: true,
     description:
       "Has anyone else noticed the beautiful sunset from the west wing today? 🌇 Completely mesmerized!",
-    likeCount: "14",
+    likeCount: 14,
     isLiked: false,
     commentCount: 2,
     comments: [
@@ -179,7 +179,7 @@ export const HOME_DUMMY_FEED: HomeFeedItem[] = [
     location: "Clubhouse Hall",
     isJoined: false,
     attendees: [],
-    likeCount: "500000000000",
+    likeCount: 45,
     isLiked: true,
     commentCount: 12,
     comments: [
@@ -205,7 +205,7 @@ export const HOME_DUMMY_FEED: HomeFeedItem[] = [
     isPublic: true,
     image: PHOTO_GARDEN,
     description: "The community garden is blooming beautifully this week 🌿",
-    likeCount: "1.5K",
+    likeCount: 9,
     isLiked: true,
     commentCount: 1,
     comments: [
@@ -238,7 +238,7 @@ export const HOME_DUMMY_FEED: HomeFeedItem[] = [
     totalVotes: 128,
     pollEndsLabel: "Poll ends in 2 days",
     votedOptionId: "dummy-poll-1-o2",
-    likeCount: "32M",
+    likeCount: 32,
     isLiked: false,
     commentCount: 15,
     comments: [
@@ -263,6 +263,7 @@ type DummyState = {
   vote: (id: string, optionId: string) => void;
   toggleRsvp: (id: string) => void;
   addComment: (id: string, text: string) => Promise<void>;
+  deleteItem: (id: string) => Promise<void>;
   reset: () => void;
 };
 
@@ -321,6 +322,10 @@ export const useHomeDummyStore = create<DummyState>((set) => ({
         ],
       })),
     }));
+  },
+
+  deleteItem: async (id) => {
+    set((s) => ({ items: s.items.filter((i) => i.id !== id) }));
   },
 
   reset: () => set({ items: clone() }),

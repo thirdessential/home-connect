@@ -1,10 +1,12 @@
 import ActionButton from "@/components/inputs/ActionButton";
-import { useImageUpload } from "@/lib/cloudinary";
 import { pickImageCropped } from "@/lib/ImagePicker";
+import { uploadToBackend } from "@/lib/backendUpload";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { memo, useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+type UploadStatus = "idle" | "uploading" | "success" | "failed";
 
 const PROOF_TYPES = [
   { id: "aadhaar", label: "Aadhaar Card", icon: "card-outline" as const },
@@ -27,42 +29,48 @@ type Props = {
 
 function ResidentProofStep({ onContinue, submitting }: Props) {
   const t = useTheme();
-  const { upload } = useImageUpload();
   const [proofType, setProofType] = useState<string>(PROOF_TYPES[0].id);
   const [documentUrl, setDocumentUrl] = useState<string | undefined>();
   const [selfieUrl, setSelfieUrl] = useState<string | undefined>();
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadingSelfie, setUploadingSelfie] = useState(false);
+  const [docStatus, setDocStatus] = useState<UploadStatus>("idle");
+  const [selfieStatus, setSelfieStatus] = useState<UploadStatus>("idle");
 
   const handleUploadDocument = useCallback(async () => {
     const asset = await pickImageCropped("library", { quality: 0.85 });
     if (!asset?.uri) return;
-    setUploadingDoc(true);
+    setDocumentUrl(undefined);
+    setDocStatus("uploading");
     try {
-      const result = await upload(asset.uri, "resident-proof");
-      setDocumentUrl(result.secure_url);
+      const url = await uploadToBackend(asset.uri);
+      setDocumentUrl(url);
+      setDocStatus("success");
     } catch {
-      // upload() already tracks its own error state; nothing to add here
-    } finally {
-      setUploadingDoc(false);
+      setDocStatus("failed");
     }
-  }, [upload]);
+  }, []);
+
+  const handleRemoveDocument = useCallback(() => {
+    setDocumentUrl(undefined);
+    setDocStatus("idle");
+  }, []);
 
   const handleTakeSelfie = useCallback(async () => {
     const asset = await pickImageCropped("camera", { quality: 0.85 });
     if (!asset?.uri) return;
-    setUploadingSelfie(true);
+    setSelfieUrl(undefined);
+    setSelfieStatus("uploading");
     try {
-      const result = await upload(asset.uri, "resident-selfies");
-      setSelfieUrl(result.secure_url);
+      const url = await uploadToBackend(asset.uri);
+      setSelfieUrl(url);
+      setSelfieStatus("success");
     } catch {
-      // upload() already tracks its own error state; nothing to add here
-    } finally {
-      setUploadingSelfie(false);
+      setSelfieStatus("failed");
     }
-  }, [upload]);
+  }, []);
 
-  const canContinue = !!documentUrl && !uploadingDoc && !uploadingSelfie && !submitting;
+  // Required: a real backend URL, not just a local file selection/in-flight upload.
+  const canContinue =
+    docStatus === "success" && !!documentUrl && selfieStatus !== "uploading" && !submitting;
 
   return (
     <View style={styles.container}>
@@ -120,22 +128,53 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
 
         <TouchableOpacity
           onPress={handleUploadDocument}
-          disabled={uploadingDoc}
-          style={[styles.uploadBox, { borderColor: t.colors.border }]}
+          disabled={docStatus === "uploading"}
+          style={[
+            styles.uploadBox,
+            { borderColor: docStatus === "failed" ? "#DC2626" : t.colors.border },
+          ]}
         >
-          {uploadingDoc ? (
+          {docStatus === "uploading" ? (
             <ActivityIndicator color={t.colors.primary} />
           ) : (
             <Ionicons
-              name={documentUrl ? "checkmark-circle" : "cloud-upload-outline"}
+              name={
+                docStatus === "success"
+                  ? "checkmark-circle"
+                  : docStatus === "failed"
+                    ? "alert-circle"
+                    : "cloud-upload-outline"
+              }
               size={20}
-              color={documentUrl ? "#16A34A" : t.colors.primary}
+              color={docStatus === "success" ? "#16A34A" : docStatus === "failed" ? "#DC2626" : t.colors.primary}
             />
           )}
-          <Text style={[styles.uploadText, { color: t.colors.textPrimary }]}>
-            {documentUrl ? "Document uploaded" : "Upload Document"}
+          <Text
+            style={[
+              styles.uploadText,
+              { color: docStatus === "failed" ? "#DC2626" : t.colors.textPrimary },
+            ]}
+          >
+            {docStatus === "uploading"
+              ? "Uploading..."
+              : docStatus === "success"
+                ? "✓ Document uploaded"
+                : docStatus === "failed"
+                  ? "Upload failed — tap to retry"
+                  : "Upload verification document"}
           </Text>
         </TouchableOpacity>
+        {docStatus === "success" && (
+          <TouchableOpacity onPress={handleRemoveDocument} style={styles.removeRow}>
+            <Ionicons name="trash-outline" size={14} color="#DC2626" />
+            <Text style={styles.removeText}>Remove</Text>
+          </TouchableOpacity>
+        )}
+        {docStatus === "idle" && (
+          <Text style={[styles.sectionSubtitle, { color: "#DC2626" }]}>
+            Please upload the required verification document.
+          </Text>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -147,20 +186,26 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
         </View>
         <TouchableOpacity
           onPress={handleTakeSelfie}
-          disabled={uploadingSelfie}
+          disabled={selfieStatus === "uploading"}
           style={[styles.uploadBox, { borderColor: t.colors.border }]}
         >
-          {uploadingSelfie ? (
+          {selfieStatus === "uploading" ? (
             <ActivityIndicator color={t.colors.primary} />
           ) : (
             <Ionicons
-              name={selfieUrl ? "checkmark-circle" : "camera-outline"}
+              name={selfieStatus === "success" ? "checkmark-circle" : "camera-outline"}
               size={20}
-              color={selfieUrl ? "#16A34A" : t.colors.primary}
+              color={selfieStatus === "success" ? "#16A34A" : t.colors.primary}
             />
           )}
           <Text style={[styles.uploadText, { color: t.colors.textPrimary }]}>
-            {selfieUrl ? "Selfie captured" : "Take Selfie"}
+            {selfieStatus === "uploading"
+              ? "Uploading..."
+              : selfieStatus === "success"
+                ? "✓ Selfie captured"
+                : selfieStatus === "failed"
+                  ? "Upload failed — tap to retry"
+                  : "Take Selfie"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -264,6 +309,17 @@ const styles = StyleSheet.create({
   uploadText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  removeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-end",
+  },
+  removeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#DC2626",
   },
   locationRow: {
     flexDirection: "row",

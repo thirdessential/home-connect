@@ -220,18 +220,20 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore }: Pr
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.footer, { borderTopColor: t.colors.border }]}>
-        <FeedActions
-          noDivider
-          likeCount={item.likeCount}
-          isLiked={item.isLiked}
-          commentCount={item.commentCount}
-          shareTitle={item.title}
-          shareBody={item.description}
-          onLike={onLike}
-          onComment={onComment}
-        />
-      </View>
+      {item.canInteract !== false && (
+        <View style={[styles.footer, { borderTopColor: t.colors.border }]}>
+          <FeedActions
+            noDivider
+            likeCount={item.likeCount}
+            isLiked={item.isLiked}
+            commentCount={item.commentCount}
+            shareTitle={item.title}
+            shareBody={item.description}
+            onLike={onLike}
+            onComment={onComment}
+          />
+        </View>
+      )}
     </View>
   );
 }

@@ -220,22 +220,24 @@ export const useFeedsStore = create<FeedsState>()(
                 }
             },
             removeFeed: async (feedId: string) => {
-                set((state) => ({
-                    feeds: state.feeds.filter((f) => f._id !== feedId),
-                    feedsByUser: state.feedsByUser.filter((f) => f._id !== feedId),
-                }));
                 try {
                     const response = await Delete<{ success: boolean; message: string }>(
                         `/api/feed/${feedId}`,
                     );
                     if (response?.success) {
-                        set({ error: null });
-                    } else {
-                        set({ error: response?.message || "Failed to delete feed" });
+                        set((state) => ({
+                            feeds: state.feeds.filter((f) => f._id !== feedId),
+                            feedsByUser: state.feedsByUser.filter((f) => f._id !== feedId),
+                            error: null,
+                        }));
+                        return true;
                     }
+                    set({ error: response?.message || "Failed to delete feed" });
+                    return false;
                 } catch (error) {
                     console.error("Feed deletion error:", error);
-                    set({ error: "Failed to delete feed" });
+                    set({ error: error instanceof Error ? error.message : "Failed to delete feed" });
+                    return false;
                 }
             },
             addComment: async (feedId, comment) => {

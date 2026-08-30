@@ -1,4 +1,3 @@
-import Chip from "@/components/UI/Chip";
 import Heading from "@/components/UI/Heading";
 import SuccessModal from "@/components/UI/SuccessModal";
 import { useToast } from "@/components/common/Toast";
@@ -17,6 +16,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -39,6 +39,28 @@ const cleanLocationPart = (v: string | null | undefined) =>
 // Even at 0 participants the bar should read as "a progress bar", not an
 // empty line — a small minimum fill communicates that without misstating data.
 const MIN_VISIBLE_PROGRESS_PCT = 3;
+
+// "29 Aug 2026" from an ISO/plain date string — locale-formatted, not raw.
+const formatEventDate = (raw?: string | null) => {
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+// Duration from start/end time strings ("18:30" style). Backend doesn't
+// provide a duration field, so it's derived here rather than hardcoded.
+const formatDuration = (start?: string | null, end?: string | null) => {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
+  let mins = eh * 60 + em - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60; // crosses midnight
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h${m ? ` ${m}m` : ""}`;
+};
 
 // Reserve space above the fixed footer so the last scroll content is never hidden behind it.
 const FOOTER_SPACE = getHeight(500);
@@ -105,6 +127,14 @@ export default function EventDetailsScreen() {
       setJoining(false);
       submittingRef.current = false;
     }
+  };
+
+  const onShare = () => {
+    if (!currentEvent) return;
+    Share.share({
+      title: currentEvent.title,
+      message: `${currentEvent.title}\n${currentEvent.venue}`,
+    }).catch(() => {});
   };
 
   const openJoinedUsers = () => {
@@ -201,49 +231,90 @@ export default function EventDetailsScreen() {
   const organizerLocation = [cleanLocationPart(e.organizer?.tower), cleanLocationPart(e.organizer?.unit)]
     .filter(Boolean)
     .join(" • ");
+  const duration = formatDuration(e.startTime, e.endTime);
 
   return (
     <View style={{ flex: 1, backgroundColor: t.colors.background, paddingTop: insets.top }}>
-      <View style={styles.headerRow}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={t.colors.text} />
+      <View style={[styles.headerRow, { backgroundColor: t.colors.surface }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
+          <Ionicons name="arrow-back" size={20} color={t.colors.text} />
         </Pressable>
         <Heading level={4}>Event Details</Heading>
-        <View style={{ width: 24 }} />
+        <Pressable onPress={onShare} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
+          <Ionicons name="share-outline" size={20} color={t.colors.text} />
+        </Pressable>
       </View>
 
-      <ScrollView 
-      contentContainerStyle={{ paddingBottom: FOOTER_SPACE + insets.bottom }}
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: FOOTER_SPACE + insets.bottom }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {e.image ? <Image source={{ uri: e.image }} style={styles.hero} contentFit="cover" /> : null}
-
-        <View style={{ padding: 20 }}>
-          <Chip label={e.eventType} variant="selected" style={{ marginBottom: 8 }} />
-          <Heading level={2}>{e.title}</Heading>
-          <Text style={[t.typography.body, { color: t.colors.secondaryText, marginTop: 6 }]}>{e.description}</Text>
-
-          <View style={styles.metaGrid}>
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={16} color={t.colors.secondaryText} />
-              <Text style={[t.typography.small, styles.metaText, { color: t.colors.text }]}>{e.startDate}</Text>
+        <View style={[styles.hero, { backgroundColor: t.colors.surfaceAlt }]}>
+          {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" /> : null}
+          {!!e.eventType && (
+            <View style={styles.categoryPill}>
+              <Ionicons name="pricetag" size={14} color="#fff" />
+              <Text style={styles.categoryPillText}>{e.eventType}</Text>
             </View>
-            {e.startTime ? (
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={16} color={t.colors.secondaryText} />
-                <Text style={[t.typography.small, styles.metaText, { color: t.colors.text }]}>{e.startTime}</Text>
-              </View>
-            ) : null}
-            <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={16} color={t.colors.secondaryText} />
-              <Text style={[t.typography.small, styles.metaText, { color: t.colors.text }]}>{e.venue}</Text>
+          )}
+        </View>
+
+        <View style={{ gap: 4 }}>
+          <Heading level={2}>{e.title}</Heading>
+          {!!e.description && (
+            <Text style={[t.typography.body, { color: t.colors.secondaryText }]}>{e.description}</Text>
+          )}
+        </View>
+
+        {/* Info card: Date & Time / Duration / Location */}
+        <View style={[styles.card, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
+          <View style={styles.infoRow}>
+            <View style={[styles.iconCircle, { backgroundColor: t.colors.brandWeak }]}>
+              <Ionicons name="calendar-outline" size={18} color={t.colors.brandDark} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Date & Time</Text>
+              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600" }]}>
+                {formatEventDate(e.startDate)}
+                {e.startTime ? ` • ${e.startTime}` : ""}
+                {e.endTime ? ` – ${e.endTime}` : ""}
+              </Text>
             </View>
           </View>
 
-          {e.organizer ? (
+          {!!duration && (
+            <>
+              <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
+              <View style={styles.infoRow}>
+                <View style={[styles.iconCircle, { backgroundColor: t.colors.brandWeak }]}>
+                  <Ionicons name="time-outline" size={18} color={t.colors.brandDark} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Duration</Text>
+                  <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600" }]}>{duration}</Text>
+                </View>
+              </View>
+            </>
+          )}
+
+          <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
+          <View style={styles.infoRow}>
+            <View style={[styles.iconCircle, { backgroundColor: t.colors.brandWeak }]}>
+              <Ionicons name="location-outline" size={18} color={t.colors.brandDark} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Location</Text>
+              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600" }]}>{e.venue}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Organizer card */}
+        {e.organizer ? (
+          <View style={[styles.card, styles.organizerCard, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
             <View style={styles.organizerRow}>
-              <Avatar p={{ name: e.organizer.name, profileImage: e.organizer.profileImage }} />
+              <Avatar p={{ name: e.organizer.name, profileImage: e.organizer.profileImage }} size={48} />
               <View style={{ marginLeft: 10 }}>
                 <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Organised by</Text>
                 <Text style={[t.typography.h5, { color: t.colors.text }]}>{e.organizer.name}</Text>
@@ -252,50 +323,60 @@ export default function EventDetailsScreen() {
                 ) : null}
               </View>
             </View>
-          ) : null}
+          </View>
+        ) : null}
 
-          <View style={{ marginTop: 16 }}>
-            <View style={styles.progressHeader}>
-              <Text style={[t.typography.body, { color: t.colors.text }]}>
-                <Text style={{ fontWeight: "800" }}>{e.joinedCount}</Text> of {e.maxParticipants} spots filled
-              </Text>
+        {/* Participation card */}
+        <View style={[styles.card, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
+          <View style={styles.infoRow}>
+            <View style={[styles.iconCircle, { backgroundColor: t.colors.surfaceAlt }]}>
+              <Ionicons name="people-outline" size={18} color={t.colors.secondaryText} />
             </View>
-            <View style={[styles.progressTrack, { backgroundColor: t.colors.surfaceAlt }]}>
-              <View style={[styles.progressFill, { width: `${visualFilledPct}%`, backgroundColor: t.colors.brandDark }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", marginBottom: 8 }]}>
+                {e.joinedCount} of {e.maxParticipants} spots filled
+              </Text>
+              <View style={[styles.progressTrack, { backgroundColor: t.colors.surfaceAlt }]}>
+                <View style={[styles.progressFill, { width: `${visualFilledPct}%`, backgroundColor: t.colors.brandDark }]} />
+              </View>
             </View>
           </View>
 
           {joinedPreview.length > 0 ? (
-            <Pressable style={styles.joinedPreviewRow} onPress={openJoinedUsers}>
-              <View style={{ flexDirection: "row" }}>
-                {joinedPreview.slice(0, 3).map((p, i) => (
-                  <View key={p.userId} style={{ marginLeft: i === 0 ? 0 : -10 }}>
-                    <Avatar p={p} size={32} />
-                  </View>
-                ))}
-              </View>
-              <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 8, flex: 1 }]}>
-                {joinedPreview[0]?.name} and {Math.max(0, e.joinedCount - 1)} neighbours are attending.
-              </Text>
-              <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700" }]}>See all</Text>
-            </Pressable>
+            <>
+              <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
+              <Pressable style={styles.joinedPreviewRow} onPress={openJoinedUsers}>
+                <Avatar p={joinedPreview[0]} size={24} />
+                <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 8, flex: 1 }]}>
+                  <Text style={{ color: t.colors.text, fontWeight: "600" }}>{joinedPreview[0]?.name}</Text>
+                  {" and "}
+                  {Math.max(0, e.joinedCount - 1)} neighbours are attending.
+                </Text>
+                <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700" }]}>See all</Text>
+                <Ionicons name="chevron-forward" size={14} color={t.colors.brandDark} />
+              </Pressable>
+            </>
           ) : null}
+        </View>
 
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
-            <View style={[styles.infoPill, { backgroundColor: t.colors.surfaceAlt }]}>
-              <Ionicons name="time-outline" size={14} color={t.colors.secondaryText} />
-              <Text style={[t.typography.small, { color: t.colors.text, marginLeft: 4 }]}>
-                Closes {e.registrationClosesBeforeHours}h before
-              </Text>
+        {/* Meta row: registration close / price */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <View style={[styles.metaCard, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
+            <View style={[styles.iconCircleSm, { backgroundColor: t.colors.brandWeak }]}>
+              <Ionicons name="time-outline" size={16} color={t.colors.brandDark} />
             </View>
-            <View style={[styles.infoPill, { backgroundColor: t.colors.surfaceAlt }]}>
-              <Ionicons name="pricetag-outline" size={14} color={t.colors.secondaryText} />
-              <Text style={[t.typography.small, { color: t.colors.text, marginLeft: 4 }]}>
-                {e.participationType === "free" ? "Free" : `₹${e.feeAmount} per participant`}
-              </Text>
-            </View>
+            <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "600", flexShrink: 1 }]}>
+              Closes {e.registrationClosesBeforeHours}h before
+            </Text>
           </View>
-
+          <View style={[styles.metaCard, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
+            <View style={[styles.iconCircleSm, { backgroundColor: t.colors.brandWeak }]}>
+              <Ionicons name="pricetag-outline" size={16} color={t.colors.brandDark} />
+            </View>
+            <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "600" }]}>
+              {e.participationType === "free" ? "Free" : `₹${e.feeAmount}`}
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -517,20 +598,41 @@ const styles = StyleSheet.create({
     paddingVertical: 10, maxHeight: 90,
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 12 },
-  footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1 },
-  // heroWrapper: { padding: 10, overflow: 'hidden', backgroundColor: "#00842c30" },
-  hero: { width: "100%", height: "90%", objectFit: 'cover', borderBottomEndRadius: 20, borderBottomLeftRadius: 20  },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
+  headerBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  footer: {
+    position: "absolute", left: 0, right: 0, bottom: 0,
+    paddingHorizontal: 16, paddingTop: 14, borderTopWidth: 1,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+  },
+  hero: { width: "100%", aspectRatio: 16 / 9, borderRadius: 24, overflow: "hidden" },
+  categoryPill: {
+    position: "absolute", top: 12, right: 12,
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  categoryPillText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  card: { padding: 16, borderRadius: 24, borderWidth: 1, gap: 12 },
+  organizerCard: { gap: 0 },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  iconCircleSm: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  divider: { height: 1, marginLeft: 52 },
   metaGrid: { marginTop: 14, gap: 8 },
   metaItem: { flexDirection: "row", alignItems: "center" },
   metaText: { marginLeft: 6 },
-  organizerRow: { flexDirection: "row", alignItems: "center", marginTop: 16 },
+  metaCard: {
+    flex: 1, flexDirection: "row", alignItems: "center", gap: 10,
+    padding: 14, borderRadius: 20, borderWidth: 1,
+  },
+  organizerRow: { flexDirection: "row", alignItems: "center" },
   progressHeader: { marginBottom: 6 },
   progressTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 4 },
-  joinedPreviewRow: { flexDirection: "row", alignItems: "center", marginTop: 14 },
+  joinedPreviewRow: { flexDirection: "row", alignItems: "center" },
   infoPill: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  joinedBadge: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 14 },
+  joinedBadge: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: 16 },
   sheetBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },

@@ -109,14 +109,16 @@ function PollFeedCard({ item, onLike, onComment, onVote, onMore }: Props) {
         </Text>
       </View>
 
-      <FeedActions
-        likeCount={item.likeCount}
-        isLiked={item.isLiked}
-        commentCount={item.commentCount}
-        shareTitle={item.title}
-        onLike={onLike}
-        onComment={onComment}
-      />
+      {item.canInteract !== false && (
+        <FeedActions
+          likeCount={item.likeCount}
+          isLiked={item.isLiked}
+          commentCount={item.commentCount}
+          shareTitle={item.title}
+          onLike={onLike}
+          onComment={onComment}
+        />
+      )}
     </View>
   );
 }

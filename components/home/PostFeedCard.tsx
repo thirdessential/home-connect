@@ -44,6 +44,7 @@ function PostFeedCard({ item, onLike, onComment, onMore }: Props) {
         />
       )}
 
+      {item.canInteract !== false && (
       <FeedActions
         likeCount={item.likeCount}
         isLiked={item.isLiked}
@@ -53,6 +54,7 @@ function PostFeedCard({ item, onLike, onComment, onMore }: Props) {
         onLike={onLike}
         onComment={onComment}
       />
+      )}
     </View>
   );
 }

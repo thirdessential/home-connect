@@ -3,15 +3,39 @@ import {
   HOME_DUMMY_MODE,
   useHomeDummyStore,
 } from "@/assets/mocks/homeDummyData";
+import { usePermissions } from "@/hooks/usePermissions";
 import { formatPostTime } from "@/lib/dateTime";
 import { useEventStore } from "@/store/useEventStore";
 import { useFeedsStore } from "@/store/useFeedsStore";
 import { useUserStore } from "@/store/useUserStore";
 import { FeedItem } from "@/types/feeds.type";
 import { HomeFeedActions, HomeFeedItem } from "@/types/homeFeed.type";
+import { UserRole } from "@/types/roles";
 import { router } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
+
+// No existing grey placeholder-avatar asset was found in the project — this
+// is a neutral solid-grey inline data URI rather than a new asset file.
+const GUEST_AVATAR_URI =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+// Strips creator identity for Guest viewers — same shape, no card changes
+// needed. Attendee lists (event "who's joining") are left as-is: the spec
+// scopes this to the post/poll/event *creator*, not other residents' RSVPs.
+function anonymizeForGuest(item: HomeFeedItem): HomeFeedItem {
+  return {
+    ...item,
+    author: {
+      name: "Anonymous User",
+      avatarUrl: GUEST_AVATAR_URI,
+      initials: "?",
+      verified: false,
+      isAnonymous: true,
+    },
+    canInteract: false,
+  };
+}
 
 const initialsOf = (name?: string) => {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean);
@@ -49,6 +73,12 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
   const images = Array.isArray(f.images) ? f.images.filter(Boolean) : [];
   const kind = f.type === "poll" ? "poll" : f.type === "event" ? "event" : "post";
   const rsvps: any[] = Array.isArray(f.rsvps) ? f.rsvps : [];
+  const eventParticipants: any[] = Array.isArray(f.eventParticipants) ? f.eventParticipants : [];
+  // Real (mysqlEventId) events join via the Event API into event_participants
+  // — feed_rsvps is a separate, legacy table nothing writes to for them. Use
+  // the real participant list when there is one; fall back to feed_rsvps only
+  // for pre-migration legacy events.
+  const participants = f.mysqlEventId != null ? eventParticipants : rsvps;
   const votes: any[] = Array.isArray(f.votes) ? f.votes : [];
   const myVote = votes.find((v) => idOf(v.userId) === currentUserId);
 
@@ -67,22 +97,25 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
       .filter(Boolean)
       .join(" • "),
     isPublic: true,
+    canInteract: true,
+    isOwner: !!currentUserId && idOf(f.user) === currentUserId,
     image: images[0],
     title: f.title,
     description: f.description || f.content,
-    category: (f as any).eventType ?? (f as any).category ?? undefined,
+    category: f.category ?? undefined,
     eventDate: formatEventDate(f.eventDate),
     eventTime: formatEventTime(f.eventTime),
     location: f.location,
-    joined: rsvps.length,
+    // Same array attendees/isJoined use below — count can never disagree with the list.
+    joined: participants.length,
     capacity: f.maxParticipants ? Number(f.maxParticipants) : undefined,
     minParticipants: f.minParticipants ? Number(f.minParticipants) : undefined,
-    attendees: rsvps.map((r, i) => ({
-      id: `${f._id}-rsvp-${idOf(r.userId) ?? i}-${i}`,
-      name: r?.fullName || "Resident",
-      avatarUrl: r?.profilePhotoUrl,
+    attendees: participants.map((p, i) => ({
+      id: `${f._id}-participant-${idOf(p.userId) ?? i}-${i}`,
+      name: p?.fullName || "Resident",
+      avatarUrl: p?.profilePhotoUrl,
     })),
-    isJoined: rsvps.some((r) => idOf(r.userId) === currentUserId),
+    isJoined: participants.some((p) => idOf(p.userId) === currentUserId),
     options: (() => {
       const seen = new Set<string>();
       return (f.options ?? []).map((o: any, index: number) => {
@@ -134,14 +167,19 @@ export function useHomeFeed(): {
   const toggleLikeApi = useFeedsStore((s) => s.toggleLike);
   const votePollApi = useFeedsStore((s) => s.votePoll);
   const addCommentApi = useFeedsStore((s) => s.addComment);
+  const removeFeedApi = useFeedsStore((s) => s.removeFeed);
   const joinEventApi = useEventStore((s) => s.joinEvent);
   const user = useUserStore((s) => s.user);
+  // Same JWT-derived role source PostCard/PollCard/ProductCard already gate
+  // guest interactions with — not a new/invented role check.
+  const isGuest = usePermissions().hasRole(UserRole.GUEST);
 
   const dummyItems = useHomeDummyStore((s) => s.items);
   const dummyLike = useHomeDummyStore((s) => s.toggleLike);
   const dummyVote = useHomeDummyStore((s) => s.vote);
   const dummyRsvp = useHomeDummyStore((s) => s.toggleRsvp);
   const dummyComment = useHomeDummyStore((s) => s.addComment);
+  const dummyDelete = useHomeDummyStore((s) => s.deleteItem);
 
   const realItems = useMemo(
     () =>
@@ -151,13 +189,15 @@ export function useHomeFeed(): {
         // guard below), so it's filtered out of Home rather than shown as a
         // dead card. Posts/polls are untouched.
         .filter((f) => f.type !== "event" || f.mysqlEventId != null)
-        .map((f) => toHomeFeedItem(f, user?._id)),
-    [feeds, user?._id],
+        .map((f) => toHomeFeedItem(f, user?._id))
+        .map((item) => (isGuest ? anonymizeForGuest(item) : item)),
+    [feeds, user?._id, isGuest],
   );
 
-  // Real data wins unless the feed is empty, or dummy mode is forced for
-  // development. Flip HOME_DUMMY_FORCE to false to always prefer the API.
-  const isDummy = HOME_DUMMY_MODE && (HOME_DUMMY_FORCE || realItems.length === 0);
+  // Dummy only renders when explicitly forced on for development — a real
+  // user with a genuinely empty feed sees the empty state, never silent
+  // placeholder content. Toggle HOME_DUMMY_FORCE in homeDummyData.ts.
+  const isDummy = HOME_DUMMY_MODE && HOME_DUMMY_FORCE;
 
   const realActions = useMemo<HomeFeedActions>(
     () => ({
@@ -195,8 +235,14 @@ export function useHomeFeed(): {
       addComment: async (id, text) => {
         if (user?._id) await addCommentApi(id, { userId: user._id, text });
       },
+      deleteItem: async (id) => {
+        const ok = await removeFeedApi(id);
+        if (!ok) {
+          throw new Error(useFeedsStore.getState().error || "Failed to delete. Please try again.");
+        }
+      },
     }),
-    [user, realItems, toggleLikeApi, votePollApi, joinEventApi, addCommentApi],
+    [user, realItems, toggleLikeApi, votePollApi, joinEventApi, addCommentApi, removeFeedApi],
   );
 
   const dummyActions = useMemo<HomeFeedActions>(
@@ -205,14 +251,19 @@ export function useHomeFeed(): {
       vote: dummyVote,
       toggleRsvp: dummyRsvp,
       addComment: dummyComment,
+      deleteItem: dummyDelete,
     }),
-    [dummyLike, dummyVote, dummyRsvp, dummyComment],
+    [dummyLike, dummyVote, dummyRsvp, dummyComment, dummyDelete],
   );
 
   const sortedItems = useMemo(() => {
-    const src = isDummy ? dummyItems : realItems;
+    const src = isDummy
+      ? isGuest
+        ? dummyItems.map(anonymizeForGuest)
+        : dummyItems
+      : realItems;
     return [...src].sort((a, b) => b.createdAtMs - a.createdAtMs);
-  }, [isDummy, dummyItems, realItems]);
+  }, [isDummy, isGuest, dummyItems, realItems]);
 
   return {
     items: sortedItems,

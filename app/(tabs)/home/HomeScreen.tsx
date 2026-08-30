@@ -30,12 +30,16 @@ const handlePressProductItem = () => {};
 function HomeScreen() {
   const t = useTheme();
   const userId = useUserStore((state) => state.user?._id);
-  // Refresh the user (verification/business status) whenever Home regains focus.
+  const selectedSocietyId = useSocietyStore((state) => state.selectedSociety?._id);
+  // Refresh user (verification/business status) + feed on every Home focus —
+  // force=true bypasses the 15-min feed cache so "reload" actually re-hits the
+  // API instead of silently reusing stale in-memory/persisted data.
   useFocusEffect(
     useCallback(() => {
       if (userId) fetchUser(userId).catch(() => {});
       loadCurrentBusiness().catch(() => {});
-    }, [userId]),
+      if (selectedSocietyId) fetchFeedsBySociety(selectedSocietyId, true).catch(() => {});
+    }, [userId, selectedSocietyId]),
   );
   const userVerification = useUserStore(
     (state) => state.user?.isAddressVerified,
@@ -51,9 +55,6 @@ function HomeScreen() {
   // MySQL business registrations live in their own store, not on user.businessStatus.
   const mysqlBusinessStatus = useBusinessRegistrationStore((state) => state.business?.business_status);
   const loadCurrentBusiness = useBusinessRegistrationStore((state) => state.loadCurrent);
-  const selectedSocietyId = useSocietyStore(
-    (state) => state.selectedSociety?._id,
-  );
   const activeDeals = useWholesaleDealStore((state) => state.activeDeals);
   const wholesaleDealsLoading = useWholesaleDealStore((state) => state.loading);
   const { hasRole, hasAnyRole } = usePermissions();
@@ -112,10 +113,10 @@ function HomeScreen() {
   const [feedFilter, setFeedFilter] = useState<HomeFeedFilter>("all");
 
   // Single consolidated fetch — Promise.allSettled waits for all, uses successes, ignores failures
-  const fetchAllData = useCallback(async (sid: string) => {
+  const fetchAllData = useCallback(async (sid: string, force = false) => {
     await Promise.allSettled([
       updateExpiredDeals(sid),
-      fetchFeedsBySociety(sid),
+      fetchFeedsBySociety(sid, force),
       getAllDealsBySocietyId(sid),
       fetchBusinessBySocietyId(sid),
       getAllApprovedDailyServices(sid),
@@ -136,7 +137,7 @@ function HomeScreen() {
     if (!userId || !selectedSocietyId) return;
     setRefreshing(true);
     await Promise.allSettled([
-      fetchAllData(selectedSocietyId),
+      fetchAllData(selectedSocietyId, true),
       ...(isAdmin ? [getAllPendingContent(selectedSocietyId)] : []),
     ]);
     setRefreshing(false);

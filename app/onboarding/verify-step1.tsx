@@ -29,19 +29,6 @@ export default function VerifyStep1Screen() {
     [towerList],
   );
 
-  const selectedTower = useMemo(
-    () => towerList.find((t) => t._id === towerId),
-    [towerList, towerId],
-  );
-
-  const flatOptions = useMemo(() => {
-    const count = selectedTower?.flatsPerFloor || selectedTower?.totalFlats || 20;
-    return Array.from({ length: count }, (_, i) => {
-      const n = String(i + 1);
-      return { id: n, name: `Flat ${n}` };
-    });
-  }, [selectedTower]);
-
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
   }, []);
@@ -127,19 +114,18 @@ export default function VerifyStep1Screen() {
           error={errors.tower}
         />
 
-        <TerraceSelectField
+        <TerraceTextField
           label="Flat / Unit Number"
-          placeholder="Select flat"
+          placeholder={towerId ? "Enter flat number, e.g. 101" : "Select a tower first"}
           leftIcon="home-outline"
-          options={flatOptions}
-          selectedId={flatNo}
-          onChange={(id) => {
-            setFlatNo(id);
+          value={flatNo ?? ""}
+          onChangeText={(v) => {
+            setFlatNo(v.replace(/[^0-9]/g, ""));
             setErrors((e) => ({ ...e, flatNo: false }));
           }}
-          modalTitle="Select flat / unit number"
-          error={errors.flatNo}
-          disabled={!towerId}
+          error={errors.flatNo ? "Flat number is required" : undefined}
+          keyboardType="numeric"
+          editable={!!towerId}
         />
 
         <Text style={styles.helperNote}>

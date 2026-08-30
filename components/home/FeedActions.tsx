@@ -4,7 +4,7 @@ import { memo, useCallback } from "react";
 import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
-  likeCount: string;
+  likeCount: number;
   isLiked: boolean;
   commentCount: number;
   shareTitle?: string;

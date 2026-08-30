@@ -10,7 +10,7 @@ import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { CommonActions } from "@react-navigation/native";
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,7 +20,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const modalOpen = useUiStore((s) => s.createPostModal.visible);
-  const { open, close } = useCreatePostModal();
+  const { close } = useCreatePostModal();
   const BTN_SIZE = 56;
   // Only subscribe to needed user fields
   const userStatus = useUserStore(
@@ -90,10 +90,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabBarHeight = insets.bottom + 56; // 56 is a good default for both platforms
   const activeKey = ["home", "business", "directory", "profile"][state.index] ?? "home";
   const handleCenterPress = useCallback(() => {
+    // The old CreatePostModal popup is only reachable now from within the
+    // new full-screen Create page (Event/Poll/Business handoff) — Plus opens
+    // that page directly instead of the modal.
     if (isUserAllowed) setUnverifiedModalVisible(true);
     else if (modalOpen) close();
-    else open();
-  }, [isUserAllowed, modalOpen, close, open]);
+    else router.push("/(shared)/create");
+  }, [isUserAllowed, modalOpen, close]);
 
   return (
     <>

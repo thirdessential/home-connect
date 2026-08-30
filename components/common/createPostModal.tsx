@@ -269,7 +269,9 @@ function CreatePostModal({
         subtitle: "Share updates with your community.",
         path: "post",
         color: "#EC4899",
-        disabled: true,
+        // disabled: true,
+        disabled: !permissionFlags.canCreateResidentService,
+
       },
       {
         icon: "stats-chart-outline" as const,
@@ -277,7 +279,9 @@ function CreatePostModal({
         subtitle: "Ask the Community a Question.",
         path: "poll",
         color: "#EC4899",
-        disabled: true,
+        // disabled: true,
+        disabled: !permissionFlags.canCreateResidentService,
+
       },
     ];
   }, [permissionFlags]);
