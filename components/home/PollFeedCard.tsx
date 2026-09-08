@@ -3,6 +3,7 @@ import { HomeFeedItem } from "@/types/homeFeed.type";
 import { memo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ExpandableText from "./ExpandableText";
 import FeedActions from "./FeedActions";
 import FeedCardHeader from "./FeedCardHeader";
 
@@ -35,6 +36,14 @@ function PollFeedCard({ item, onLike, onComment, onVote, onMore }: Props) {
           <Text style={[styles.question, { color: t.colors.textPrimary }]}>
             {item.title}
           </Text>
+        )}
+
+        {!!item.description && (
+          <ExpandableText
+            text={item.description}
+            textStyle={[styles.footnote, { color: t.colors.textSecondary, fontSize: 13, lineHeight: 18 }]}
+            linkColor={t.colors.brand}
+          />
         )}
 
         <View style={styles.options}>

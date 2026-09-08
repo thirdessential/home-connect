@@ -19,6 +19,7 @@ type Props = {
   onRsvp: () => void;
   onSeeAll: () => void;
   onMore: () => void;
+  onOpen: () => void;
 };
 
 const MetaChip = ({ icon, label, tinted }: { icon: any; label: string; tinted: boolean }) => {
@@ -38,7 +39,7 @@ const MetaChip = ({ icon, label, tinted }: { icon: any; label: string; tinted: b
 };
 
 /** Event card — immersive hero when there's an image, plain header when not. */
-function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore }: Props) {
+function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOpen }: Props) {
   const t = useTheme();
   const hasHero = !!item.image;
   const joined = item.joined ?? 0;
@@ -48,63 +49,60 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore }: Pr
   const stillNeeded = Math.max(0, (item.minParticipants ?? 0) - joined);
 
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onOpen}
       style={[styles.card, { backgroundColor: t.colors.surface }]}
     >
-      {hasHero ? (
-        <View style={styles.hero}>
+      <View style={styles.hero}>
+        {hasHero ? (
           <Image source={{ uri: item.image }} style={styles.heroImage} resizeMode="cover" />
+        ) : (
+          // Default visual for events without an image — matches the Event
+          // Details screen so the card and details page look consistent.
           <LinearGradient
-            colors={[
-              "rgba(0,0,0,0.72)",
-              "rgba(0,0,0,0.34)",
-              "rgba(0,0,0,0.30)",
-              "rgba(0,0,0,0.85)",
-            ]}
-            locations={[0, 0.26, 0.55, 1]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <View style={styles.heroInner}>
-            <FeedCardHeader
-              author={item.author}
-              meta={item.meta}
-              isPublic={item.isPublic}
-              badge="EVENT"
-              onImage
-              onMorePress={onMore}
-            />
-            <View>
-              <Text style={styles.heroTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              {!!item.category && (
-                <View style={styles.categoryPill}>
-                  <Text style={styles.categoryText}>{item.category}</Text>
-                </View>
-              )}
+            colors={[t.colors.brand, t.colors.brandDark]}
+            style={styles.heroImage}
+          >
+            <View style={styles.heroFallbackIcon}>
+              <Ionicons name="calendar-outline" size={40} color={t.colors.onBrand} />
             </View>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.plainHeader}>
+          </LinearGradient>
+        )}
+        <LinearGradient
+          colors={[
+            "rgba(0,0,0,0.72)",
+            "rgba(0,0,0,0.34)",
+            "rgba(0,0,0,0.30)",
+            "rgba(0,0,0,0.85)",
+          ]}
+          locations={[0, 0.26, 0.55, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <View style={styles.heroInner}>
           <FeedCardHeader
             author={item.author}
             meta={item.meta}
             isPublic={item.isPublic}
             badge="EVENT"
+            onImage
             onMorePress={onMore}
           />
+          <View>
+            <Text style={styles.heroTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+            {!!item.category && (
+              <View style={styles.categoryPill}>
+                <Text style={styles.categoryText}>{item.category}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      )}
+      </View>
 
       <View style={styles.body}>
-        {!hasHero && !!item.title && (
-          <Text style={[styles.plainTitle, { color: t.colors.textPrimary }]}>
-            {item.title}
-          </Text>
-        )}
-
         <View style={styles.metaRow}>
           {!!item.eventDate && (
             <MetaChip icon="calendar-clear-outline" label={item.eventDate} tinted={hasHero} />
@@ -118,7 +116,11 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore }: Pr
         </View>
 
         {!!item.description && (
-          <Text style={[styles.description, { color: t.colors.textSecondary }]}>
+          <Text
+            style={[styles.description, { color: t.colors.textSecondary }]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
             {item.description}
           </Text>
         )}
@@ -191,7 +193,7 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore }: Pr
         )}
 
         <TouchableOpacity
-          onPress={onRsvp}
+          onPress={onOpen}
           activeOpacity={0.85}
           style={[
             styles.cta,
@@ -234,7 +236,7 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore }: Pr
           />
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -250,8 +252,9 @@ const styles = StyleSheet.create({
   },
   // Reference hero is h-64 on a ~390pt viewport.
   hero: { width: "100%", aspectRatio: 1.52 },
-  heroImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
-  heroInner: { ...StyleSheet.absoluteFillObject, padding: 16, justifyContent: "space-between" },
+  heroImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
+  heroFallbackIcon: { alignItems: "center", justifyContent: "center" },
+  heroInner: { ...StyleSheet.absoluteFill, padding: 16, justifyContent: "space-between" },
   heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "700", lineHeight: 28, letterSpacing: -0.4 },
   categoryPill: {
     alignSelf: "flex-start",

@@ -1,5 +1,6 @@
-import { pickImageCropped } from "@/lib/ImagePicker";
+import { useImageUploader } from "@/components/image-upload";
 import { ImagePickerFieldProps } from "@/types/form.type";
+import type { CropRatioKey } from "@/types/imageUpload.type";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../theme/theme";
 import { Card } from "../UI/Card";
@@ -14,14 +15,18 @@ export default function ImagePickerField({
   style,
   tileSize = 96,
   disabled = false,
+  aspectRatios,
+  defaultAspectRatio,
 }: ImagePickerFieldProps) {
   const t = useTheme();
   const MAX = max ?? (mode === "single" ? 1 : 6);
+  const { openImageUploader } = useImageUploader();
 
-  // Every pick — camera or gallery — goes through the shared ratio+crop
-  // flow (lib/ImagePicker.ts) one image at a time, so cropping can never be
-  // bypassed even for the "multiple" mode (native multi-select cannot crop).
-  const addOne = async (source: "camera" | "library") => {
+  // Every pick — camera or gallery — goes through the one universal flow
+  // (components/image-upload) a single image at a time, so cropping can never
+  // be bypassed even in "multiple" mode. The screen's own submit uploads the
+  // files, so this field keeps returning local URIs (`upload: false`).
+  const addOne = async () => {
     if (disabled) return;
     if (value.length >= MAX) {
       Alert.alert(
@@ -30,14 +35,21 @@ export default function ImagePickerField({
       );
       return;
     }
-    const asset = await pickImageCropped(source, { quality });
-    if (!asset?.uri) return;
-    const next = mode === "single" ? [asset.uri] : [...value, asset.uri].slice(0, MAX);
+    const ratios: CropRatioKey[] = aspectRatios?.length
+      ? aspectRatios
+      : ["1:1", "4:5", "16:9"];
+    const res = await openImageUploader({
+      title: label,
+      aspectRatios: ratios,
+      defaultAspectRatio: defaultAspectRatio ?? ratios[0],
+      quality,
+      upload: false,
+      confirmLabel: "Use Photo",
+    });
+    if (!res || !("uri" in res)) return;
+    const next = mode === "single" ? [res.uri] : [...value, res.uri].slice(0, MAX);
     onChange(next);
   };
-
-  const addFromLibrary = () => addOne("library");
-  const addFromCamera = () => addOne("camera");
 
   const removeImage = (uri: string) => {
     if (disabled) return;
@@ -72,7 +84,10 @@ export default function ImagePickerField({
         {value.length < MAX && (
           <View style={{ width: tileSize, height: tileSize }}>
             <TouchableOpacity
-              onPress={addFromLibrary}
+              onPress={addOne}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${label}`}
               style={{
                 flex: 1,
                 borderWidth: 1,
@@ -99,22 +114,7 @@ export default function ImagePickerField({
                   marginTop: 2,
                 }}
               >
-                Gallery
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={addFromCamera}
-              style={{ alignItems: "center", marginTop: 6 }}
-            >
-              <Text
-                style={{
-                  color: t.colors.primary,
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
-              >
-                Use Camera
+                Add Photo
               </Text>
             </TouchableOpacity>
           </View>

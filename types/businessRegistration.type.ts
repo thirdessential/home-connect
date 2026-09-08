@@ -131,7 +131,9 @@ export type Step4OutsidePayload = {
 export type Step4Payload = Step4WithinPayload | Step4OutsidePayload;
 
 export type Step5Payload = {
-  registration_type: RegistrationType;
+  // Optional — Step 5 verification can be skipped; a skipped submission
+  // omits this and the backend stores it as null.
+  registration_type?: RegistrationType;
   registration_proof?: string | null;
 };
 

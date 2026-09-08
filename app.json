@@ -7,11 +7,20 @@
     "icon": "./assets/images/icon.png",
     "scheme": "homeconnect",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "We use your location to show nearby businesses and offers."
+        "NSLocationWhenInUseUsageDescription": "We use your location to show nearby businesses and offers.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "98.81.148.66": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": false
+            }
+          }
+        }
       },
       "bundleIdentifier": "com.anonymous.homeconnect"
     },
@@ -26,9 +35,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.homeconnect",
-      "usesCleartextTraffic": true
+      "package": "com.anonymous.homeconnect"
     },
     "web": {
       "bundler": "metro",
@@ -50,7 +57,24 @@
       "expo-location",
       "expo-font",
       "expo-web-browser",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Home Connect needs access to your photos so you can add a picture to your profile, posts and listings.",
+          "cameraPermission": "Home Connect needs access to your camera so you can take a photo for your profile, posts and listings."
+        }
+      ],
+      "expo-image",
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

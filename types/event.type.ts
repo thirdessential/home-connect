@@ -91,7 +91,7 @@ export type CreateEventPayload = {
   participationtype: ParticipationType;
   participationfeeamount?: number;
   minimumparticipants: number;
-  maximumparticipants: number;
+  maximumparticipants?: number;
   registrationclosesbefore: number;
   rulesthingstobring?: string;
 };

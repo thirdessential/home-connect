@@ -20,14 +20,19 @@ type Props = {
   selected: UsageRole | null;
   onSelect: (role: UsageRole) => void;
   onContinue: () => void;
+  /** Business users only see the Resident option — role comes from the caller's auth state, never UI input. */
+  hideBusiness?: boolean;
 };
 
-function RoleUsageStep({ selected, onSelect, onContinue }: Props) {
+function RoleUsageStep({ selected, onSelect, onContinue, hideBusiness }: Props) {
   const t = useTheme();
+  const visibleOptions = hideBusiness
+    ? OPTIONS.filter((opt) => opt.id === "resident")
+    : OPTIONS;
 
   return (
     <View style={styles.container}>
-      {OPTIONS.map((opt) => {
+      {visibleOptions.map((opt) => {
         const isSelected = selected === opt.id;
         return (
           <TouchableOpacity

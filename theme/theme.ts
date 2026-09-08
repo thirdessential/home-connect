@@ -285,3 +285,28 @@ export const palette = {
     yellow: { bg: "#FEF9C3", border: "#F59E0B", title: "#92400E", sub: "#374151", icon: "#F59E0B" },
     green: { bg: "#DCFCE7", border: "#10B981", title: "#065F46", sub: "#374151", icon: "#10B981" },
 };
+
+// ---- Admin Dashboard design tokens (from the static mockup's :root vars) ----
+// Reuse `useTheme()` colors wherever an equivalent already exists (brand/
+// brandDark for green, surface, border, textPrimary/textSecondary). These are
+// only the tokens the base theme doesn't have: the warm cream background,
+// the secondary surface tint, and the category accent/tint pairs used for
+// badges, stat icon chips and entity tags across the admin dashboard screens.
+export const adminDashboardColors = {
+    bg: "#FAF8F3",
+    surface2: "#F3F1EA",
+    textFaint: "#9A9C90",
+    greenTint: "#E4F3EA",
+    purple: "#6E4FE8",
+    purpleTint: "#EFEBFD",
+    blue: "#2F5FE0",
+    blueTint: "#EAF0FE",
+    amber: "#B9741B",
+    amberTint: "#FBEEDD",
+    red: "#C43D2B",
+    redTint: "#FBEAE6",
+};
+
+// Mockup's --r-lg/--r-md/--r-sm — literal px radii (not the app's scaled
+// `radii` tokens) so cards/pills/inputs match the reference exactly.
+export const adminDashboardRadii = { lg: 18, md: 14, sm: 10 };

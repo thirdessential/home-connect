@@ -23,12 +23,14 @@ import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useToast } from "@/components/common/Toast";
 
 const handlePressProductItem = () => {};
 
 function HomeScreen() {
   const t = useTheme();
+  const { showToast } = useToast();
   const userId = useUserStore((state) => state.user?._id);
   const selectedSocietyId = useSocietyStore((state) => state.selectedSociety?._id);
   // Refresh user (verification/business status) + feed on every Home focus —
@@ -40,6 +42,25 @@ function HomeScreen() {
       loadCurrentBusiness().catch(() => {});
       if (selectedSocietyId) fetchFeedsBySociety(selectedSocietyId, true).catch(() => {});
     }, [userId, selectedSocietyId]),
+  );
+  // Android hardware back on Home: first press warns, second press (within
+  // 2s) exits the app. iOS has no hardware back key, so this is a no-op there.
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      let lastPress = 0;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        const now = Date.now();
+        if (now - lastPress < 2000) {
+          BackHandler.exitApp();
+          return true;
+        }
+        lastPress = now;
+        showToast("Press back again to exit", "info");
+        return true;
+      });
+      return () => sub.remove();
+    }, [showToast]),
   );
   const userVerification = useUserStore(
     (state) => state.user?.isAddressVerified,
@@ -204,12 +225,10 @@ function HomeScreen() {
         )}
         {hasPendingBusiness && !hasExcessPendingBusinesses && (
           <InfoBanner
+            variant="card"
+            icon="briefcase-outline"
             title="Verification Pending"
             description="Your business verification request has been submitted. Please wait for admin approval."
-            backgroundColor="#FEF3C7"
-            borderColor="#F59E0B"
-            titleColor="#92400E"
-            descriptionColor="#92400E"
           />
         )}
         {hasExcessPendingBusinesses && (

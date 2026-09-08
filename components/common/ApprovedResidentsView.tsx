@@ -99,87 +99,58 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
   // Show tower list view
   if (!selectedTower) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
         {/* Header */}
         <View
           style={{
             paddingHorizontal: 20,
-            paddingVertical: 16,
-            backgroundColor: "white",
+            paddingTop: 20,
+            paddingBottom: 6,
           }}
         >
-          <Text style={[theme.typography.h3, { color: theme.colors.primary }]}>
-            Approved Residents
+          <Text style={[theme.typography.h5, { color: theme.colors.textPrimary, fontSize: 19 }]}>
+            Towers
           </Text>
         </View>
 
-        {/* Tower List */}
-        <ScrollView style={{ flex: 1, paddingHorizontal: 20, paddingTop: 16 }}>
-          {towerList?.map((tower) => (
-            <TouchableOpacity
-              key={tower?._id}
-              onPress={() => {
-                setSelectedTower(tower?._id);
-                animateIn();
-              }}
-              activeOpacity={0.7}
-            >
-              <Card
-                style={{
-                  marginBottom: 12,
-                  padding: 20,
-                  backgroundColor: "white",
-                  borderRadius: 12,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+        {/* Tower grid — 2/3/4 columns like the reference design */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }}>
+            {towerList?.map((tower) => {
+              const count = getTowerUserCount(tower?._id);
+              return (
+                <TouchableOpacity
+                  key={tower?._id}
+                  onPress={() => {
+                    setSelectedTower(tower?._id);
+                    animateIn();
                   }}
+                  activeOpacity={0.75}
+                  style={{ width: "47%" }}
                 >
-                  <Text
-                    style={[
-                      theme.typography.h4,
-                      {
-                        color: theme.colors.textPrimary,
-                        fontWeight: "600",
-                        fontSize: 18,
-                      },
-                    ]}
-                  >
-                    {tower?.name}
-                  </Text>
-                  <View
+                  <Card
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
+                      padding: 18,
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 18,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
                     }}
                   >
-                    <Text
-                      style={[
-                        theme.typography.h4,
-                        {
-                          color: theme.colors.textSecondary,
-                          fontSize: 18,
-                          fontWeight: "400",
-                        },
-                      ]}
-                    >
-                      {getTowerUserCount(tower?._id)}
+                    <Text style={{ fontSize: 26, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 10 }}>
+                      {tower?.name?.[0] ?? "?"}
                     </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={theme.colors.textSecondary}
-                    />
-                  </View>
-                </View>
-              </Card>
-            </TouchableOpacity>
-          ))}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>
+                        {count ? `${count} resident${count > 1 ? "s" : ""}` : "No residents yet"}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+                    </View>
+                  </Card>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </ScrollView>
       </View>
     );
@@ -194,90 +165,86 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
     <Animated.View
       style={{
         flex: 1,
-        backgroundColor: "#F9FAFB",
+        backgroundColor: theme.colors.background,
         transform: [{ translateX: slideX }],
       }}
     >
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          backgroundColor: "white",
-        }}
-      >
+      {/* Back link + heading, matching the tower-drilldown header pattern */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 6 }}>
         <TouchableOpacity
           onPress={animateOutAndBack}
-          style={{ marginRight: 16 }}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 14, alignSelf: "flex-start" }}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons name="arrow-back" size={16} color={theme.colors.brandDark ?? theme.colors.primary} />
+          <Text style={{ fontSize: 14.5, fontWeight: "700", color: theme.colors.brandDark ?? theme.colors.primary }}>
+            All Towers
+          </Text>
         </TouchableOpacity>
-        <Text style={[theme.typography.h3, { color: theme.colors.primary }]}>
-          {selectedTowerName} ({towerUsers.length})
+        <Text style={[theme.typography.h5, { color: theme.colors.textPrimary, fontSize: 19 }]}>
+          {selectedTowerName} · {towerUsers.length} resident{towerUsers.length === 1 ? "" : "s"}
         </Text>
       </View>
 
-      {/* User List */}
-      <ScrollView style={{ flex: 1, paddingHorizontal: 20, paddingTop: 16 }}>
-        {towerUsers.map((user: any, index: number) => (
-          <Card
-            key={index}
-            style={{
-              marginBottom: 12,
-              padding: 16,
-              backgroundColor: "white",
-              borderRadius: 12,
-            }}
-          >
-            <Pressable
-              onPress={() =>
-                router.navigate(
-                  `/(tabs)/profile/user-profile-screen?id=${user._id}`,
-                )
-              }
+      {/* Resident cards */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24 }}>
+        {towerUsers.length === 0 ? (
+          <View style={{ alignItems: "center", padding: 40, borderWidth: 1, borderStyle: "dashed", borderColor: theme.colors.border, borderRadius: 18 }}>
+            <Ionicons name="people-outline" size={28} color={theme.colors.textSecondary} />
+            <Text style={{ marginTop: 10, fontWeight: "700", color: theme.colors.textPrimary }}>No approved residents yet</Text>
+            <Text style={{ marginTop: 4, fontSize: 13, color: theme.colors.textSecondary, textAlign: "center" }}>
+              {selectedTowerName} has no approved residents at the moment.
+            </Text>
+          </View>
+        ) : (
+          towerUsers.map((user: any, index: number) => (
+            <Card
+              key={index}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                marginBottom: 12,
+                padding: 14,
+                backgroundColor: theme.colors.surface,
+                borderRadius: 18,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
               }}
             >
-              <View style={{ marginRight: 12 }}>
+              <Pressable
+                onPress={() =>
+                  router.navigate(
+                    `/(tabs)/profile/user-profile-screen?id=${user._id}`,
+                  )
+                }
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
                 <CircularImage
                   uri={user.profilePhotoUrl}
-                  size={50}
+                  size={56}
                   mode="view"
                 />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    theme.typography.body,
-                    {
-                      fontWeight: "600",
-                      color: theme.colors.textPrimary,
-                      fontSize: 16,
-                    },
-                  ]}
-                >
-                  {user.fullName}
-                </Text>
-                <Text
-                  style={[
-                    theme.typography.body,
-                    {
-                      color: theme.colors.textSecondary,
-                      marginTop: 4,
-                      fontSize: 14,
-                    },
-                  ]}
-                >
-                  {user.flatNo}
-                </Text>
-              </View>
-            </Pressable>
-          </Card>
-        ))}
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: theme.colors.textPrimary }}>
+                    {user.fullName}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 3 }}>
+                    <Text style={{ fontSize: 12.5, color: theme.colors.textSecondary }}>
+                      Flat {user.flatNo}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
+                    <Ionicons name="checkmark-circle" size={14} color={theme.colors.brand} />
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.brand }}>
+                      Verified resident
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            </Card>
+          ))
+        )}
       </ScrollView>
     </Animated.View>
   );

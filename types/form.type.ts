@@ -1,4 +1,5 @@
 import { StyleProp, TextInputProps, ViewStyle } from "react-native";
+import type { CropRatioKey } from "./imageUpload.type";
 
 export interface ImagePickerFieldProps {
     label?: string;
@@ -11,6 +12,10 @@ export interface ImagePickerFieldProps {
     style?: StyleProp<ViewStyle>;
     tileSize?: number; // preview size, default 96
     disabled?: boolean;
+    /** Crop ratios offered for this field. Defaults to all three. */
+    aspectRatios?: CropRatioKey[];
+    /** Ratio pre-selected on the crop screen. Defaults to the first allowed. */
+    defaultAspectRatio?: CropRatioKey;
 };
 
 export interface TextAreaProps {

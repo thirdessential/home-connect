@@ -4,10 +4,12 @@ import { useToast } from "@/components/common/Toast";
 import ActionButton from "@/components/inputs/ActionButton";
 import { useEventStore } from "@/store/useEventStore";
 import { useUserStore } from "@/store/useUserStore";
+import { formatPostTime } from "@/lib/dateTime";
 import { getHeight, useTheme } from "@/theme/theme";
 import { EventParticipant } from "@/types/event.type";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -19,7 +21,6 @@ import {
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -45,7 +46,7 @@ const formatEventDate = (raw?: string | null) => {
   if (!raw) return "";
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 };
 
 // Duration from start/end time strings ("18:30" style). Backend doesn't
@@ -63,7 +64,9 @@ const formatDuration = (start?: string | null, end?: string | null) => {
 };
 
 // Reserve space above the fixed footer so the last scroll content is never hidden behind it.
-const FOOTER_SPACE = getHeight(500);
+// (Matches the footer's own height — was 500, far larger than the ~110pt footer, which
+// left a large empty gap at the bottom of the scroll content.)
+const FOOTER_SPACE = getHeight(110);
 
 function Avatar({ p, size = 40 }: { p: { name: string; profileImage: string | null }; size?: number }) {
   const t = useTheme();
@@ -84,7 +87,7 @@ export default function EventDetailsScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const {
     getEvent, joinEvent, getParticipants, currentEvent, participants, loading,
-    toggleLike, getComments, addComment, deleteComment, comments, commentsLoading,
+    toggleLike,
   } = useEventStore();
   const currentUserId = useUserStore((s) => s.user?._id);
 
@@ -99,10 +102,6 @@ export default function EventDetailsScreen() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState<number | null>(null);
   const [likeBusy, setLikeBusy] = useState(false);
-
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [commentBusy, setCommentBusy] = useState(false);
 
   const load = useCallback(() => {
     if (eventId) getEvent(eventId).catch((e: any) => showToast(e?.message ?? "Failed to load event", "error"));
@@ -160,40 +159,6 @@ export default function EventDetailsScreen() {
     }
   };
 
-  const openComments = () => {
-    setCommentsOpen(true);
-    if (eventId)
-      getComments(eventId).catch((e: any) =>
-        showToast(e?.message ?? "Failed to load comments", "error"),
-      );
-  };
-
-  const onAddComment = async () => {
-    const text = commentText.trim();
-    if (!eventId || !text || commentBusy) return;
-    setCommentBusy(true);
-    try {
-      await addComment(eventId, text);
-      setCommentText("");
-    } catch (err: any) {
-      showToast(err?.message ?? "Failed to add comment", "error");
-    } finally {
-      setCommentBusy(false);
-    }
-  };
-
-  const onDeleteComment = async (commentId: number) => {
-    if (!eventId || commentBusy) return;
-    setCommentBusy(true);
-    try {
-      await deleteComment(eventId, commentId);
-    } catch (err: any) {
-      showToast(err?.message ?? "Failed to delete comment", "error");
-    } finally {
-      setCommentBusy(false);
-    }
-  };
-
   if (loading && !currentEvent) {
     return (
       <View style={[styles.center, { backgroundColor: t.colors.background }]}>
@@ -234,7 +199,7 @@ export default function EventDetailsScreen() {
   const duration = formatDuration(e.startTime, e.endTime);
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.colors.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: t.colors.white, paddingTop: insets.top }}>
       <View style={[styles.headerRow, { backgroundColor: t.colors.surface }]}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
           <Ionicons name="arrow-back" size={20} color={t.colors.text} />
@@ -251,7 +216,18 @@ export default function EventDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.hero, { backgroundColor: t.colors.surfaceAlt }]}>
-          {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" /> : null}
+          {e.image ? (
+            <Image source={{ uri: e.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+          ) : (
+            // Default visual when the event has no image — same brand
+            // gradient + calendar icon used on the Home event card.
+            <LinearGradient
+              colors={[t.colors.brand, t.colors.brandDark]}
+              style={[StyleSheet.absoluteFillObject, styles.heroFallback]}
+            >
+              <Ionicons name="calendar-outline" size={56} color={t.colors.onBrand} />
+            </LinearGradient>
+          )}
           {!!e.eventType && (
             <View style={styles.categoryPill}>
               <Ionicons name="pricetag" size={14} color="#fff" />
@@ -382,45 +358,10 @@ export default function EventDetailsScreen() {
 
       {/* Fixed footer CTA — stays visible while scrolling; ScrollView's bottom
           padding above (FOOTER_SPACE + insets.bottom) keeps content clear of it. */}
-      <View style={[styles.footer, { backgroundColor: t.colors.background, borderTopColor: t.colors.border, paddingBottom: insets.bottom + 16 }]}>
-        {/* Like / Comments / (creator) Manage Event */}
-        <View style={styles.actionRow}>
-          <Pressable onPress={onToggleLike} disabled={likeBusy} style={styles.actionBtn} hitSlop={8}>
-            <Ionicons
-              name={liked ? "heart" : "heart-outline"}
-              size={22}
-              color={liked ? t.colors.error : t.colors.secondaryText}
-            />
-            {likeCount !== null && (
-              <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 6 }]}>
-                {likeCount}
-              </Text>
-            )}
-          </Pressable>
-
-          <Pressable onPress={openComments} style={styles.actionBtn} hitSlop={8}>
-            <Ionicons name="chatbubble-outline" size={20} color={t.colors.secondaryText} />
-            <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 6 }]}>
-              Comments
-            </Text>
-          </Pressable>
-
-          {isCreator && (
-            <Pressable
-              onPress={() =>
-                router.push({ pathname: "/(shared)/event-dashboard", params: { eventId: String(eventId) } })
-              }
-              style={styles.actionBtn}
-              hitSlop={8}
-            >
-              <Ionicons name="settings-outline" size={20} color={t.colors.brandDark} />
-              <Text style={[t.typography.small, { color: t.colors.brandDark, marginLeft: 6, fontWeight: "700" }]}>
-                Manage Event
-              </Text>
-            </Pressable>
-          )}
-        </View>
-
+      {/* <View style={styles.footerShadow}></View> */}
+     
+      
+      <View style={[styles.footer, { backgroundColor: t.colors.white , borderColor: t.colors.border, paddingBottom: insets.bottom + 16 }]}>
         {e.currentUserJoined ? (
           <View style={[styles.joinedBadge, { backgroundColor: t.colors.brandWeak }]}>
             <Ionicons name="checkmark-circle" size={18} color={t.colors.brandDark} />
@@ -449,62 +390,6 @@ export default function EventDetailsScreen() {
           />
         )}
       </View>
-
-      {/* Comments bottom sheet */}
-      <Modal transparent visible={commentsOpen} animationType="slide" onRequestClose={() => setCommentsOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setCommentsOpen(false)} />
-        <View style={[styles.sheet, { backgroundColor: t.colors.background, paddingBottom: insets.bottom + 16 }]}>
-          <Heading level={4}>Comments</Heading>
-
-          {commentsLoading && comments.length === 0 ? (
-            <ActivityIndicator color={t.colors.brandDark} style={{ marginVertical: 24 }} />
-          ) : comments.length === 0 ? (
-            <Text style={[t.typography.body, { color: t.colors.secondaryText, textAlign: "center", marginVertical: 24 }]}>
-              No comments yet. Be the first to say something.
-            </Text>
-          ) : (
-            <FlatList
-              data={comments}
-              keyExtractor={(c) => String(c.id)}
-              style={{ maxHeight: getHeight(900) }}
-              renderItem={({ item }) => (
-                <View style={styles.commentRow}>
-                  <Avatar p={{ name: item.user.name, profileImage: item.user.profileImage }} size={34} />
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={[t.typography.small, { color: t.colors.textPrimary, fontWeight: "700" }]}>
-                      {item.user.name || "Resident"}
-                    </Text>
-                    <Text style={[t.typography.body, { color: t.colors.textPrimary }]}>{item.text}</Text>
-                  </View>
-                  {item.user.userId === currentUserId && (
-                    <Pressable onPress={() => onDeleteComment(item.id)} disabled={commentBusy} hitSlop={8}>
-                      <Ionicons name="trash-outline" size={18} color={t.colors.secondaryText} />
-                    </Pressable>
-                  )}
-                </View>
-              )}
-            />
-          )}
-
-          <View style={styles.commentInputRow}>
-            <TextInput
-              value={commentText}
-              onChangeText={setCommentText}
-              placeholder="Add a comment…"
-              placeholderTextColor={t.colors.secondaryText}
-              style={[styles.commentInput, { color: t.colors.textPrimary, borderColor: t.colors.border }]}
-              multiline
-            />
-            <ActionButton
-              title="Post"
-              onPress={onAddComment}
-              variant="primary"
-              disabled={!commentText.trim() || commentBusy}
-              loading={commentBusy}
-            />
-          </View>
-        </View>
-      </Modal>
 
       {/* Join confirmation bottom sheet */}
       <Modal transparent visible={joinSheetOpen} animationType="slide" onRequestClose={() => setJoinSheetOpen(false)}>
@@ -568,6 +453,11 @@ export default function EventDetailsScreen() {
                     <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>
                       {[cleanLocationPart(item.tower), cleanLocationPart(item.unit)].filter(Boolean).join(" • ") || "—"}
                     </Text>
+                    {item.joinedAt ? (
+                      <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>
+                        Joined {formatPostTime(item.joinedAt)}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               )}
@@ -589,23 +479,42 @@ export default function EventDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  actionRow: { flexDirection: "row", alignItems: "center", gap: 20, marginBottom: 12 },
-  actionBtn: { flexDirection: "row", alignItems: "center" },
-  commentRow: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 10 },
-  commentInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 12 },
-  commentInput: {
-    flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12,
-    paddingVertical: 10, maxHeight: 90,
-  },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
   headerBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   footer: {
     position: "absolute", left: 0, right: 0, bottom: 0,
-    paddingHorizontal: 16, paddingTop: 14, borderTopWidth: 1,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    zIndex: 2
+  },
+  footerShadow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 137,
+    height: 12,
+    zIndex: 10,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
+
+    // position: "absolute",
+    // left: 0,
+    // right: 0,
+    // bottom: 200,
+    // height: 4,
+    // elevation: 8,
+    // shadowColor: "#000",
+    // backgroundColor: "#000",
+    // zIndex: 0
   },
   hero: { width: "100%", aspectRatio: 16 / 9, borderRadius: 24, overflow: "hidden" },
+  heroFallback: { alignItems: "center", justifyContent: "center" },
   categoryPill: {
     position: "absolute", top: 12, right: 12,
     flexDirection: "row", alignItems: "center", gap: 6,

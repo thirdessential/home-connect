@@ -2,15 +2,16 @@ import { COMMON_CONSTANTS } from "@/assets/constants/common.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
 import GlobalBottomNavigation from "@/components/UI/GlobalBottomNavigation";
 import FormSheetModal from "@/components/modals/FormSheetModal";
+import VerificationGateModal from "@/components/common/VerificationGateModal";
 import { useCreatePostModal } from "@/hooks/useCreatePostModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useUiStore } from "@/store/useUiStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
+import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { CommonActions } from "@react-navigation/native";
 import { Tabs, router } from "expo-router";
+import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,7 +28,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     (state) => state.user?.isAddressVerified?.status,
   );
   const [unverifiedModalVisible, setUnverifiedModalVisible] = useState(false);
-  const isUserAllowed = usePermissions().isUserAllowed;
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
+  const { isUserAllowed, hasRole } = usePermissions();
+  const isGuestUser = hasRole(UserRole.GUEST);
 
   // Memoize role checks and colors
   const isPending = useMemo(
@@ -68,22 +71,16 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Memoize tab handlers
   const handleHomePress = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.reset({ index: 0, routes: [{ name: "home" }] }),
-    );
+    navigation.reset({ index: 0, routes: [{ name: "home" }] });
   }, [navigation]);
   const handleBusinessPress = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.reset({ index: 0, routes: [{ name: "business" }] }),
-    );
+    navigation.reset({ index: 0, routes: [{ name: "business" }] });
   }, [navigation]);
   const handleDirectoryPress = useCallback(() => {
     navigation.navigate("directory");
   }, [navigation]);
   const handleProfilePress = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.reset({ index: 0, routes: [{ name: "profile" }] }),
-    );
+    navigation.reset({ index: 0, routes: [{ name: "profile" }] });
   }, [navigation]);
 
   // Fix bottom bar height for Android and iOS
@@ -93,10 +90,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     // The old CreatePostModal popup is only reachable now from within the
     // new full-screen Create page (Event/Poll/Business handoff) — Plus opens
     // that page directly instead of the modal.
-    if (isUserAllowed) setUnverifiedModalVisible(true);
+    // Guests must never reach the Create page — was previously falling
+    // through to router.push below since isUserAllowed is false for guests.
+    if (isGuestUser) setGuestGateVisible(true);
+    else if (isUserAllowed) setUnverifiedModalVisible(true);
     else if (modalOpen) close();
     else router.push("/(shared)/create");
-  }, [isUserAllowed, modalOpen, close]);
+  }, [isGuestUser, isUserAllowed, modalOpen, close]);
 
   return (
     <>
@@ -142,6 +142,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           </View>
         </FormSheetModal>
       )}
+      <VerificationGateModal
+        visible={guestGateVisible}
+        mode="page"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </>
   );
 }

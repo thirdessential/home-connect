@@ -1,177 +1,97 @@
+/**
+ * Low-level device image sources for the universal upload flow.
+ *
+ * This module ONLY talks to expo-image-picker (permissions + launching the
+ * camera/gallery). It deliberately does no cropping: every crop in the app
+ * goes through the in-app crop screen (components/image-upload) so the
+ * experience and the output ratios are identical everywhere.
+ *
+ * Screens should never import this directly — use `useImageUploader()`.
+ */
+import type { ImageSourceKind, PickedAsset } from "@/types/imageUpload.type";
 import * as ImagePicker from "expo-image-picker";
-import { ActionSheetIOS, Alert, Platform } from "react-native";
+import { Alert, Linking } from "react-native";
 
-export type PickImageOptions = {
-    allowsEditing?: boolean;
-    aspect?: [number, number];
-    quality?: number; // 0..1
+export type PickOutcome =
+  | { status: "ok"; asset: PickedAsset }
+  | { status: "cancelled" }
+  | { status: "denied" }
+  | { status: "failed"; message: string };
+
+const PERMISSION_COPY: Record<ImageSourceKind, { title: string; body: string }> = {
+  camera: {
+    title: "Camera permission needed",
+    body: "Home Connect needs camera access to take a photo. You can enable it in Settings.",
+  },
+  library: {
+    title: "Photos permission needed",
+    body: "Home Connect needs photo access to pick an image. You can enable it in Settings.",
+  },
 };
 
-const defaultOpts: PickImageOptions = {
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.9,
-};
-
-export const CROP_RATIOS: Record<"1:1" | "4:5" | "16:9", [number, number]> = {
-    "1:1": [1, 1],
-    "4:5": [4, 5],
-    "16:9": [16, 9],
-};
-
-/** Ask the user which crop ratio to apply; resolves to a native aspect tuple. */
-export async function chooseCropRatio(): Promise<[number, number] | null> {
-    return new Promise((resolve) => {
-        const opts: Array<keyof typeof CROP_RATIOS> = ["1:1", "4:5", "16:9"];
-        if (Platform.OS === "ios") {
-            ActionSheetIOS.showActionSheetWithOptions(
-                { options: ["Cancel", ...opts], cancelButtonIndex: 0 },
-                (idx) => resolve(idx === 0 ? null : CROP_RATIOS[opts[idx - 1]]),
-            );
-        } else {
-            Alert.alert(
-                "Choose crop ratio",
-                undefined,
-                [
-                    ...opts.map((r) => ({ text: r, onPress: () => resolve(CROP_RATIOS[r]) })),
-                    { text: "Cancel", style: "cancel" as const, onPress: () => resolve(null) },
-                ],
-            );
-        }
-    });
+/** Shows the standard denial alert with a shortcut to app settings. */
+export function alertPermissionDenied(source: ImageSourceKind) {
+  const copy = PERMISSION_COPY[source];
+  Alert.alert(copy.title, copy.body, [
+    { text: "Not now", style: "cancel" },
+    { text: "Open Settings", onPress: () => Linking.openSettings() },
+  ]);
 }
 
-async function ensureLibraryPermission() {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    return perm.status === "granted";
+async function ensurePermission(source: ImageSourceKind): Promise<boolean> {
+  const perm =
+    source === "camera"
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  return perm.granted || perm.status === ImagePicker.PermissionStatus.GRANTED;
 }
 
-async function ensureCameraPermission() {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    return perm.status === "granted";
-}
-
-export async function pickFromLibrary(
-    opts: PickImageOptions = defaultOpts
-): Promise<ImagePicker.ImagePickerAsset | null> {
-    const ok = await ensureLibraryPermission();
-    if (!ok) {
-        Alert.alert("Permission needed", "Please allow Photos access to continue.");
-        return null;
-    }
-    const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        // Cropping is mandatory for every flow — never let a caller disable it.
-        allowsEditing: true,
-        aspect: opts.aspect ?? defaultOpts.aspect,
-        quality: opts.quality,
-    });
-    if (res.canceled) return null;
-    return res.assets[0];
-}
-
-export async function takePhoto(
-    opts: PickImageOptions = defaultOpts
-): Promise<ImagePicker.ImagePickerAsset | null> {
-    const ok = await ensureCameraPermission();
-    if (!ok) {
-        Alert.alert("Permission needed", "Please allow Camera access to continue.");
-        return null;
-    }
-    const res = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: opts.aspect ?? defaultOpts.aspect,
-        quality: opts.quality,
-    });
-    if (res.canceled) return null;
-    return res.assets[0];
+function toPickedAsset(asset: ImagePicker.ImagePickerAsset): PickedAsset {
+  return {
+    uri: asset.uri,
+    width: asset.width,
+    height: asset.height,
+    mimeType: asset.mimeType ?? undefined,
+    fileName: asset.fileName ?? undefined,
+    fileSize: asset.fileSize ?? undefined,
+  };
 }
 
 /**
- * THE single reusable crop flow: choose ratio → capture/pick → native crop →
- * confirm. Every Camera/Gallery entry point in the app should call this
- * (directly, or via pickImageWithMenu) instead of hitting expo-image-picker
- * itself, so cropping can never be skipped and there is one place to change
- * behaviour.
+ * Launches the camera or the gallery for a single image. Cropping is never
+ * requested from the OS — the in-app crop screen handles it.
  */
-export async function pickImageCropped(
-    source: "camera" | "library",
-    opts: PickImageOptions = defaultOpts,
-): Promise<ImagePicker.ImagePickerAsset | null> {
-    const aspect = await chooseCropRatio();
-    if (!aspect) return null; // user cancelled the ratio step
-    return source === "camera"
-        ? takePhoto({ ...opts, aspect })
-        : pickFromLibrary({ ...opts, aspect });
-}
+export async function pickRawImage(source: ImageSourceKind): Promise<PickOutcome> {
+  try {
+    const granted = await ensurePermission(source);
+    if (!granted) return { status: "denied" };
 
-/**
- * Show a platform menu and return the picked asset.
- * If allowRemove is true and user taps "Remove Photo", returns { removed: true } via the special shape below.
- */
-export async function pickImageWithMenu(
-    opts: PickImageOptions = defaultOpts,
-    { allowRemove = false }: { allowRemove?: boolean } = {}
-): Promise<{ asset?: ImagePicker.ImagePickerAsset; removed?: true } | null> {
-    if (Platform.OS === "ios") {
-        return new Promise((resolve) => {
-            const options = [
-                "Cancel",
-                "Take Photo",
-                "Choose from Library",
-                ...(allowRemove ? ["Remove Photo"] : []),
-            ];
-            const cancelButtonIndex = 0;
-            const destructiveButtonIndex = allowRemove ? options.length - 1 : undefined;
+    const options: ImagePicker.ImagePickerOptions = {
+      mediaTypes: ["images"],
+      allowsEditing: false,
+      allowsMultipleSelection: false,
+      // Keep the source near-lossless; compression happens once, after crop.
+      quality: 1,
+      exif: false,
+    };
 
-            ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options,
-                    cancelButtonIndex,
-                    destructiveButtonIndex,
-                    userInterfaceStyle: "light",
-                },
-                async (idx) => {
-                    if (idx === 1) {
-                        const asset = await pickImageCropped("camera", opts);
-                        resolve(asset ? { asset } : null);
-                    } else if (idx === 2) {
-                        const asset = await pickImageCropped("library", opts);
-                        resolve(asset ? { asset } : null);
-                    } else if (allowRemove && idx === options.length - 1) {
-                        resolve({ removed: true });
-                    } else {
-                        resolve(null);
-                    }
-                }
-            );
-        });
-    } else {
-        return new Promise((resolve) => {
-            Alert.alert(
-                "Profile picture",
-                undefined,
-                [
-                    {
-                        text: "Take Photo", onPress: async () => {
-                            const asset = await pickImageCropped("camera", opts);
-                            resolve(asset ? { asset } : null);
-                        }
-                    },
-                    {
-                        text: "Choose from Library", onPress: async () => {
-                            const asset = await pickImageCropped("library", opts);
-                            resolve(asset ? { asset } : null);
-                        }
-                    },
-                    ...(allowRemove
-                        ? [{ text: "Remove Photo", style: 'destructive' as 'destructive', onPress: () => resolve({ removed: true as const }) }]
-                        : []),
-                    { text: "Cancel", style: "cancel", onPress: () => resolve(null) },
-                ],
-                { cancelable: true }
-            );
-        });
-    }
+    const res =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync(options);
+
+    if (res.canceled || !res.assets?.length) return { status: "cancelled" };
+    return { status: "ok", asset: toPickedAsset(res.assets[0]) };
+  } catch (e) {
+    // A native failure (no camera app, missing module in an outdated build,
+    // storage error) must never look like "nothing happened".
+    if (__DEV__) console.warn(`[ImagePicker] ${source} launch failed`, e);
+    return {
+      status: "failed",
+      message:
+        source === "camera"
+          ? "Could not open the camera on this device. Please try Gallery instead."
+          : "Could not open your photo gallery. Please try again.",
+    };
+  }
 }

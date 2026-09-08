@@ -1,10 +1,10 @@
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import DealsHomePage from "./dealsScreen";
+import DealsComingSoon from "./dealsComingSoon";
 
 export default function BusinessIndexScreen() {
   return (
     <SafeAreaProvider>
-      <DealsHomePage />
+      <DealsComingSoon />
     </SafeAreaProvider>
   );
 }

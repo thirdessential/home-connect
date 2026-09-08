@@ -1,6 +1,6 @@
 import { useToast } from "@/components/common/Toast";
 import { useCreatePostModal } from "@/hooks/useCreatePostModal";
-import { pickImageCropped } from "@/lib/ImagePicker";
+import { useImageUploader } from "@/components/image-upload";
 import { uploadToBackend } from "@/lib/backendUpload";
 import { useFeedsStore } from "@/store/useFeedsStore";
 import { useSocietyStore } from "@/store/useSocietyStore";
@@ -51,6 +51,7 @@ export default function CreatePostScreen() {
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const { openWithForm } = useCreatePostModal();
+  const { openImageUploader } = useImageUploader();
 
   const currentUser = useUserStore((s) => s.user);
   const societyId = useUserStore((s) => (s.user as any)?.societyId);
@@ -63,9 +64,9 @@ export default function CreatePostScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [image, setImage] = useState<{ localUri: string; status: ImgStatus; url?: string } | null>(null);
 
-  // Photo → device camera; Gallery → device photo library. pickImageCropped
-  // already requests/handles permissions (with a clear denial alert) and
-  // returns null on cancel — no separate permission code needed here.
+  // One universal flow: source sheet → crop (1:1 / 4:5 / 16:9) → preview →
+  // "Upload Image". Permissions, validation, compression and the backend
+  // upload all happen inside it, so this screen only receives the final URL.
   const runUpload = useCallback(async (localUri: string) => {
     setImage({ localUri, status: "uploading" });
     try {
@@ -76,17 +77,16 @@ export default function CreatePostScreen() {
     }
   }, []);
 
-  const handlePhoto = useCallback(async () => {
-    const asset = await pickImageCropped("camera", { quality: 0.85 });
-    if (!asset?.uri) return; // denied or cancelled — pickImageCropped already alerted
-    await runUpload(asset.uri);
-  }, [runUpload]);
-
-  const handleGallery = useCallback(async () => {
-    const asset = await pickImageCropped("library", { quality: 0.85 });
-    if (!asset?.uri) return;
-    await runUpload(asset.uri);
-  }, [runUpload]);
+  const handleAddPhoto = useCallback(async () => {
+    const res = await openImageUploader({
+      title: "Add Photo",
+      aspectRatios: ["1:1", "4:5", "16:9"],
+      defaultAspectRatio: "4:5",
+      quality: 0.85,
+    });
+    if (!res || !("uri" in res)) return; // cancelled / denied — already handled
+    setImage({ localUri: res.uri, status: res.url ? "success" : "failed", url: res.url });
+  }, [openImageUploader]);
 
   const handleRemoveImage = useCallback(() => setImage(null), []);
   const handleRetryImage = useCallback(() => {
@@ -106,9 +106,15 @@ export default function CreatePostScreen() {
         router.push("/(shared)/create-event");
         return;
       }
-      // Poll / Business reuse the existing, already-working modal flows —
-      // not rebuilt here per this task's scope.
-      openWithForm(key === "poll" ? "poll" : "createBusiness");
+      if (key === "poll") {
+        openWithForm("poll");
+        return;
+      }
+      // Business reuses the existing "How will you use the terrace?"
+      // Resident/Business onboarding flow — not rebuilt here. verify-role
+      // pre-selects "Business" for an already-Business account (via its own
+      // JWT-backed role check), so it isn't skipped here.
+      router.push("/onboarding/business");
     },
     [openWithForm],
   );
@@ -159,7 +165,8 @@ export default function CreatePostScreen() {
 
       setText("");
       setImage(null);
-      goBack();
+      // Land on Home with Create removed from history, not just back().
+      router.dismissTo("/(tabs)/home");
     } catch (err: any) {
       showToast(err?.message || "Failed to create post. Please try again.", "error");
     } finally {
@@ -251,13 +258,15 @@ export default function CreatePostScreen() {
 
               <View style={styles.composerFooter}>
                 <View style={styles.composerActions}>
-                  <TouchableOpacity onPress={handlePhoto} style={[styles.chip, { borderColor: t.colors.border }]}>
-                    <Ionicons name="camera-outline" size={16} color={t.colors.brand} />
-                    <Text style={[styles.chipText, { color: t.colors.textPrimary }]}>Photo</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleGallery} style={[styles.chip, { borderColor: t.colors.border }]}>
+                  {/* Single entry point — the sheet asks Camera vs Gallery. */}
+                  <TouchableOpacity
+                    onPress={handleAddPhoto}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add photo"
+                    style={[styles.chip, { borderColor: t.colors.border }]}
+                  >
                     <Ionicons name="image-outline" size={16} color={t.colors.brand} />
-                    <Text style={[styles.chipText, { color: t.colors.textPrimary }]}>Gallery</Text>
+                    <Text style={[styles.chipText, { color: t.colors.textPrimary }]}>Photo</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.counter, { color: t.colors.textSecondary }]}>

@@ -12,6 +12,7 @@ import {
   EventDashboard,
   EventDetail,
   EventParticipant,
+  EventRecord,
 } from "@/types/event.type";
 import { create } from "zustand";
 
@@ -46,7 +47,9 @@ async function createEventMultipart(
 
 type State = {
   currentEvent: EventDetail | null;
+  myEvents: EventRecord[];
   participants: EventParticipant[];
+  cancelledParticipants: EventParticipant[];
   dashboard: EventDashboard | null;
   comments: EventComment[];
   commentsLoading: boolean;
@@ -58,10 +61,13 @@ type State = {
 type Actions = {
   createEvent: (payload: CreateEventPayload, image: EventImageFile) => Promise<EventDetail>;
   getEvent: (eventId: number | string) => Promise<EventDetail>;
+  getMyEvents: () => Promise<EventRecord[]>;
   joinEvent: (eventId: number | string) => Promise<void>;
   getParticipants: (eventId: number | string) => Promise<EventParticipant[]>;
+  getCancelledParticipants: (eventId: number | string) => Promise<EventParticipant[]>;
   getDashboard: (eventId: number | string) => Promise<EventDashboard>;
   cancelEvent: (eventId: number | string) => Promise<void>;
+  cancelParticipant: (eventId: number | string, userId: string) => Promise<void>;
   toggleLike: (eventId: number | string) => Promise<{ liked: boolean; likeCount: number }>;
   getComments: (eventId: number | string) => Promise<EventComment[]>;
   addComment: (eventId: number | string, text: string) => Promise<EventComment[]>;
@@ -71,7 +77,9 @@ type Actions = {
 
 export const useEventStore = create<State & Actions>((set) => ({
   currentEvent: null,
+  myEvents: [],
   participants: [],
+  cancelledParticipants: [],
   dashboard: null,
   comments: [],
   commentsLoading: false,
@@ -113,6 +121,20 @@ export const useEventStore = create<State & Actions>((set) => ({
     }
   },
 
+  getMyEvents: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await Get<{ events: EventRecord[] }>(`/api/events/my-events`);
+      set({ myEvents: res.events ?? [] });
+      return res.events ?? [];
+    } catch (e: any) {
+      set({ error: e?.message ?? "Failed to load your events" });
+      throw e;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   joinEvent: async (eventId) => {
     set({ saving: true, error: null });
     try {
@@ -130,6 +152,14 @@ export const useEventStore = create<State & Actions>((set) => ({
       `/api/events/${eventId}/participants`,
     );
     set({ participants: res.participants ?? [] });
+    return res.participants ?? [];
+  },
+
+  getCancelledParticipants: async (eventId) => {
+    const res = await Get<{ participants: EventParticipant[] }>(
+      `/api/events/${eventId}/participants?status=cancelled`,
+    );
+    set({ cancelledParticipants: res.participants ?? [] });
     return res.participants ?? [];
   },
 
@@ -155,6 +185,18 @@ export const useEventStore = create<State & Actions>((set) => ({
       await Patch(`/api/events/${eventId}/cancel`, {});
     } catch (e: any) {
       set({ error: e?.message ?? "Failed to cancel event" });
+      throw e;
+    } finally {
+      set({ saving: false });
+    }
+  },
+
+  cancelParticipant: async (eventId, userId) => {
+    set({ saving: true, error: null });
+    try {
+      await Patch(`/api/events/${eventId}/participants/${userId}/cancel`, {});
+    } catch (e: any) {
+      set({ error: e?.message ?? "Failed to cancel participant" });
       throw e;
     } finally {
       set({ saving: false });
@@ -207,5 +249,12 @@ export const useEventStore = create<State & Actions>((set) => ({
   },
 
   clear: () =>
-    set({ currentEvent: null, participants: [], dashboard: null, comments: [], error: null }),
+    set({
+      currentEvent: null,
+      participants: [],
+      cancelledParticipants: [],
+      dashboard: null,
+      comments: [],
+      error: null,
+    }),
 }));

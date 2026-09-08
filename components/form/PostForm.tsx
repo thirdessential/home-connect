@@ -1,4 +1,4 @@
-import { pickImageCropped } from "@/lib/ImagePicker";
+import { useImageUploader } from "@/components/image-upload";
 import { uploadToBackend } from "@/lib/backendUpload";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,6 +29,7 @@ export default function PostForm({
   onSubmit: (data: { text: string; images: string[] }) => void;
 }) {
   const t = useTheme();
+  const { openImageUploader } = useImageUploader();
   const [text, setText] = useState("");
   const [images, setImages] = useState<PickedImage[]>([]);
   const [error, setError] = useState<string | undefined>();
@@ -46,27 +47,24 @@ export default function PostForm({
     if (val.trim()) setError(undefined);
   }, []);
 
-  // Pick → upload to the existing backend uploader (POST /api/media/upload,
-  // same pattern as ResidentProofStep) — never Cloudinary, never a bare
-  // file:// URI. Only a successful backend URL is ever sent to createFeed.
-  const handleAddImage = useCallback(async (source: "camera" | "library") => {
+  // Source sheet → crop → preview → "Upload Image" all happen in the universal
+  // flow, which uploads through the existing backend uploader
+  // (POST /api/media/upload) — never Cloudinary, never a bare file:// URI.
+  // Only a successful backend URL is ever sent to createFeed.
+  const handleAddImage = useCallback(async () => {
     if (images.length >= MAX_IMAGES) return;
-    const asset = await pickImageCropped(source, { quality: 0.85 });
-    if (!asset?.uri) return;
-
-    const localUri = asset.uri;
-    setImages((prev) => [...prev, { localUri, status: "uploading" }]);
-    try {
-      const url = await uploadToBackend(localUri);
-      setImages((prev) =>
-        prev.map((i) => (i.localUri === localUri ? { ...i, status: "success", url } : i)),
-      );
-    } catch {
-      setImages((prev) =>
-        prev.map((i) => (i.localUri === localUri ? { ...i, status: "failed" } : i)),
-      );
-    }
-  }, [images.length]);
+    const res = await openImageUploader({
+      title: "Add Photo",
+      aspectRatios: ["1:1", "4:5", "16:9"],
+      defaultAspectRatio: "4:5",
+      quality: 0.85,
+    });
+    if (!res || !("uri" in res)) return;
+    setImages((prev) => [
+      ...prev,
+      { localUri: res.uri, status: res.url ? "success" : "failed", url: res.url },
+    ]);
+  }, [images.length, openImageUploader]);
 
   const handleRetry = useCallback(async (localUri: string) => {
     setImages((prev) =>
@@ -153,18 +151,13 @@ export default function PostForm({
           {images.length < MAX_IMAGES && (
             <View style={styles.addRow}>
               <TouchableOpacity
-                onPress={() => handleAddImage("library")}
+                onPress={handleAddImage}
+                accessibilityRole="button"
+                accessibilityLabel="Add photo"
                 style={[styles.addTile, { borderColor: t.colors.border }]}
               >
                 <Ionicons name="image-outline" size={20} color={t.colors.primary} />
-                <Text style={[styles.addText, { color: t.colors.textSecondary }]}>Gallery</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleAddImage("camera")}
-                style={[styles.addTile, { borderColor: t.colors.border }]}
-              >
-                <Ionicons name="camera-outline" size={20} color={t.colors.primary} />
-                <Text style={[styles.addText, { color: t.colors.textSecondary }]}>Photo</Text>
+                <Text style={[styles.addText, { color: t.colors.textSecondary }]}>Add Photo</Text>
               </TouchableOpacity>
             </View>
           )}

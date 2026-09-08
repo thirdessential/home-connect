@@ -1,7 +1,9 @@
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import RoleUsageStep, { UsageRole } from "@/components/onboarding/RoleUsageStep";
+import { usePermissions } from "@/hooks/usePermissions";
 import { getHeight, getWidth } from "@/theme/theme";
+import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
@@ -9,7 +11,12 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VerifyRoleScreen() {
-  const [role, setRole] = useState<UsageRole | null>(null);
+  // Role comes from the authenticated session, never from UI/client input.
+  const { hasRole } = usePermissions();
+  const isBusinessUser = hasRole(UserRole.BUSINESS);
+  // An existing Business account lands here pre-selected on "Business" —
+  // still just a starting selection the user confirms via Continue.
+  const [role, setRole] = useState<UsageRole | null>(isBusinessUser ? "business" : null);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -18,7 +25,7 @@ export default function VerifyRoleScreen() {
   const handleContinue = useCallback(() => {
     if (!role) return;
     if (role === "business") {
-      router.push("/onboarding/business");
+      router.replace("/onboarding/business");
       return;
     }
     router.push({ pathname: "/onboarding/verify-step1", params: { role } });

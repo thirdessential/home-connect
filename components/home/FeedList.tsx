@@ -1,10 +1,13 @@
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
+import VerificationGateModal from "@/components/common/VerificationGateModal";
 import { useToast } from "@/components/common/Toast";
 import NoDataCard from "@/components/common/NoDataCard";
+import { useVerificationGate } from "@/hooks/useVerificationGate";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedActions, HomeFeedItem } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AttendeesSheet from "./AttendeesSheet";
@@ -39,6 +42,7 @@ function FeedList({
 }: Props) {
   const t = useTheme();
   const { showToast } = useToast();
+  const { requireVerified, gate, closeGate } = useVerificationGate();
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const [attendeesFor, setAttendeesFor] = useState<string | null>(null);
   const [moreFor, setMoreFor] = useState<string | null>(null);
@@ -101,17 +105,40 @@ function FeedList({
   const renderItem = useCallback(
     ({ item }: { item: HomeFeedItem }) => {
       const common = {
-        onLike: () => actions.toggleLike(item.id),
-        onComment: () => setCommentsFor(item.id),
-        onMore: () => setMoreFor(item.id),
+        onLike: () => {
+          if (!requireVerified("action")) return;
+          actions.toggleLike(item.id);
+        },
+        onComment: () => {
+          if (!requireVerified("action")) return;
+          setCommentsFor(item.id);
+        },
+        onMore: () => {
+          if (!requireVerified("action")) return;
+          setMoreFor(item.id);
+        },
       };
       if (item.kind === "event")
         return (
           <EventFeedCard
             item={item}
             {...common}
-            onRsvp={() => actions.toggleRsvp(item.id)}
+            onRsvp={() => {
+              // Join Event must never call the join API for a guest/unverified
+              // user — block before any store/API call happens.
+              if (!requireVerified("action")) return;
+              actions.toggleRsvp(item.id);
+            }}
             onSeeAll={() => setAttendeesFor(item.id)}
+            onOpen={() => {
+              // Navigation is blocked before it happens — no brief open + redirect.
+              if (!requireVerified("page")) return;
+              if (!item.mysqlEventId) {
+                showToast("This event was created on an older version of the app and can no longer be opened.", "error");
+                return;
+              }
+              router.navigate(`/(shared)/event-details?eventId=${item.mysqlEventId}`);
+            }}
           />
         );
       if (item.kind === "poll")
@@ -119,12 +146,15 @@ function FeedList({
           <PollFeedCard
             item={item}
             {...common}
-            onVote={(optionId) => actions.vote(item.id, optionId)}
+            onVote={(optionId) => {
+              if (!requireVerified("action")) return;
+              actions.vote(item.id, optionId);
+            }}
           />
         );
       return <PostFeedCard item={item} {...common} />;
     },
-    [actions],
+    [actions, requireVerified, showToast],
   );
 
   const keyExtractor = useCallback((item: HomeFeedItem) => item.id, []);
@@ -218,6 +248,8 @@ function FeedList({
         successMessage="It has been removed from the feed."
         autoCloseDelay={900}
       />
+
+      <VerificationGateModal visible={gate.visible} mode={gate.mode} onClose={closeGate} />
     </>
   );
 }

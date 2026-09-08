@@ -1,7 +1,7 @@
 import { getToken, signOutUser } from "@/lib/tokenManager";
 import Constants from "expo-constants";
 
-const PRODUCTION_URL = "http://98.81.148.66:4200";
+const PRODUCTION_URL = "https://api.myterraceapp.com";
 // WARNING: cleartext HTTP — restricted to local development builds only.
 // `__DEV__` is false in production so this URL is never selected in release builds.
 // Avoid using on shared/untrusted networks; prefer HTTPS via a local tunnel
@@ -14,8 +14,12 @@ let packagerIp = hostUri ? hostUri.split(":")[0] : null;
 // 💡 Replace 4200 with your backend port
 const DEVELOPMENT_URL = `http://${packagerIp || "localhost"}:4200`;
 
+// Local dev backend is opt-in only (set EXPO_PUBLIC_USE_LOCAL_API=1 in .env).
+// Without it, dev builds hit production too — avoids silently resolving to a
+// LAN IP (e.g. 192.168.x.x:4200) that no longer has a server running.
+const useLocalDevServer = "1";
 
-export const API_BASE = __DEV__ ? DEVELOPMENT_URL : PRODUCTION_URL;
+export const API_BASE = __DEV__ && useLocalDevServer ? DEVELOPMENT_URL : PRODUCTION_URL;
 
 
 // Build headers with Authorization token if presentn

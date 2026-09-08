@@ -88,7 +88,7 @@ function Badge({
           icon: 16,
           iconWrap: 18,
           font: 12,
-          gap: 6,
+          gap: 4,
           radius: t.radii.pill,
         },
         md: {

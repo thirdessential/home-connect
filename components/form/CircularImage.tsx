@@ -1,6 +1,6 @@
 import { PROFILE_CONSTANTS } from "@/assets/constants/profile.constant";
 import RobustImage from "@/components/UI/RobustImage";
-import { pickImageWithMenu } from "@/lib/ImagePicker";
+import { useImageUploader } from "@/components/image-upload";
 import { isValidImageUrl, sanitizeImageUrl } from "@/lib/imageUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
@@ -26,21 +26,31 @@ export default function CircularImage({
   onChange,
   size = 96,
   loading = false,
+  onBeforeOpen,
 }: {
   uri?: string;
   mode?: "view" | "upload" | "edit";
   onChange?: (uri: string) => void;
   size?: number;
   loading?: boolean;
+  /** Optional guard checked before the picker opens; return false to block (e.g. show a verification prompt). */
+  onBeforeOpen?: () => boolean;
 }) {
+  const { openImageUploader } = useImageUploader();
+
+  // Profile/avatar images are square, so only 1:1 is offered. The parent keeps
+  // owning the upload (its own submit sends the file), hence `upload: false`.
   const pickImage = async () => {
-    const res = await pickImageWithMenu(
-      { allowsEditing: true, aspect: [1, 1], quality: 0.9 },
-      { allowRemove: true }
-    );
-    if (!res?.removed && res?.asset?.uri) {
-      onChange?.(res.asset.uri);
-    }
+    if (onBeforeOpen && !onBeforeOpen()) return;
+    const res = await openImageUploader({
+      title: "Profile Photo",
+      aspectRatios: ["1:1"],
+      defaultAspectRatio: "1:1",
+      upload: false,
+      confirmLabel: "Use Photo",
+      allowRemove: true,
+    });
+    if (res && "uri" in res) onChange?.(res.uri);
   };
 
   const showEditIcon = mode !== "view";

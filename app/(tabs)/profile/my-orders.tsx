@@ -9,8 +9,7 @@ import { capitalizeWords } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   FlatList,

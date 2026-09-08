@@ -7,6 +7,7 @@ import TerraceSelectField from "@/components/inputs/TerraceSelectField";
 import TerraceTextField from "@/components/inputs/TerraceTextField";
 import TerraceStepper from "@/components/onboarding/TerraceStepper";
 import { API_BASE } from "@/lib/httpMethods";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import {
   toFile,
@@ -22,6 +23,7 @@ import {
   RegistrationType,
   Step4Payload,
 } from "@/types/businessRegistration.type";
+import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -142,6 +144,17 @@ export default function BusinessWizard() {
   const societies = useSocietyStore((st) => st.societies);
   const getAllSociety = useSocietyStore((st) => st.getAllSociety);
   const user = useUserStore((st) => st.user);
+
+  // This screen is for a non-Business account to become one — an existing
+  // Business user must never be able to open it. Role comes from the
+  // JWT-backed session, never a client-controlled param.
+  const { hasRole } = usePermissions();
+  const isBusinessUser = hasRole(UserRole.BUSINESS);
+  useEffect(() => {
+    if (!isBusinessUser) return;
+    if (router.canGoBack()) router.back();
+    else router.replace("/(shared)/create");
+  }, [isBusinessUser]);
 
   const [step, setStep] = useState(1);
   // Step 1 renders immediately — the draft lookup happens in the background and
@@ -396,13 +409,15 @@ export default function BusinessWizard() {
     } catch (e) { err(e); }
   };
 
+  // Verification is optional — the user can continue to Step 6 without
+  // choosing a registration type. If they do complete it, the proof/type is
+  // saved as usual.
   const next5 = async () => {
-    if (!regType) return showToast("Select a registration type", "error");
     try {
-      if (regType !== "not_registered" && proofUri[0] && !isRemote(proofUri[0])) {
+      if (regType && regType !== "not_registered" && proofUri[0] && !isRemote(proofUri[0])) {
         await s.uploadRegistrationProof(toFile(proofUri[0], "proof.jpg"));
       }
-      await s.saveStep5({ registration_type: regType });
+      await s.saveStep5(regType ? { registration_type: regType } : {});
       setStep(6);
     } catch (e) { err(e); }
   };
@@ -472,6 +487,10 @@ export default function BusinessWizard() {
   };
 
   const saving = s.saving || s.uploading || hydrating;
+
+  // Blocked: never render the Business creation form for an existing
+  // Business account — the effect above is already navigating away.
+  if (isBusinessUser) return null;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -598,7 +617,7 @@ export default function BusinessWizard() {
           <View>
             <Text style={styles.title}>Verification</Text>
             <TerraceSelectField
-              label="Registration Type *"
+              label="Registration Type (Optional)"
               options={REG_TYPES.map((r) => ({ id: r.value, name: r.label }))}
               selectedId={regType}
               onChange={(id) => setRegType(id as RegistrationType)}
@@ -606,7 +625,15 @@ export default function BusinessWizard() {
               leftIcon="document-text-outline"
             />
             {regType && regType !== "not_registered" ? (
-              <ImagePickerField label="Registration Proof" mode="single" value={proofUri} onChange={setProofUri} max={1} />
+              <ImagePickerField
+                label="Registration Proof"
+                mode="single"
+                value={proofUri}
+                onChange={setProofUri}
+                max={1}
+                aspectRatios={["4:5", "1:1", "16:9"]}
+                defaultAspectRatio="4:5"
+              />
             ) : null}
           </View>
         )}
@@ -614,15 +641,31 @@ export default function BusinessWizard() {
         {step === 6 && (
           <View>
             <Text style={styles.title}>Business details</Text>
-            <TerraceTextField label="Description" value={description} onChangeText={setDescription} placeholder="About your business" multiline numberOfLines={3} />
+            <TerraceTextField label="Business Description (Optional)" value={description} onChangeText={setDescription} placeholder="About your business" multiline numberOfLines={4} />
             <TerraceSelectField label="Delivery / Service Availability *" options={DELIVERY.map((d) => ({ id: d.value, name: d.label }))} selectedId={delivery} onChange={(id) => setDelivery(id as DeliveryAvailability)} placeholder="Select availability" leftIcon="bicycle-outline" />
             <TerraceTextField label="Delivery Category *" value={deliveryCategory} onChangeText={setDeliveryCategory} placeholder="e.g. Grocery & Essentials" />
             <PhoneField label="Business Phone / WhatsApp *" value={bizPhone} onChange={setBizPhone} />
-            <TerraceTextField label="Alternative Mobile" value={altMobile} onChangeText={setAltMobile} placeholder="Alternate number" keyboardType="phone-pad" maxLength={13} />
-            <TerraceTextField label="Email" value={bizEmail} onChangeText={setBizEmail} placeholder="business@example.com" keyboardType="email-address" autoCapitalize="none" />
-            <TerraceTextField label="Social Media / Website" value={socialUrl} onChangeText={setSocialUrl} placeholder="https://..." autoCapitalize="none" />
-            <ImagePickerField label="Logo" mode="single" value={logoUri} onChange={setLogoUri} max={1} />
-            <ImagePickerField label="Photos (max 5)" mode="multiple" value={photoUris} onChange={onPhotosChange} max={5} />
+            <TerraceTextField label="Alternative Mobile (Optional)" value={altMobile} onChangeText={setAltMobile} placeholder="Alternate number" keyboardType="phone-pad" maxLength={13} />
+            <TerraceTextField label="Email (Optional)" value={bizEmail} onChangeText={setBizEmail} placeholder="business@example.com" keyboardType="email-address" autoCapitalize="none" />
+            <TerraceTextField label="Social Media / Website (Optional)" value={socialUrl} onChangeText={setSocialUrl} placeholder="https://..." autoCapitalize="none" />
+            <ImagePickerField
+              label="Logo"
+              mode="single"
+              value={logoUri}
+              onChange={setLogoUri}
+              max={1}
+              aspectRatios={["1:1"]}
+              defaultAspectRatio="1:1"
+            />
+            <ImagePickerField
+              label="Photos (max 5)"
+              mode="multiple"
+              value={photoUris}
+              onChange={onPhotosChange}
+              max={5}
+              aspectRatios={["4:5", "1:1", "16:9"]}
+              defaultAspectRatio="4:5"
+            />
           </View>
         )}
 
@@ -635,7 +678,7 @@ export default function BusinessWizard() {
             <Text style={styles.doneSub}>
               Your business is submitted and pending admin approval. We&apos;ll notify you once it&apos;s verified.
             </Text>
-            <ActionButton title="Go to Home" onPress={() => router.replace("/(tabs)/home")} variant="primary" size="lg" fullWidth containerStyle={styles.cta} />
+            <ActionButton title="Go to Home" onPress={() => router.dismissTo("/(tabs)/home")} variant="primary" size="lg" fullWidth containerStyle={styles.cta} />
           </View>
         )}
       </KeyboardAwareScrollView>

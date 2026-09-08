@@ -168,15 +168,12 @@ function CreatePostModal({
   const { getActionText } = useRoleBasedText();
   // if parent wants to open directly into a form (e.g., Manage Profile)
   useEffect(() => {
-    if (visible && initialForm) {
-      setActiveForm(initialForm as any);
-    }
     if (!visible) {
       setActiveForm(null);
       setSocietyConfirmed(false);
       setPendingBusiness(false);
     }
-  }, [visible, initialForm]);
+  }, [visible]);
 
   // Compute permission booleans to avoid depending on permissions object identity
   const permissionFlags = useMemo(() => {
@@ -396,9 +393,13 @@ function CreatePostModal({
         // MySQL-backed Event API — see app/(shared)/create-event.tsx.
         onClose();
         router.push("/(shared)/create-event" as any);
+      } else if (path === "poll") {
+        // Poll creation now lives in its own full-screen page, same pattern
+        // as Create Event — see app/(shared)/create-poll.tsx.
+        onClose();
+        router.push("/(shared)/create-poll" as any);
       } else if (
         path === "post" ||
-        path === "poll" ||
         path === "service" ||
         path === "residentAccount"
       ) {
@@ -418,6 +419,17 @@ function CreatePostModal({
       router,
     ],
   );
+
+  // Parent wants to open directly into a form/path (e.g. Create page tiles,
+  // Manage Profile) — route it through the same handler taps use, so
+  // navigation-based paths (poll/event/createBusiness/...) actually navigate
+  // instead of being stuck on a bare setActiveForm.
+  useEffect(() => {
+    if (visible && initialForm) {
+      handleOptionPress(initialForm);
+    }
+  }, [visible, initialForm, handleOptionPress]);
+
   const handleBack = useCallback(() => {
     // Guest: always go back to GuestSocietyConfirmation
     if (isGuestUser) {
@@ -1195,22 +1207,6 @@ function CreatePostModal({
                     bounces={false}
                   >
                     <PostForm onSubmit={onPostSubmit} />
-                  </ScrollView>
-                )}
-
-                {activeForm === "poll" && (
-                  <ScrollView
-                    contentContainerStyle={styles.contentContainer}
-                    keyboardShouldPersistTaps="handled"
-                    scrollEnabled={true}
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                  >
-                    <PollForm
-                      onSubmit={onPollSubmit}
-                      loading={loading}
-                      error={error}
-                    />
                   </ScrollView>
                 )}
 

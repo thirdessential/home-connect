@@ -2,6 +2,7 @@ import { useTheme } from "@/theme/theme";
 import { HomeFeedItem } from "@/types/homeFeed.type";
 import { memo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
+import ExpandableText from "./ExpandableText";
 import FeedActions from "./FeedActions";
 import FeedCardHeader from "./FeedCardHeader";
 
@@ -31,9 +32,11 @@ function PostFeedCard({ item, onLike, onComment, onMore }: Props) {
       )}
 
       {!!item.description && (
-        <Text style={[styles.body, { color: t.colors.textSecondary }]}>
-          {item.description}
-        </Text>
+        <ExpandableText
+          text={item.description}
+          textStyle={[styles.body, { color: t.colors.textSecondary }]}
+          linkColor={t.colors.brand}
+        />
       )}
 
       {!!item.image && (

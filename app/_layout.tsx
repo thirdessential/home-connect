@@ -12,9 +12,10 @@ import {
   useTheme as useAppTheme,
 } from "../theme/theme";
 
-import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
+import { ThemeProvider as NavigationThemeProvider } from "expo-router";
 import CreatePostModal from "../components/common/createPostModal";
 import { ToastProvider } from "../components/common/Toast";
+import { ImageUploadProvider } from "../components/image-upload";
 import { useAuthStore } from "../store/useAuthStore";
 import { useUiStore } from "../store/useUiStore";
 
@@ -110,11 +111,12 @@ function NavLinker() {
       <GestureHandlerRootView style={styles.container}>
         <SafeAreaProvider>
           <ToastProvider>
+          <ImageUploadProvider>
           <StatusBar style={t.isDark ? "light" : "dark"} />
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: t.colors.background },
+              contentStyle: { backgroundColor: t.colors.white },
             }}
           >
             {/* Auth flow */}
@@ -130,6 +132,7 @@ function NavLinker() {
             initialForm={modalInitialForm}
             onClose={closeCreatePostModal}
           />
+          </ImageUploadProvider>
           </ToastProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
@@ -140,6 +143,6 @@ function NavLinker() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FCFBF8",
+    backgroundColor: "#ffffff",
   },
 });

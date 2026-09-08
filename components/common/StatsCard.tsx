@@ -43,37 +43,30 @@ const StatsCard = memo(
           flex: 1,
           flexGrow: 1,
           minWidth: 140,
-          backgroundColor: "#fff",
-          borderRadius: 16,
+          backgroundColor: theme.colors.surface,
+          borderRadius: 18,
           padding: 16,
-          elevation: 1,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
           borderWidth: isSelected ? 2 : 1,
-          borderColor: isSelected ? accent : "#F0EEE9",
+          borderColor: isSelected ? accent : theme.colors.border,
         }}
       >
-        <View style={styles.row}>
+        <View style={styles.topRow}>
           <View style={[styles.badge, { backgroundColor: badgeTint }]}>
-            <Ionicons name={icon} size={22} color={accent} />
+            <Ionicons name={icon} size={19} color={accent} />
           </View>
-          <View style={styles.textWrap}>
-            <Text style={styles.title} numberOfLines={2}>
-              {title}
-            </Text>
-            <Text style={[styles.value, { color: accent }]}>{value}</Text>
-            {caption ? (
-              <Text
-                style={[styles.caption, { color: theme.colors.textSecondary }]}
-                numberOfLines={1}
-              >
-                {caption}
-              </Text>
-            ) : null}
-          </View>
+          <Text style={[styles.value, { color: theme.colors.textPrimary }]}>{value}</Text>
         </View>
+        <Text style={[styles.title, { color: theme.colors.textPrimary }]} numberOfLines={2}>
+          {title}
+        </Text>
+        {caption ? (
+          <Text
+            style={[styles.caption, { color: theme.colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {caption}
+          </Text>
+        ) : null}
       </Card>
     );
 
@@ -92,16 +85,15 @@ StatsCard.displayName = "StatsCard";
 export default StatsCard;
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  topRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   badge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  textWrap: { flex: 1 },
-  title: { fontSize: 14, lineHeight: 18, fontWeight: "700", color: "#1F2430" },
-  value: { fontSize: 28, lineHeight: 34, fontWeight: "800", marginTop: 2 },
+  title: { fontSize: 14, lineHeight: 18, fontWeight: "600", marginTop: 2 },
+  value: { fontSize: 26, lineHeight: 30, fontWeight: "800", letterSpacing: -0.5 },
   caption: { fontSize: 12, lineHeight: 16, marginTop: 2 },
 });

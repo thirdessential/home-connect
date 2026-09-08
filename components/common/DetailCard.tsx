@@ -41,6 +41,17 @@ const DetailCard = memo(
       typeof request.avatar === "string" && request.avatar.startsWith("http");
     const initials = getInitials(request.name);
 
+    // Every document/photo the request may carry, flattened into one list —
+    // drives the single "Attachments" thumbnail + "+N" row (reference UI),
+    // replacing what used to be a separate full-width row per document type.
+    const attachments: string[] = [
+      request.residenceProof,
+      request.registrationProof,
+      request.selfie,
+      request.logoUrl,
+      ...((request.photos ?? []).map((p: any) => p.url || p.photo_url)),
+    ].filter(Boolean);
+
     const getTypeColor = (type: string) => {
       switch (type) {
         case "Owner":
@@ -79,11 +90,14 @@ const DetailCard = memo(
               )}
             </Pressable>
             <Badge
-              label={`${String(request.type)} Verification Request`.toUpperCase()}
-              style={[styles.typeTag, { backgroundColor: "#E8F0FE" }]}
+              label={request.type === "business" ? "Business verification" : "Resident verification"}
+              style={[
+                styles.typeTag,
+                { backgroundColor: request.type === "business" ? "#EFEBFD" : "#EAF0FE" },
+              ]}
               textStyle={[
                 t.typography.small,
-                { color: "#2563EB", fontWeight: "700", fontSize: 10 },
+                { color: request.type === "business" ? "#6E4FE8" : "#2F5FE0", fontWeight: "700", fontSize: 11 },
               ]}
             />
           </View>
@@ -103,7 +117,7 @@ const DetailCard = memo(
                 uri={request.avatar}
                 mode="view"
                 onChange={(uri) => {}}
-                size={60}
+                size={46}
                 loading={false}
               />
             ) : (
@@ -144,131 +158,76 @@ const DetailCard = memo(
               >
                 {request.type === "business"
                   ? capitalizeWords(request.category || request.address)
-                  : capitalizeWords(request.subtext || request?.society)}
+                  : capitalizeWords(request.flatTower || request.subtext || request?.society)}
               </Text>
-            </View>
-          </View>
 
-          {/* Flat/Tower/Owner (resident) or Address/Category (business) — highlighted info row */}
-          {(request.flatTower || request.address || request.ownerOrTenant) ? (
-            <View style={[styles.infoRow, { backgroundColor: t.colors.gray1 }]}>
-              <Ionicons name="home-outline" size={14} color="#374151" />
-              <Text style={[t.typography.small, styles.infoRowText]} numberOfLines={1}>
-                {[
-                  request.type === "business" ? request.address : request.flatTower,
-                  request.ownerOrTenant ? capitalizeWords(request.ownerOrTenant) : null,
-                ]
-                  .filter(Boolean)
-                  .join(" • ")}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Phone + Applied date row */}
-          <View style={styles.detailsSplitRow}>
-            {request.phone ? (
-              <Pressable style={styles.metaRow} onPress={() => callUser(request.phone)}>
-                <Ionicons name="call-outline" size={13} color={t.colors.textSecondary} />
-                <Text style={[t.typography.small, { color: t.colors.textSecondary }]}>
-                  {request.phone}
-                </Text>
-              </Pressable>
-            ) : null}
-            {request.appliedDate ? (
-              <View style={styles.metaRow}>
-                <Ionicons name="calendar-outline" size={13} color={t.colors.textSecondary} />
-                <Text style={[t.typography.small, { color: t.colors.textSecondary }]}>
-                  Applied: {request.appliedDate}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Email row */}
-          {request.email ? (
-            <View style={[styles.metaRow, { paddingHorizontal: 16 }]}>
-              <Ionicons name="mail-outline" size={13} color={t.colors.textSecondary} />
-              <Text style={[t.typography.small, { color: t.colors.textSecondary }]}>
-                {request.email}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Residence / Registration proof — full-width row, thumbnail on the right */}
-          {request.residenceProof || request.registrationProof ? (
-            <View style={styles.docFullRow}>
-              <View style={styles.docFullLeft}>
-                <Ionicons name="document-text-outline" size={16} color="#374151" />
-                <View>
-                  <Text style={[t.typography.small, styles.docFullTitle]}>
-                    {request.residenceProof ? "Residence Proof" : "Registration Proof"}
-                  </Text>
+              {/* Phone / applied date / address — stacked, indented under the name column */}
+              {request.phone ? (
+                <Pressable style={styles.metaRow} onPress={() => callUser(request.phone)}>
+                  <Ionicons name="call-outline" size={13} color={t.colors.textSecondary} />
                   <Text style={[t.typography.small, { color: t.colors.textSecondary }]}>
-                    {request.proofType || "Document"}
-                  </Text>
-                </View>
-              </View>
-              <Image
-                source={{ uri: request.residenceProof || request.registrationProof }}
-                style={styles.docThumbSm}
-              />
-            </View>
-          ) : null}
-
-          {/* Selfie — full-width row */}
-          {request.selfie ? (
-            <View style={styles.docFullRow}>
-              <View style={styles.docFullLeft}>
-                <Ionicons name="person-outline" size={16} color="#374151" />
-                <Text style={[t.typography.small, styles.docFullTitle]}>Selfie</Text>
-              </View>
-              <Image source={{ uri: request.selfie }} style={styles.docThumbSm} />
-            </View>
-          ) : null}
-
-          {/* Logo / photos — full-width rows */}
-          {request.logoUrl ? (
-            <View style={styles.docFullRow}>
-              <View style={styles.docFullLeft}>
-                <Ionicons name="storefront-outline" size={16} color="#374151" />
-                <Text style={[t.typography.small, styles.docFullTitle]}>Logo</Text>
-              </View>
-              <Image source={{ uri: request.logoUrl }} style={styles.docThumbSm} />
-            </View>
-          ) : null}
-          {(request.photos ?? []).slice(0, 3).map((p: any, i: number) => (
-            <View key={p.id ?? i} style={styles.docFullRow}>
-              <View style={styles.docFullLeft}>
-                <Ionicons name="image-outline" size={16} color="#374151" />
-                <Text style={[t.typography.small, styles.docFullTitle]}>Photo</Text>
-              </View>
-              <Image source={{ uri: p.url || p.photo_url }} style={styles.docThumbSm} />
-            </View>
-          ))}
-
-          {/* Location — own row, "View on map" aligned right */}
-          {(request.locationName || request.from) ? (
-            <View style={styles.docFullRow}>
-              <View style={styles.docFullLeft}>
-                <Ionicons name="location-outline" size={16} color="#374151" />
-                <Text style={[t.typography.small, styles.docFullTitle]} numberOfLines={1}>
-                  {request.locationName || request.from}
-                </Text>
-              </View>
-              {request.latitude != null && request.longitude != null ? (
-                <Pressable
-                  onPress={() =>
-                    Linking.openURL(
-                      `https://maps.google.com/?q=${request.latitude},${request.longitude}`,
-                    )
-                  }
-                >
-                  <Text style={[t.typography.small, { color: "#166534", fontWeight: "700" }]}>
-                    View on map
+                    {request.phone}
                   </Text>
                 </Pressable>
               ) : null}
+              {request.appliedDate ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="calendar-outline" size={13} color={t.colors.textSecondary} />
+                  <Text style={[t.typography.small, { color: t.colors.textSecondary }]}>
+                    Applied {request.appliedDate}
+                  </Text>
+                </View>
+              ) : null}
+              {(request.address || request.locationName || request.from) ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="location-outline" size={13} color={t.colors.textSecondary} />
+                  <Text
+                    style={[t.typography.small, { color: t.colors.textSecondary, flexShrink: 1 }]}
+                    numberOfLines={1}
+                  >
+                    {request.address || request.locationName || request.from}
+                  </Text>
+                </View>
+              ) : null}
+              {request.email ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="mail-outline" size={13} color={t.colors.textSecondary} />
+                  <Text style={[t.typography.small, { color: t.colors.textSecondary }]}>
+                    {request.email}
+                  </Text>
+                </View>
+              ) : null}
             </View>
+          </View>
+
+          {/* Attachments — one thumbnail + a dynamic "+N" tile for the rest */}
+          {attachments.length > 0 ? (
+            <View style={styles.attachmentsRow}>
+              <Text style={[t.typography.small, styles.attachmentsLabel]}>Attachments</Text>
+              <Image source={{ uri: attachments[0] }} style={styles.docThumbSm} />
+              {attachments.length > 1 ? (
+                <View style={styles.attachmentMoreThumb}>
+                  <Text style={styles.attachmentMoreText}>+{attachments.length - 1}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* "View on map" — only when coordinates exist; address text itself
+              already renders in the meta stack above. */}
+          {request.latitude != null && request.longitude != null ? (
+            <Pressable
+              style={styles.mapLinkRow}
+              onPress={() =>
+                Linking.openURL(
+                  `https://maps.google.com/?q=${request.latitude},${request.longitude}`,
+                )
+              }
+            >
+              <Text style={[t.typography.small, { color: "#1B6E3C", fontWeight: "700" }]}>
+                View on map
+              </Text>
+            </Pressable>
           ) : null}
 
           <View style={styles.requestActions}>
@@ -284,14 +243,14 @@ const DetailCard = memo(
               onPress={() => onReject(request.id, request.type)}
             />
             <ActionButton
-              title="Request More Information"
+              title="Request info"
               variant="ghost"
               size="sm"
               fullWidth={false}
               leftIconName="chatbubble-ellipses-outline"
-              iconColor="#15803D"
+              iconColor="#666D62"
               containerStyle={[styles.infoBtn]}
-              textStyle={[t.typography.button1, { color: "#15803D" }]}
+              textStyle={[t.typography.button1, { color: "#666D62" }]}
               // No backend route exists to notify an applicant — VERIFICATION_STATUS
               // is only pending/approved/rejected and /api/admin/resident/approve
               // 400s on anything else. Until one ships, say so instead of
@@ -344,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     // padding: 16,
     paddingHorizontal: 0,
-    borderRadius: 12,
+    borderRadius: 18,
   },
   requestHeader: {
     flexDirection: "row",
@@ -398,71 +357,69 @@ const styles = StyleSheet.create({
   },
   requestProfile: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
     paddingHorizontal: 16,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
   },
   avatarText: {
-    backgroundColor: "#166534",
+    backgroundColor: "#1B6E3C",
     alignItems: "center",
     justifyContent: "center",
   },
   avatarLetters: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: "700",
   },
   profileInfo: {
     flex: 1,
+    gap: 4,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 2,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginHorizontal: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  infoRowText: { color: "#374151", fontWeight: "600", flex: 1 },
-  detailsSplitRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
   },
-  docFullRow: {
+  mapLinkRow: { paddingHorizontal: 16 },
+  attachmentsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  attachmentsLabel: { color: "#9A9C90", fontWeight: "600", marginRight: 2 },
+  locationRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F0EEE9",
   },
-  docFullLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: 8 },
-  docFullTitle: { color: "#1F2430", fontWeight: "600" },
+  docFullLeft: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1, marginRight: 8 },
   docThumbSm: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: "#eee",
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: "#F3F1EA",
   },
+  attachmentMoreThumb: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: "rgba(30,36,31,0.62)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachmentMoreText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   requestActions: {
     flexDirection: "row",
     gap: 8,
@@ -474,25 +431,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#FCA5A5",
+    borderColor: "#F0D3CC",
   },
   infoBtn: {
-    flex: 1.5,
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
-    backgroundColor: "#FFF7ED",
-    borderWidth: 1,
-    borderColor: "#FDBA74",
+    backgroundColor: "transparent",
   },
   approveBtn: {
     flex: 1.2,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
-    backgroundColor: "#166534",
+    backgroundColor: "#1B6E3C",
   },
 });
 

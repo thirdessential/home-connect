@@ -1,28 +1,23 @@
-// "My Events" — index of the events the signed-in user organized.
-//
-// Events themselves live in the MySQL Event API (see store/useEventStore.ts).
-// This screen is only an index: it reads the user's own feed rows to find which
-// events they created, then hands off to /(shared)/event-dashboard, which owns
-// participants, stats and cancellation. No event state is managed here.
-//
-// The feed is used as the index because the Event API exposes no "list my
-// events" endpoint. Rows without a mysqlEventId predate the Event API and are
-// filtered out — they have nothing to open.
+// "My Events" — index of every event the signed-in user organized, with its
+// actual status. Reads GET /api/events/my-events (ownership from the JWT, not
+// a client-supplied id), then hands off to /(shared)/event-dashboard, which
+// owns participants, stats and cancellation. No event state is managed here.
 
+import Badge from "@/components/UI/Badge";
 import NoDataCard from "@/components/common/NoDataCard";
 import Skeleton from "@/components/UI/Skeleton";
 import TitleHeader from "@/components/UI/TitleHeader";
-import { useFeedsStore } from "@/store/useFeedsStore";
-import { useUserStore } from "@/store/useUserStore";
+import { useEventStore } from "@/store/useEventStore";
 import { useTheme } from "@/theme/theme";
-import { FeedItem } from "@/types/feeds.type";
+import { EventRecord } from "@/types/event.type";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -30,21 +25,57 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const STATUS_BADGE: Record<string, { label: string; color: string }> = {
+  active: { label: "Active", color: "#16A34A" },
+  cancelled: { label: "Cancelled", color: "#DC2626" },
+  closed: { label: "Closed", color: "#6B7280" },
+  completed: { label: "Completed", color: "#2563EB" },
+};
+
+// Reused verbatim from app/(shared)/event-dashboard.tsx so the date/time
+// shown here matches the rest of the event flow (Dashboard/Details/Create).
+function formatDateShort(raw?: string | null): string {
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+function formatTime12h(raw?: string | null): string {
+  if (!raw) return "";
+  const [hStr, mStr] = raw.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return raw;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+type StatusFilter = "active" | "completed" | "closed" | "cancelled";
+
+const FILTERS: { key: StatusFilter; label: string }[] = [
+  { key: "active", label: "Active" },
+  { key: "completed", label: "Completed" },
+  { key: "closed", label: "Closed" },
+  { key: "cancelled", label: "Cancelled" },
+];
+
 const EventRow = memo(function EventRow({
   event,
   onPress,
 }: {
-  event: FeedItem;
+  event: EventRecord;
   onPress: (eventId: string) => void;
 }) {
   const t = useTheme();
-  const cover = event.images?.[0];
-  const joined = event.registeredParticipants ?? event.rsvps?.length ?? 0;
+  const cover = event.image;
+  const badge = STATUS_BADGE[event.status] ?? { label: event.status, color: t.colors.textSecondary };
 
   return (
     <TouchableOpacity
       style={[styles.row, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}
-      onPress={() => onPress(String(event.mysqlEventId))}
+      onPress={() => onPress(String(event.id))}
       activeOpacity={0.7}
     >
       {cover ? (
@@ -56,16 +87,21 @@ const EventRow = memo(function EventRow({
       )}
 
       <View style={styles.rowBody}>
-        <Text style={[styles.rowTitle, { color: t.colors.textPrimary }]} numberOfLines={1}>
-          {event.title || "Untitled event"}
-        </Text>
-        {!!(event.eventDate || event.eventTime) && (
+        <View style={styles.rowTitleLine}>
+          <Text style={[styles.rowTitle, { color: t.colors.textPrimary }]} numberOfLines={1}>
+            {event.title || "Untitled event"}
+          </Text>
+          <Badge label={badge.label} color={badge.color} size="xs" />
+        </View>
+        {!!(event.startDate || event.startTime) && (
           <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
-            {[event.eventDate, event.eventTime].filter(Boolean).join(" • ")}
+            {[formatDateShort(event.startDate), event.startTime ? formatTime12h(event.startTime) : null]
+              .filter(Boolean)
+              .join(" • ")}
           </Text>
         )}
         <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
-          {joined}
+          {event.joinedCount}
           {event.maxParticipants ? ` / ${event.maxParticipants}` : ""} joined
         </Text>
       </View>
@@ -79,23 +115,24 @@ export default function MyEventsScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
 
-  const userId = useUserStore((s) => s.user?._id);
-  const feedsByUser = useFeedsStore((s) => s.feedsByUser);
-  const loading = useFeedsStore((s) => s.loading);
-  const getFeedsByUserId = useFeedsStore((s) => s.getFeedsByUserId);
+  const allEvents = useEventStore((s) => s.myEvents);
+  const loading = useEventStore((s) => s.loading);
+  const getMyEvents = useEventStore((s) => s.getMyEvents);
+  const [filter, setFilter] = useState<StatusFilter>("active");
 
   const load = useCallback(() => {
-    if (userId) void getFeedsByUserId(userId);
-  }, [userId, getFeedsByUserId]);
+    void getMyEvents();
+  }, [getMyEvents]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Only events that exist in the Event API can be opened.
+  // Status comes straight from the DB-backed /my-events response — never
+  // inferred from date/time on the client.
   const events = useMemo(
-    () => (feedsByUser ?? []).filter((f) => f.type === "event" && f.mysqlEventId),
-    [feedsByUser],
+    () => allEvents.filter((e) => e.status === filter),
+    [allEvents, filter],
   );
 
   const openDashboard = useCallback((eventId: string) => {
@@ -103,13 +140,50 @@ export default function MyEventsScreen() {
   }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: FeedItem }) => <EventRow event={item} onPress={openDashboard} />,
+    ({ item }: { item: EventRecord }) => <EventRow event={item} onPress={openDashboard} />,
     [openDashboard],
   );
 
   return (
     <View style={[styles.container, { backgroundColor: t.colors.background, paddingTop: insets.top }]}>
       <TitleHeader title="My Events" onBackPress={() => router.back()} />
+      <View> 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+      
+        {FILTERS.map((f) => {
+          const isSelected = f.key === filter;
+          return (
+            <TouchableOpacity
+              key={f.key}
+              onPress={() => setFilter(f.key)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: isSelected ? t.colors.brand : t.colors.surface,
+                  borderColor: isSelected ? t.colors.brand : t.colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterChipLabel,
+                  { color: isSelected ? t.colors.onBrand : t.colors.textPrimary },
+                ]}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+        </View>
 
       {loading && events.length === 0 ? (
         <View style={styles.skeletons}>
@@ -120,7 +194,7 @@ export default function MyEventsScreen() {
       ) : (
         <FlatList
           data={events}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={[
             styles.list,
@@ -131,7 +205,7 @@ export default function MyEventsScreen() {
           ListEmptyComponent={
             <NoDataCard
               iconName="calendar-outline"
-              message="No Events Yet"
+              message={`No ${FILTERS.find((f) => f.key === filter)?.label} Events`}
               subText="Events you organize will appear here."
             />
           }
@@ -143,6 +217,9 @@ export default function MyEventsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  filterRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  filterChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1 },
+  filterChipLabel: { fontSize: 12, fontWeight: "600" },
   list: { paddingHorizontal: 16, paddingTop: 8 },
   listEmpty: { flexGrow: 1, justifyContent: "center" },
   skeletons: { paddingHorizontal: 16, paddingTop: 12 },
@@ -158,6 +235,7 @@ const styles = StyleSheet.create({
   thumb: { width: 52, height: 52, borderRadius: 10 },
   thumbFallback: { alignItems: "center", justifyContent: "center" },
   rowBody: { flex: 1, marginLeft: 12 },
-  rowTitle: { fontSize: 15, fontWeight: "600", marginBottom: 2 },
+  rowTitleLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  rowTitle: { fontSize: 15, fontWeight: "600", marginBottom: 2, flexShrink: 1 },
   rowMeta: { fontSize: 12, marginTop: 1 },
 });

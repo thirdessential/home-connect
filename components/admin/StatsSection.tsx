@@ -39,27 +39,14 @@ const StatsSection = memo(function StatsSection({
 }: Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.itemFull}>
-        <StatsCard
-          title="Reported Content"
-          value={stats.reportedContents}
-          icon="flag"
-          caption="Posts, comments, deals, events & more"
-          color="#DC2626"
-          tint="#FDECEC"
-          onPress={onReportedContentsPress}
-          isSelected={selectedCard === "reported-contents"}
-          type="pending"
-        />
-      </View>
       <View style={styles.item}>
         <StatsCard
           title="Pending Requests"
           value={stats.pendingRequests}
           icon="people-outline"
           caption="Needs your review"
-          color="#15803D"
-          tint="#FDEEE1"
+          color="#B9741B"
+          tint="#FBEEDD"
           onPress={onPendingPress}
           isSelected={selectedCard === "pending"}
           type="pending"
@@ -71,8 +58,8 @@ const StatsSection = memo(function StatsSection({
           value={stats.approvedResidents}
           icon="person-add-outline"
           caption="Total approved"
-          color="#16A34A"
-          tint="#E7F6ED"
+          color="#1B6E3C"
+          tint="#E4F3EA"
           onPress={onApprovedResidentsPress}
           isSelected={selectedCard === "approved-residents"}
           type="approved"
@@ -84,8 +71,8 @@ const StatsSection = memo(function StatsSection({
           value={stats.approvedBusinesses}
           icon="storefront-outline"
           caption="Total approved"
-          color="#7C3AED"
-          tint="#F1EAFE"
+          color="#6E4FE8"
+          tint="#EFEBFD"
           onPress={onApprovedBusinessPress}
           isSelected={selectedCard === "approved-business"}
           type="approved"
@@ -97,8 +84,8 @@ const StatsSection = memo(function StatsSection({
           value={stats.approvedServices}
           icon="people-circle-outline"
           caption="Total approved"
-          color="#2563EB"
-          tint="#E8F0FE"
+          color="#2F5FE0"
+          tint="#EAF0FE"
           onPress={onApprovedServicesPress}
           isSelected={selectedCard === "approved-services"}
           type="approved"

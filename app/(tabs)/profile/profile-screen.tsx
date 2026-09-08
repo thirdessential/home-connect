@@ -1,13 +1,14 @@
 import { verificationStatus } from "@/assets/enums/common.enum";
 import Badge from "@/components/UI/Badge";
 import { Card } from "@/components/UI/Card";
-import HDivider from "@/components/UI/HDivider";
 import CircularImage from "@/components/form/CircularImage";
 import ActionButton from "@/components/inputs/ActionButton";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
 import DeleteAccount from "@/components/profile/DeleteAccount";
+import VerificationGateModal from "@/components/common/VerificationGateModal";
+import { useVerificationGate } from "@/hooks/useVerificationGate";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useImageUpload } from "@/lib/cloudinary";
 import { ManageProfilePayload } from "@/store/auth.type";
@@ -28,8 +29,19 @@ const staticStyles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   avatarRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  cardMargin: { marginTop: 16, marginBottom: 0, paddingBottom: 0 },
+  cardMargin: {
+    marginTop: 16,
+    marginBottom: 0,
+    paddingBottom: 0,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
   logoutBtn: { borderRadius: 12, paddingVertical: 12, marginBottom: 8 },
+  logoutSpacing: { marginTop: 20 },
+  roleBadge: { paddingVertical: 4, paddingHorizontal: 10 },
   listRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14 },
   listDivider: {
     position: "absolute",
@@ -40,19 +52,31 @@ const staticStyles = StyleSheet.create({
     opacity: 0.4,
   },
   listIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  listLabel: { flex: 1, fontSize: 15, fontWeight: "500" },
+  cardPadding: { padding: 16 },
+  quickLinksInner: {},
+  infoRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 14 },
+  infoIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  listLabel: { flex: 1, fontSize: 16 },
-  cardPadding: { padding: 16 },
-  quickLinksInner: { paddingHorizontal: 4 },
-  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
-  infoRowText: { marginLeft: 8, flex: 1 },
+  infoRowText: { flex: 1, paddingTop: 2 },
+  infoLabel: { fontSize: 11, fontWeight: "600" },
+  infoValue: { fontSize: 14, lineHeight: 20, marginTop: 2 },
+  infoDivider: { height: 1, marginLeft: 48, marginBottom: 14 },
   flexOne: { flex: 1 },
+  actionCaption: { paddingTop: 4, textAlign: "center", fontSize: 11 },
 });
 
 // Extracted outside the parent component so it has a stable identity across renders.
@@ -75,24 +99,24 @@ const ListRow = memo(function ListRowCmp({
       <View
         style={[
           staticStyles.listIconWrap,
-          { backgroundColor: t.colors.slateColor },
+          { backgroundColor: t.colors.brandWeak },
         ]}
       >
-        <Ionicons name={icon} size={18} color={t.colors.textPrimary} />
+        <Ionicons name={icon} size={20} color={t.colors.brand} />
       </View>
       <Text style={[staticStyles.listLabel, { color: t.colors.textPrimary }]}>
         {label}
       </Text>
       <Ionicons
         name="chevron-forward"
-        size={18}
+        size={20}
         color={t.colors.textSecondary}
       />
       {!isLast && (
         <View
           style={[
             staticStyles.listDivider,
-            { backgroundColor: t.colors.border },
+            { backgroundColor: t.colors.border, left: 70 },
           ]}
         />
       )}
@@ -165,6 +189,7 @@ export default function ProfileScreen() {
     user?.profilePhotoUrl || undefined,
   );
   const { upload } = useImageUpload();
+  const { requireVerified, gate, closeGate } = useVerificationGate();
   const onChangeAvatar = useCallback(
     async (uri: string) => {
       setAvatarUri(uri); // immediate UI update
@@ -213,9 +238,8 @@ export default function ProfileScreen() {
     if (isUserVerified) {
       return {
         label: "Verified",
-        icon: "checkmark" as const,
-        color: t.colors.success,
-        iconBgColor: t.colors.success,
+        icon: "shield-checkmark-sharp" as const,
+        color: '#15803D',
       };
     }
     if (
@@ -262,15 +286,9 @@ export default function ProfileScreen() {
     setLogoutConfirmVisible(false);
   }, [signOut, router]);
 
-  // Stable noop handler for Help & Support
-  const onHelpSupport = useCallback(() => { }, []);
-
   // Navigation callbacks to avoid recreating inline lambdas each render
   const goMyRequests = useCallback(() => {
     router.navigate("/profile/my-requests");
-  }, [router]);
-  const goMyOrders = useCallback(() => {
-    router.navigate("/profile/my-orders");
   }, [router]);
   const goAdminDashboard = useCallback(() => {
     router.navigate("/profile/admin-dashboard");
@@ -338,52 +356,102 @@ export default function ProfileScreen() {
     router.navigate("/profile/event-dashboard");
   }, [router]);
 
-  const goDealDashboard = useCallback(() => {
-    router.navigate("/profile/deal-dashboard");
-  }, [router]);
-
   const onDeleteAccount = useCallback(() => {
     setDeleteModalVisible(true);
   }, []);
 
+  const menuItems = useMemo(() => {
+    const items: {
+      label: string;
+      icon: keyof typeof Ionicons.glyphMap;
+      onPress: () => void;
+    }[] = [];
+    if (hasAnyRole([UserRole.BUSINESS, UserRole.RESIDENT])) {
+      items.push({
+        label: "My Events",
+        icon: "calendar-outline",
+        onPress: goEventDashboard,
+      });
+    }
+    if (hasRole(UserRole.BUSINESS)) {
+      items.push({
+        label: "My Business Account",
+        icon: "storefront-outline",
+        onPress: goBusinessCatalog,
+      });
+    }
+    if (!hasRole(UserRole.GUEST) && !hasRole(UserRole.ADMIN)) {
+      items.push({
+        label: "My Requests",
+        icon: "document-outline",
+        onPress: goMyRequests,
+      });
+    }
+    if (hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN])) {
+      items.push({
+        label: "Admin Dashboard",
+        icon: "shield-checkmark-outline",
+        onPress: goAdminDashboard,
+      });
+    }
+    return items;
+  }, [
+    hasAnyRole,
+    hasRole,
+    goEventDashboard,
+    goBusinessCatalog,
+    goMyRequests,
+    goAdminDashboard,
+  ]);
+
   return (
     <>
       <ScrollView
+        // style={{ backgroundColor: t.colors.white }}
         contentContainerStyle={staticStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Curved header below notch */}
+        {/* Avatar + identity header */}
         <View style={dynamicStyles.headerContainer}>
           <View style={staticStyles.avatarRow}>
             <CircularImage
               uri={avatarUri ?? user?.profilePhotoUrl ?? undefined}
               mode="edit"
               onChange={onChangeAvatar}
-              size={100}
+              onBeforeOpen={() => requireVerified("action")}
+              size={92}
               loading={false}
             />
             <View style={staticStyles.flexOne}>
-              <View style={staticStyles.nameRow}>
-                <Text
-                  style={{ ...t.typography.h2, color: t.colors.textPrimary }}
-                >
-                  {name}
-                </Text>
-                {!hasAnyRole([UserRole.ADMIN, UserRole.GUEST]) && (
-                  <Badge size="sm" {...verificationBadge} />
-                )}
-              </View>
+              <Text
+                style={{ ...t.typography.h1, color: t.colors.textPrimary }}
+              >
+                {name}
+              </Text>
               {phone ? (
-                <Text style={{ color: t.colors.textSecondary, marginTop: 6 }}>
+                <Text style={{ color: t.colors.textSecondary, marginTop: 4, fontSize: 14 }}>
                   {phone}
                 </Text>
               ) : null}
               {/* Render email if available on user shape */}
               {(user as any)?.email ? (
-                <Text style={{ color: t.colors.textSecondary, marginTop: 2 }}>
+                <Text style={{ color: t.colors.textSecondary, marginTop: 2, fontSize: 14 }}>
                   {(user as any).email}
                 </Text>
               ) : null}
+              {!hasRole(UserRole.GUEST) && (
+                <View style={staticStyles.nameRow}>
+                  <Badge
+                    size="sm"
+                    {...verificationBadge}
+                    bgColor={t.colors.brandWeak}
+                    textColor={t.colors.brandDark}
+                    iconColor={t.colors.brandDark}
+                    iconBgColor="transparent"
+                    style={staticStyles.roleBadge}
+                  />
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -391,44 +459,86 @@ export default function ProfileScreen() {
         {/* Personal profile card */}
         <Card style={staticStyles.cardMargin}>
           <View style={staticStyles.cardPadding}>
-            <SectionTitle>My Personal Profile</SectionTitle>
+            <SectionTitle>My personal profile</SectionTitle>
             {address.length > 0 && (
-              <View style={staticStyles.infoRow}>
-                <Ionicons
-                  name="location-outline"
-                  size={18}
-                  color={t.colors.textSecondary}
-                />
-                <Text
+              <>
+                <View style={staticStyles.infoRow}>
+                  <View
+                    style={[
+                      staticStyles.infoIconWrap,
+                      { backgroundColor: t.colors.brandWeak },
+                    ]}
+                  >
+                    <Ionicons
+                      name="location-outline"
+                      size={18}
+                      color={t.colors.brand}
+                    />
+                  </View>
+                  <View style={staticStyles.infoRowText}>
+                    <Text
+                      style={[
+                        staticStyles.infoLabel,
+                        { color: t.colors.textSecondary },
+                      ]}
+                    >
+                      Address
+                    </Text>
+                    <Text
+                      style={[
+                        staticStyles.infoValue,
+                        { color: t.colors.textPrimary },
+                      ]}
+                    >
+                      {address}
+                    </Text>
+                  </View>
+                </View>
+                <View
                   style={[
-                    staticStyles.infoRowText,
-                    { color: t.colors.textSecondary },
+                    staticStyles.infoDivider,
+                    { backgroundColor: t.colors.border },
                   ]}
-                >
-                  {address}
-                </Text>
-              </View>
+                />
+              </>
             )}
             {phone && (
               <View style={staticStyles.infoRow}>
-                <Ionicons
-                  name="phone-portrait-outline"
-                  size={18}
-                  color={t.colors.textSecondary}
-                />
-                <Text
+                <View
                   style={[
-                    staticStyles.infoRowText,
-                    { color: t.colors.textSecondary },
+                    staticStyles.infoIconWrap,
+                    { backgroundColor: t.colors.brandWeak },
                   ]}
                 >
-                  {phone}
-                </Text>
+                  <Ionicons
+                    name="phone-portrait-outline"
+                    size={18}
+                    color={t.colors.brand}
+                  />
+                </View>
+                <View style={staticStyles.infoRowText}>
+                  <Text
+                    style={[
+                      staticStyles.infoLabel,
+                      { color: t.colors.textSecondary },
+                    ]}
+                  >
+                    Phone
+                  </Text>
+                  <Text
+                    style={[
+                      staticStyles.infoValue,
+                      { color: t.colors.textPrimary },
+                    ]}
+                  >
+                    {phone}
+                  </Text>
+                </View>
               </View>
             )}
             {hasRole(UserRole.RESIDENT) && (
               <ActionButton
-                title="Update Profile"
+                title="Update profile"
                 onPress={onManageProfile}
                 variant="primary"
                 size="lg"
@@ -439,84 +549,61 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
-        <HDivider thickness={2} />
-
-        {/* Quick links card (before Logout) */}
-        <Card>
-          <View style={staticStyles.quickLinksInner}>
-            {/* Build rows */}
-            {!hasRole(UserRole.GUEST) && (
-              <ListRow
-                label="My Orders"
-                icon="heart-outline"
-                onPress={goMyOrders}
-              />
-            )}
-            {hasAnyRole([UserRole.BUSINESS, UserRole.ADMIN, UserRole.RESIDENT, UserRole.SUPER_ADMIN]) && (
-              <ListRow
-                label="My Deals"
-                icon="heart-outline"
-                onPress={goDealDashboard}
-              />
-            )}
-            {hasAnyRole([UserRole.BUSINESS, UserRole.RESIDENT]) && (
-              <ListRow
-                label="My Events"
-                icon="heart-outline"
-                onPress={goEventDashboard}
-              />
-            )}
-            {hasRole(UserRole.BUSINESS) && (
-              <ListRow
-                label="My Business Account"
-                icon="storefront-outline"
-                onPress={goBusinessCatalog}
-              />
-            )}
-            {!hasRole(UserRole.GUEST) && !hasRole(UserRole.ADMIN) && (
-              <ListRow
-                label="My Requests"
-                icon="document-outline"
-                onPress={goMyRequests}
-              />
-            )}
-            {hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]) && (
-              <ListRow
-                label="Admin Dashboard"
-                icon="help-circle-outline"
-                onPress={goAdminDashboard}
-              />
-            )}
-            <ListRow
-              label="Help & Support"
-              icon="help-circle-outline"
-              onPress={onHelpSupport}
-              isLast
-            />
-          </View>
-        </Card>
-
-        {/* Delete */}
-        <ActionButton
-          title="Delete Account"
-          onPress={onDeleteAccount}
-          variant="danger"
-          size="lg"
-          leftIconName="log-out-outline"
-          containerStyle={staticStyles.logoutBtn}
-          fullWidth
-        />
+        {/* Quick links card */}
+        {menuItems.length > 0 && (
+          <Card style={staticStyles.cardMargin}>
+            <View style={staticStyles.quickLinksInner}>
+              {menuItems.map((item, index) => (
+                <ListRow
+                  key={item.label}
+                  label={item.label}
+                  icon={item.icon}
+                  onPress={item.onPress}
+                  isLast={index === menuItems.length - 1}
+                />
+              ))}
+            </View>
+          </Card>
+        )}
 
         {/* Logout */}
         <ActionButton
-          title="Logout"
+          title="Log out"
           onPress={onLogout}
-          variant="outline"
+          variant="primary"
           size="lg"
           leftIconName="log-out-outline"
-          containerStyle={staticStyles.logoutBtn}
+          containerStyle={[staticStyles.logoutBtn, staticStyles.logoutSpacing, 
+            {
+              // backgroundColor: t.colors.brand,
+              // color: "#fff??" 
+            }
+          ]}
           fullWidth
         />
+
+        {/* Delete */}
+        <ActionButton
+          title="Delete account"
+          onPress={onDeleteAccount}
+          variant="danger"
+          size="lg"
+          leftIconName="trash-bin-outline"
+          iconColor={t.colors.error}
+          textStyle={{ color: t.colors.error }}
+          containerStyle={[
+            staticStyles.logoutBtn,
+            {
+              backgroundColor: "#00000000",
+              borderWidth: 1,
+              borderColor: t.colors.error + 80 ,
+            },
+          ]}
+          fullWidth
+        />
+        <Text style={[staticStyles.actionCaption, { color: t.colors.textSecondary }]}>
+          Deleting your account removes your data permanently.
+        </Text>
       </ScrollView>
       {/* Manage Profile Form Sheet */}
       <FormSheetModal
@@ -564,6 +651,8 @@ export default function ProfileScreen() {
         cancelText="Cancel"
         isDangerous={false}
       />
+
+      <VerificationGateModal visible={gate.visible} mode={gate.mode} onClose={closeGate} />
     </>
   );
 }

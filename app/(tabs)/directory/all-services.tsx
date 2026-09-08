@@ -1,10 +1,12 @@
 import { verificationStatus } from "@/assets/enums/common.enum";
 import EmptyState from "@/components/common/EmptyState";
+import VerificationGateModal from "@/components/common/VerificationGateModal";
 import CircularImage from "@/components/form/CircularImage";
 import ActionButton from "@/components/inputs/ActionButton";
 import { Card } from "@/components/UI/Card";
 import InfoBanner from "@/components/UI/InfoBanner";
 import TitleHeader from "@/components/UI/TitleHeader";
+import { useVerificationGate } from "@/hooks/useVerificationGate";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getVerificationStatus } from "@/lib/adminHelper";
 import { useProductStore } from "@/store/useBusinessStore";
@@ -124,6 +126,7 @@ export default function AllServicesScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const { hasOnly } = usePermissions();
   const isGuest = hasOnly([UserRole.GUEST]);
+  const { requireVerified, gate, closeGate } = useVerificationGate();
 
   // Store selectors
   const dailyHelperList = useDailyHelperStore((s) => s.dailyHelperList);
@@ -196,13 +199,15 @@ export default function AllServicesScreen() {
 
   const handleViewProfile = useCallback(
     (item: any) => {
+      // Block navigation before it happens — no brief open + redirect.
+      if (!requireVerified("page")) return;
       router.navigate(
         `/(tabs)/directory/${
           type === "business" ? "business" : "service"
         }/${item.id}`,
       );
     },
-    [router, type],
+    [router, type, requireVerified],
   );
 
   const renderItem = useCallback(
@@ -278,6 +283,7 @@ export default function AllServicesScreen() {
           />
         }
       />
+      <VerificationGateModal visible={gate.visible} mode={gate.mode} onClose={closeGate} />
     </View>
   );
 }

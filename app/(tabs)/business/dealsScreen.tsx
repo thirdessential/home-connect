@@ -40,37 +40,16 @@ export default function DealsScreen() {
       <Text style={{ fontWeight: "bold", fontSize: 24, padding: 16 }}>
         Community Deals
       </Text>
-      <View style={{ paddingBottom: 10 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ paddingBottom: 8 }}
-        >
-          <FilterChips
-            options={WHOLESALE_DEALS_CAT}
-            initialValue={selectedCat}
-            all={true}
-            onChange={setSelectedCat}
-          />
-        </ScrollView>
-      </View>
 
-      {/* Scrollable Content with virtualization */}
-      <FlatList
-        data={filteredBusinesses}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => <ProductCard productDetails={item} />}
-        ListEmptyComponent={
-          <NoDataCard iconName="checkmark-circle" message="No Results Found" />
-        }
-        contentContainerStyle={{ padding: 16 }}
-        removeClippedSubviews
-        windowSize={5}
-        initialNumToRender={6}
-        maxToRenderPerBatch={8}
-        updateCellsBatchingPeriod={50}
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Deals feature not live yet — content/API list hidden until launch */}
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
+        <Text style={{ fontWeight: "700", fontSize: 20, color: t.colors.textPrimary, marginBottom: 8 }}>
+          Coming Soon
+        </Text>
+        <Text style={{ fontSize: 14, color: t.colors.textSecondary, textAlign: "center" }}>
+          Deals are coming soon to Home Connect.
+        </Text>
+      </View>
     </View>
   );
 }

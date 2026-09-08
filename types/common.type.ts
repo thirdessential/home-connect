@@ -119,6 +119,10 @@ export interface InfoBannerProps {
     titleColor?: string;
     descriptionColor?: string;
     containerStyle?: ViewStyle;
+    /** Opt-in premium card look (icon + status pill). Default renders exactly as before. */
+    variant?: "default" | "card";
+    /** Icon shown in the "card" variant only. */
+    icon?: keyof typeof Ionicons.glyphMap;
 };
 
 export interface DashboardStatsProps {

@@ -22,14 +22,6 @@ export default function SharedLayout() {
         },
       }}
     >
-      {/* Profile Management */}
-      <Stack.Screen
-        name="update-profile"
-        options={{
-          title: "Update Profile",
-          headerShown: true,
-        }}
-      />
     </Stack>
   );
 }

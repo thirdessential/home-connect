@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -124,46 +125,47 @@ const PendingRequestsSection = memo(function PendingRequestsSection({
           </View>
         </View>
 
-        <View style={styles.tabsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+        >
           {ENTITY_TYPE_FILTERS.map((opt) => {
             const isActive = activeFilter === opt.id;
             const count = counts[opt.id as keyof TabCounts] ?? 0;
             return (
               <TouchableOpacity
                 key={opt.id}
-                style={styles.tabItem}
+                style={[styles.tabPill, isActive && styles.tabPillActive]}
                 onPress={() => onFilterChange(opt.id)}
               >
-                <View style={styles.tabLabelRow}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    { color: isActive ? "#12522C" : "#666D62" },
+                  ]}
+                >
+                  {TAB_LABELS[opt.id] ?? opt.name}
+                </Text>
+                <View
+                  style={[
+                    styles.tabCountBadge,
+                    { backgroundColor: isActive ? "#1B6E3C" : "#F3F1EA" },
+                  ]}
+                >
                   <Text
                     style={[
-                      styles.tabLabel,
-                      { color: isActive ? "#166534" : "#6B7280" },
+                      styles.tabCountText,
+                      { color: isActive ? "#fff" : "#666D62" },
                     ]}
                   >
-                    {TAB_LABELS[opt.id] ?? opt.name}
+                    {count}
                   </Text>
-                  <View
-                    style={[
-                      styles.tabCountBadge,
-                      { backgroundColor: isActive ? "#DCFCE7" : "#F3F4F6" },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tabCountText,
-                        { color: isActive ? "#166534" : "#6B7280" },
-                      ]}
-                    >
-                      {count}
-                    </Text>
-                  </View>
                 </View>
-                {isActive ? <View style={styles.tabUnderline} /> : null}
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
         <View style={styles.toolbarRow}>
           <TouchableOpacity style={styles.sortButton} onPress={toggleSortOrder}>
@@ -180,8 +182,8 @@ const PendingRequestsSection = memo(function PendingRequestsSection({
             style={[styles.filterButton, statusFilter !== "all" && styles.filterButtonActive]}
             onPress={() => setFilterOpen((v) => !v)}
           >
-            <Ionicons name="filter" size={14} color={statusFilter !== "all" ? "#166534" : "#374151"} />
-            <Text style={[styles.filterButtonText, statusFilter !== "all" && { color: "#166534" }]}>
+            <Ionicons name="filter" size={14} color={statusFilter !== "all" ? "#1B6E3C" : "#374151"} />
+            <Text style={[styles.filterButtonText, statusFilter !== "all" && { color: "#1B6E3C" }]}>
               Filter{statusFilter !== "all" ? " (1)" : ""}
             </Text>
           </TouchableOpacity>
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
   filterContainer: { marginBottom: 12, marginHorizontal: 16 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   pendingBadge: {
-    backgroundColor: "#15803D",
+    backgroundColor: "#1B6E3C",
     borderRadius: 12,
     paddingHorizontal: 9,
     paddingVertical: 2,
@@ -267,23 +269,24 @@ const styles = StyleSheet.create({
   pendingBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
   tabsRow: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0EEE9",
+    gap: 6,
     marginBottom: 12,
   },
-  tabItem: { marginRight: 20, paddingBottom: 10 },
-  tabLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  tabLabel: { fontSize: 14, fontWeight: "600" },
-  tabCountBadge: { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1 },
-  tabCountText: { fontSize: 11, fontWeight: "700" },
-  tabUnderline: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: "#166534",
+  tabPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#E6E2D6",
+    backgroundColor: "#fff",
   },
+  tabPillActive: { backgroundColor: "#E4F3EA", borderColor: "#1B6E3C" },
+  tabLabel: { fontSize: 13.5, fontWeight: "600" },
+  tabCountBadge: { borderRadius: 999, paddingHorizontal: 7, paddingVertical: 1 },
+  tabCountText: { fontSize: 11, fontWeight: "700" },
   toolbarRow: { flexDirection: "row", justifyContent: "space-between" },
   sortButton: {
     flexDirection: "row",
@@ -293,7 +296,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#E6E2D6",
   },
   sortButtonText: { fontSize: 13, fontWeight: "500", color: "#374151" },
   filterButton: {
@@ -304,10 +307,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#E6E2D6",
   },
   filterButtonText: { fontSize: 13, fontWeight: "500", color: "#374151" },
-  filterButtonActive: { backgroundColor: "#DCFCE7", borderColor: "#166534" },
+  filterButtonActive: { backgroundColor: "#DCFCE7", borderColor: "#1B6E3C" },
   filterPanel: {
     flexDirection: "row",
     gap: 8,
@@ -318,10 +321,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#E6E2D6",
     backgroundColor: "#F9FAFB",
   },
-  filterChipActive: { backgroundColor: "#166534", borderColor: "#166534" },
+  filterChipActive: { backgroundColor: "#1B6E3C", borderColor: "#1B6E3C" },
   filterChipText: { fontSize: 13, color: "#374151", fontWeight: "500" },
   filterChipTextActive: { color: "#fff" },
   section: { marginBottom: 4 },

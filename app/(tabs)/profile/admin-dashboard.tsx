@@ -116,18 +116,25 @@ export default function AdminDashboard() {
   );
 
   // ── Effects ───────────────────────────────────────────────────────────────────
+  // Society admins: auto-load their own society's data. Re-runs (not mount-only)
+  // because `ownSociety` comes from the persisted society store, which can still
+  // be hydrating when this screen mounts — a mount-only effect would miss it and
+  // get stuck showing no society.
   useEffect(() => {
-    // For regular admins, auto-load their own society's data on mount
-    if (!isSuperAdmin && ownSociety) {
-      setAdminSociety(ownSociety);
-      setIsInitialLoading(true);
-      Promise.allSettled([
-        getAllPendingContent(ownSociety._id),
-        getAllApprovedContent(ownSociety._id),
-        getAllReportedContent(ownSociety._id),
-      ]).finally(() => setIsInitialLoading(false));
-      return;
-    }
+    if (isSuperAdmin || !ownSociety) return;
+    if (adminSociety?._id === ownSociety._id) return;
+    setAdminSociety(ownSociety);
+    setIsInitialLoading(true);
+    Promise.allSettled([
+      getAllPendingContent(ownSociety._id),
+      getAllApprovedContent(ownSociety._id),
+      getAllReportedContent(ownSociety._id),
+    ]).finally(() => setIsInitialLoading(false));
+  }, [isSuperAdmin, ownSociety, adminSociety]);
+
+  useEffect(() => {
+    // Super admin only: covers a society already selected before this mount.
+    if (!isSuperAdmin) return;
     if (!adminSocietyId) return;
     if (pendingContent.totalCount > 0) return;
     setIsInitialLoading(true);
@@ -138,6 +145,33 @@ export default function AdminDashboard() {
     ]).finally(() => setIsInitialLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mount only
+
+  // Super admin: fetch the society list, and if there's exactly one society,
+  // auto-select it (same fetch as handleSelectSociety) instead of forcing a
+  // single-option selector. Refs guard against re-fetching/re-selecting on
+  // re-renders (e.g. once `societies` resolves and re-triggers the effect).
+  const hasFetchedSocietiesRef = useRef(false);
+  const autoSelectedSingleSocietyRef = useRef(false);
+  useEffect(() => {
+    if (!isSuperAdmin || adminSociety) return;
+    if (societies.length === 0) {
+      if (!hasFetchedSocietiesRef.current) {
+        hasFetchedSocietiesRef.current = true;
+        getAllSociety();
+      }
+      return;
+    }
+    if (societies.length !== 1 || autoSelectedSingleSocietyRef.current) return;
+    autoSelectedSingleSocietyRef.current = true;
+    const onlySociety = societies[0];
+    setAdminSociety(onlySociety);
+    setIsFetchingSocietyData(true);
+    Promise.allSettled([
+      getAllPendingContent(onlySociety._id),
+      getAllApprovedContent(onlySociety._id),
+      getAllReportedContent(onlySociety._id),
+    ]).finally(() => setIsFetchingSocietyData(false));
+  }, [isSuperAdmin, adminSociety, societies]);
 
   // ── Stats card handlers ───────────────────────────────────────────────────────
   const handlePendingRequestsClick = useCallback(() => {
@@ -636,6 +670,8 @@ export default function AdminDashboard() {
                 onSocietyPress={openSocietySelector}
               />
 
+              <View style={styles.bottomSpacer} />
+
               <StatsSection
                 stats={verificationStats}
                 selectedCard={selectedStatsCard}
@@ -740,7 +776,7 @@ export default function AdminDashboard() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1 },
-  bottomSpacer: { height: 40 },
+  container: { flex: 1, },
+  bottomSpacer: { height: 20 },
   noSocietyContainer: { flex: 1, justifyContent: "center" },
 });

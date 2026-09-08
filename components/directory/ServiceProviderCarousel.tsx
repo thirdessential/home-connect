@@ -1,4 +1,6 @@
 import { Card } from "@/components/UI/Card";
+import VerificationGateModal from "@/components/common/VerificationGateModal";
+import { useVerificationGate } from "@/hooks/useVerificationGate";
 import { capitalizeWords } from "@/lib/utils";
 import { useTheme } from "@/theme/theme";
 import { ServiceProvider } from "@/types/common.type";
@@ -28,13 +30,16 @@ type ServiceProviderCarouselProps = {
 const ServiceProviderCard = memo(({ provider }: { provider: any }) => {
   const t = useTheme();
   const router = useRouter();
+  const { requireVerified, gate, closeGate } = useVerificationGate();
 
   const handleCardPress = useCallback(() => {
+    // Block navigation before it happens — no Business Details render/API call.
+    if (!requireVerified("page")) return;
     router.navigate(
       `/(tabs)/directory/${provider.productType === "business" ? "business" : "service"
       }/${provider.id}`
     );
-  }, []);
+  }, [requireVerified, provider.productType, provider.id]);
 
   return (
     <TouchableOpacity
@@ -83,6 +88,7 @@ const ServiceProviderCard = memo(({ provider }: { provider: any }) => {
           </TouchableOpacity>
         </View>
       </Card>
+      <VerificationGateModal visible={gate.visible} mode={gate.mode} onClose={closeGate} />
     </TouchableOpacity>
   );
 });

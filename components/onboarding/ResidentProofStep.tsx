@@ -1,6 +1,5 @@
 import ActionButton from "@/components/inputs/ActionButton";
-import { pickImageCropped } from "@/lib/ImagePicker";
-import { uploadToBackend } from "@/lib/backendUpload";
+import { useImageUploader } from "@/components/image-upload";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { memo, useCallback, useState } from "react";
@@ -29,44 +28,54 @@ type Props = {
 
 function ResidentProofStep({ onContinue, submitting }: Props) {
   const t = useTheme();
+  const { openImageUploader } = useImageUploader();
   const [proofType, setProofType] = useState<string>(PROOF_TYPES[0].id);
   const [documentUrl, setDocumentUrl] = useState<string | undefined>();
   const [selfieUrl, setSelfieUrl] = useState<string | undefined>();
   const [docStatus, setDocStatus] = useState<UploadStatus>("idle");
   const [selfieStatus, setSelfieStatus] = useState<UploadStatus>("idle");
 
+  // Documents keep the widest ratio choice — a bill or agreement is rarely
+  // square. The universal flow performs the backend upload itself.
   const handleUploadDocument = useCallback(async () => {
-    const asset = await pickImageCropped("library", { quality: 0.85 });
-    if (!asset?.uri) return;
-    setDocumentUrl(undefined);
-    setDocStatus("uploading");
-    try {
-      const url = await uploadToBackend(asset.uri);
-      setDocumentUrl(url);
+    const res = await openImageUploader({
+      title: "Residence Proof",
+      aspectRatios: ["4:5", "1:1", "16:9"],
+      defaultAspectRatio: "4:5",
+      quality: 0.85,
+    });
+    if (!res || !("uri" in res)) return;
+    if (res.url) {
+      setDocumentUrl(res.url);
       setDocStatus("success");
-    } catch {
+    } else {
+      setDocumentUrl(undefined);
       setDocStatus("failed");
     }
-  }, []);
+  }, [openImageUploader]);
 
   const handleRemoveDocument = useCallback(() => {
     setDocumentUrl(undefined);
     setDocStatus("idle");
   }, []);
 
+  // Selfies are square — same sheet, but only the 1:1 ratio is offered.
   const handleTakeSelfie = useCallback(async () => {
-    const asset = await pickImageCropped("camera", { quality: 0.85 });
-    if (!asset?.uri) return;
-    setSelfieUrl(undefined);
-    setSelfieStatus("uploading");
-    try {
-      const url = await uploadToBackend(asset.uri);
-      setSelfieUrl(url);
+    const res = await openImageUploader({
+      title: "Selfie",
+      aspectRatios: ["1:1"],
+      defaultAspectRatio: "1:1",
+      quality: 0.85,
+    });
+    if (!res || !("uri" in res)) return;
+    if (res.url) {
+      setSelfieUrl(res.url);
       setSelfieStatus("success");
-    } catch {
+    } else {
+      setSelfieUrl(undefined);
       setSelfieStatus("failed");
     }
-  }, []);
+  }, [openImageUploader]);
 
   // Required: a real backend URL, not just a local file selection/in-flight upload.
   const canContinue =

@@ -63,8 +63,8 @@ export default function CreateEventScreen() {
   // Step 3
   const [participationType, setParticipationType] = useState<ParticipationType>("free");
   const [feeAmount, setFeeAmount] = useState("");
-  const [minParticipants, setMinParticipants] = useState(0);
-  const [maxParticipants, setMaxParticipants] = useState(20);
+  const [minParticipants, setMinParticipants] = useState(1);
+  const [maxParticipants, setMaxParticipants] = useState<number | null>(null);
   const [closesHours, setClosesHours] = useState("3");
   const [rules, setRules] = useState("");
   const [agree, setAgree] = useState(false);
@@ -73,6 +73,8 @@ export default function CreateEventScreen() {
     if (step > 1) setStep((s) => s - 1);
     else router.back();
   };
+
+  const handleClose = () => router.back();
 
   const next1 = () => {
     if (title.trim().length < 3) return showToast("Enter an event title", "error");
@@ -91,8 +93,11 @@ export default function CreateEventScreen() {
     if (participationType === "paid" && (!feeAmount || Number(feeAmount) <= 0)) {
       return showToast("Enter a valid participation fee", "error");
     }
-    if (minParticipants > maxParticipants) {
-      return showToast("Minimum cannot exceed maximum participants", "error");
+    if (minParticipants < 1) {
+      return showToast("Minimum participants must be at least 1", "error");
+    }
+    if (maxParticipants !== null && maxParticipants < minParticipants) {
+      return showToast("Maximum cannot be less than minimum participants", "error");
     }
     setStep(4);
   };
@@ -111,7 +116,7 @@ export default function CreateEventScreen() {
       participationtype: participationType,
       ...(participationType === "paid" ? { participationfeeamount: Number(feeAmount) } : {}),
       minimumparticipants: minParticipants,
-      maximumparticipants: maxParticipants,
+      ...(maxParticipants !== null ? { maximumparticipants: maxParticipants } : {}),
       registrationclosesbefore: Number(closesHours),
       ...(rules.trim() ? { rulesthingstobring: rules.trim() } : {}),
     };
@@ -130,10 +135,12 @@ export default function CreateEventScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: t.colors.background }]} edges={["top", "bottom"]}>
       <View style={styles.headerRow}>
         <Pressable onPress={goBack} hitSlop={12}>
-          <Ionicons name="close" size={26} color={t.colors.text} />
+          <Ionicons name="arrow-back" size={24} color={t.colors.text} />
         </Pressable>
         <Heading level={3}>Create Event</Heading>
-        <View style={{ width: 26 }} />
+        <Pressable onPress={handleClose} hitSlop={12}>
+          <Ionicons name="close" size={26} color={t.colors.text} />
+        </Pressable>
       </View>
 
       {/* Stepper */}
@@ -148,7 +155,15 @@ export default function CreateEventScreen() {
             <GlobalInput label="Event Title *" placeholder="e.g. Weekend Cricket Match" value={title} onChangeText={setTitle} maxLength={80} />
             <Select label="Event Type *" options={EVENT_TYPES} selectedId={eventType} onChange={setEventType} placeholder="Select event type" leftIcon="pricetag-outline" />
             <GlobalInput label="Description *" placeholder="Tell your neighbours what this event is about…" value={description} onChangeText={setDescription} maxLength={300} multiline numberOfLines={4} />
-            <ImagePickerField label="Event Image (Optional)" mode="single" value={image} onChange={setImage} max={1} />
+            <ImagePickerField
+              label="Event Image (Optional)"
+              mode="single"
+              value={image}
+              onChange={setImage}
+              max={1}
+              aspectRatios={["16:9", "4:5", "1:1", "9:16"]}
+              defaultAspectRatio="16:9"
+            />
           </View>
         )}
 
@@ -197,17 +212,33 @@ export default function CreateEventScreen() {
 
             <Label>Minimum Participants *</Label>
             <View style={styles.stepperControlRow}>
-              <Pressable style={styles.stepperBtn} onPress={() => setMinParticipants((v) => Math.max(0, v - 1))}><Text style={styles.stepperBtnText}>−</Text></Pressable>
+              <Pressable style={styles.stepperBtn} onPress={() => setMinParticipants((v) => Math.max(1, v - 1))}><Text style={styles.stepperBtnText}>−</Text></Pressable>
               <Text style={[t.typography.h4, { color: t.colors.text, width: 48, textAlign: "center" }]}>{minParticipants}</Text>
               <Pressable style={styles.stepperBtn} onPress={() => setMinParticipants((v) => v + 1)}><Text style={styles.stepperBtnText}>+</Text></Pressable>
             </View>
 
-            <Label>Maximum Participants *</Label>
-            <View style={styles.stepperControlRow}>
-              <Pressable style={styles.stepperBtn} onPress={() => setMaxParticipants((v) => Math.max(1, v - 1))}><Text style={styles.stepperBtnText}>−</Text></Pressable>
-              <Text style={[t.typography.h4, { color: t.colors.text, width: 48, textAlign: "center" }]}>{maxParticipants}</Text>
-              <Pressable style={styles.stepperBtn} onPress={() => setMaxParticipants((v) => v + 1)}><Text style={styles.stepperBtnText}>+</Text></Pressable>
-            </View>
+            <Label>Maximum Participants (Optional)</Label>
+            {maxParticipants === null ? (
+              <Pressable
+                style={[styles.stepperBtn, { width: "auto", paddingHorizontal: 14 }]}
+                onPress={() => setMaxParticipants(minParticipants)}
+              >
+                <Text style={[t.typography.body, { color: t.colors.secondaryText }]}>No limit — tap to set a maximum</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.stepperControlRow}>
+                <Pressable
+                  style={styles.stepperBtn}
+                  onPress={() =>
+                    setMaxParticipants((v) => (v !== null && v - 1 < minParticipants ? null : (v as number) - 1))
+                  }
+                >
+                  <Text style={styles.stepperBtnText}>−</Text>
+                </Pressable>
+                <Text style={[t.typography.h4, { color: t.colors.text, width: 48, textAlign: "center" }]}>{maxParticipants}</Text>
+                <Pressable style={styles.stepperBtn} onPress={() => setMaxParticipants((v) => (v as number) + 1)}><Text style={styles.stepperBtnText}>+</Text></Pressable>
+              </View>
+            )}
 
             <Select label="Registration Closes *" options={CLOSES_OPTIONS} selectedId={closesHours} onChange={setClosesHours} leftIcon="time-outline" />
             <GlobalInput label="Rules / Things to Bring (Optional)" placeholder="Add any rules, guidelines or things participants should bring…" value={rules} onChangeText={setRules} maxLength={250} multiline numberOfLines={3} />
@@ -236,7 +267,7 @@ export default function CreateEventScreen() {
                 <View style={styles.metaRow}>
                   <Ionicons name="people-outline" size={14} color={t.colors.secondaryText} />
                   <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>
-                    {maxParticipants} Max Participants
+                    {maxParticipants !== null ? `${maxParticipants} Max Participants` : "No participant limit"}
                   </Text>
                   <Chip label={participationType === "free" ? "Free" : `₹${feeAmount}`} variant="success" style={{ marginLeft: "auto" }} />
                 </View>
@@ -268,7 +299,7 @@ export default function CreateEventScreen() {
 
       <SuccessModal
         visible={!!published}
-        onClose={() => router.replace("/(tabs)/home")}
+        onClose={() => router.dismissTo("/(tabs)/home")}
         title="Your event is live!"
         subtitle={`${title} has been published successfully.`}
         primaryActionLabel="Go to Event Dashboard"
@@ -276,7 +307,7 @@ export default function CreateEventScreen() {
           if (published) router.replace({ pathname: "/(shared)/event-dashboard", params: { eventId: String(published.id) } });
         }}
         secondaryActionLabel="Back to Home"
-        onSecondaryAction={() => router.replace("/(tabs)/home")}
+        onSecondaryAction={() => router.dismissTo("/(tabs)/home")}
       />
     </SafeAreaView>
   );

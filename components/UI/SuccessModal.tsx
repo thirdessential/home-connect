@@ -15,6 +15,8 @@ type Props = {
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
   children?: React.ReactNode; // e.g. an event summary card
+  /** Center the card on screen instead of the default bottom sheet. */
+  centered?: boolean;
 };
 
 // Global success/confirmation bottom sheet — reused for "You're in!" (join)
@@ -30,22 +32,39 @@ const SuccessModal = memo(function SuccessModal({
   secondaryActionLabel,
   onSecondaryAction,
   children,
+  centered = false,
 }: Props) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }} onPress={onClose}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType={centered ? "fade" : "slide"}
+      onRequestClose={onClose}
+    >
+      <Pressable
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.45)",
+          justifyContent: centered ? "center" : "flex-end",
+          alignItems: centered ? "center" : "stretch",
+          paddingHorizontal: centered ? t.spacing.l : 0,
+        }}
+        onPress={onClose}
+      >
         <Pressable
           onPress={(e) => e.stopPropagation()}
           style={{
             backgroundColor: t.colors.cardBackground,
+            borderRadius: centered ? t.radii.large : undefined,
             borderTopLeftRadius: t.radii.large,
             borderTopRightRadius: t.radii.large,
+            width: centered ? "100%" : undefined,
             paddingHorizontal: t.spacing.l,
             paddingTop: t.spacing.xl,
-            paddingBottom: insets.bottom + t.spacing.l,
+            paddingBottom: centered ? t.spacing.l : insets.bottom + t.spacing.l,
             alignItems: "center",
           }}
         >
