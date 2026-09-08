@@ -230,7 +230,7 @@ export default function AllServicesScreen() {
         styles.container,
         {
           paddingTop: topPadding,
-          backgroundColor: theme.colors.background,
+          backgroundColor: theme.colors.white,
         },
       ]}
     >

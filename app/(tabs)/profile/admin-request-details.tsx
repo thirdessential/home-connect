@@ -25,7 +25,7 @@ export default function AdminRequestDetails() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.background }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white }]}>
         <ActivityIndicator color={t.colors.primary} />
       </View>
     );
@@ -33,7 +33,7 @@ export default function AdminRequestDetails() {
 
   if (error || !data) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.background }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white }]}>
         <Text style={{ color: t.colors.textSecondary }}>{error ?? "No data found"}</Text>
       </View>
     );
@@ -44,7 +44,7 @@ export default function AdminRequestDetails() {
 
   return (
     <ScrollView
-      style={{ backgroundColor: t.colors.background }}
+      style={{ backgroundColor: t.colors.white }}
       contentContainerStyle={styles.content}
     >
       <Text style={[t.typography.h2, { color: t.colors.textPrimary, marginBottom: 12 }]}>

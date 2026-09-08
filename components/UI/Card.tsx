@@ -9,13 +9,18 @@ const CardWrapper = ({ children, style, KeyId }: CardWrapperProps) => {
     () => [
       {
         backgroundColor: t.colors.surface,
-        borderRadius: 16,
+        borderRadius: 18,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: t.colors.border,
+        // // iOS
+        // shadowColor: "#6b6b6b42",
+        // shadowOffset: { width: 0, height: 3 },
+        // shadowOpacity: t.isDark ? 0.28 : 0.08,
+        // shadowRadius: 10,
+        // // Android
+        // elevation: 4,
       },
       style,
     ],

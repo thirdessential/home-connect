@@ -153,7 +153,7 @@ export default function BusinessWizard() {
   useEffect(() => {
     if (!isBusinessUser) return;
     if (router.canGoBack()) router.back();
-    else router.replace("/(shared)/create");
+    else router.replace("/(tabs)/create");
   }, [isBusinessUser]);
 
   const [step, setStep] = useState(1);

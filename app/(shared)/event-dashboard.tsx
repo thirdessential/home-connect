@@ -315,14 +315,14 @@ export default function EventDashboardScreen() {
 
   if (loading && !dashboard) {
     return (
-      <View style={{ flex: 1, backgroundColor: t.colors.background, paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: t.colors.white, paddingTop: insets.top }}>
         <DashboardSkeleton />
       </View>
     );
   }
   if (!dashboard) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.background, paddingTop: insets.top }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
         <Ionicons name="alert-circle-outline" size={40} color={t.colors.secondaryText} />
         <Text style={{ color: t.colors.secondaryText, marginTop: 12 }}>Dashboard not available.</Text>
         <Pressable onPress={load} style={{ marginTop: 16 }}>
@@ -341,7 +341,7 @@ export default function EventDashboardScreen() {
   const isPaid = event.participationType === "paid";
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.colors.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: t.colors.white, paddingTop: insets.top }}>
       <View style={styles.headerRow}>
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={t.colors.text} />
@@ -634,7 +634,7 @@ export default function EventDashboardScreen() {
           <View
             style={[
               styles.cancelledSheet,
-              { backgroundColor: t.colors.background, paddingBottom: insets.bottom + 16 },
+              { backgroundColor: t.colors.white, paddingBottom: insets.bottom + 16 },
             ]}
           >
             <View style={styles.cancelledHeader}>

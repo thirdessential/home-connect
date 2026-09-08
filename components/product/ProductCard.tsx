@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
 
   // Immersive event hero — reference is h-64 on a ~390pt screen (~1.5:1).
   hero: { width: "100%", aspectRatio: 1.5, justifyContent: "space-between" },
-  heroImage: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%" },
+  heroImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
   heroTop: { padding: 14 },
 
   // Images

@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   tile: { width: 88, height: 88, borderRadius: 10, borderWidth: 1, overflow: "hidden" },
   tileImage: { width: "100%", height: "100%" },
   tileOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
     justifyContent: "center",

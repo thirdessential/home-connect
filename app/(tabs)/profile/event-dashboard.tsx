@@ -81,7 +81,7 @@ const EventRow = memo(function EventRow({
       {cover ? (
         <Image source={{ uri: cover }} style={styles.thumb} />
       ) : (
-        <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: t.colors.background }]}>
+          <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: t.colors.white }]}>
           <Ionicons name="calendar-outline" size={22} color={t.colors.textSecondary} />
         </View>
       )}
@@ -145,7 +145,7 @@ export default function MyEventsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: t.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
       <TitleHeader title="My Events" onBackPress={() => router.back()} />
       <View> 
       <ScrollView

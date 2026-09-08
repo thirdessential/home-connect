@@ -99,7 +99,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
   // Show tower list view
   if (!selectedTower) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.white }}>
         {/* Header */}
         <View
           style={{
@@ -165,7 +165,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
     <Animated.View
       style={{
         flex: 1,
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.white,
         transform: [{ translateX: slideX }],
       }}
     >

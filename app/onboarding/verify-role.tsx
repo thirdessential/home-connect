@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     width: getWidth(64),
     height: getWidth(64),
     borderRadius: getWidth(32),
-    backgroundColor: TERRACE_COLORS.orangeTint,
+    backgroundColor: TERRACE_COLORS.greenTint,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",

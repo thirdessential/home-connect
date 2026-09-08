@@ -88,7 +88,7 @@ export default function ConfirmationModal({
         <View
           style={[
             styles.modalContainer,
-            { backgroundColor: t.colors.background },
+            { backgroundColor: t.colors.white },
           ]}
         >
           {/* Success State */}

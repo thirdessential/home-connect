@@ -281,9 +281,9 @@ export default function BusinessList() {
     () => ({
       paddingTop: topPadding,
       flex: 1,
-      backgroundColor: t.colors.background,
+      backgroundColor: t.colors.white,
     }),
-    [topPadding, t.colors.background]
+    [topPadding, t.colors.white]
   );
 
   const contentContainerStyle = useMemo(() => ({ padding: 12 }), []);

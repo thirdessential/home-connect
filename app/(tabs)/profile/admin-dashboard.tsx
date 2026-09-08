@@ -243,7 +243,15 @@ export default function AdminDashboard() {
         transformDataForDisplay(s, "service", adminSociety),
       ),
     ];
-    return { requests };
+    // Safety net: dedupe by real API id in case any source (backend or a
+    // stale re-fetch) returns the same request more than once.
+    const seen = new Set<string>();
+    const deduped = requests.filter((r) => {
+      if (!r?.id || seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+    return { requests: deduped };
   }, [filteredData, adminSociety]);
 
   const allRequestsSelected = useMemo(() => {
@@ -651,7 +659,7 @@ export default function AdminDashboard() {
             <ScrollView
               style={[
                 styles.container,
-                { backgroundColor: t.colors.background },
+                    { backgroundColor: t.colors.white },
               ]}
               showsVerticalScrollIndicator={false}
               refreshControl={

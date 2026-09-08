@@ -271,7 +271,7 @@ function HomeScreen() {
   // Show skeleton loading until all data is loaded — skip during pull-to-refresh
   if (!refreshing && isLoading) {
     return (
-      <ScrollView style={{ flex: 1, backgroundColor: t.colors.background }}>
+      <ScrollView style={{ flex: 1, backgroundColor: t.colors.white }}>
         <View style={{ paddingHorizontal: t.spacing.l }}>
           {/* Skeleton for carousel section */}
           <View style={{ marginBottom: 16 }}>

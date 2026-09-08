@@ -246,7 +246,7 @@ export default function UserProfileScreen() {
           style={[
             styles.container,
             {
-              backgroundColor: t.colors.background,
+              backgroundColor: t.colors.white,
               paddingTop: insets.top + 8,
             },
           ]}
@@ -262,7 +262,7 @@ export default function UserProfileScreen() {
       <View
         style={[
           styles.container,
-          { backgroundColor: t.colors.background, paddingTop: insets.top + 8 },
+          { backgroundColor: t.colors.white, paddingTop: insets.top + 8 },
         ]}
       >
         <FlatList

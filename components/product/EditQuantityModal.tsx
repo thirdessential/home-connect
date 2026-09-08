@@ -171,7 +171,7 @@ export default function EditQuantityModal({
       backgroundColor: "rgba(0,0,0,0.5)",
     },
     sheet: {
-      backgroundColor: t.colors.background,
+      backgroundColor: t.colors.white,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingHorizontal: 16,

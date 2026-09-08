@@ -477,7 +477,7 @@ export default function MyRequestsScreen() {
       style={{
         paddingTop: topPadding,
         flex: 1,
-        backgroundColor: t.colors.background,
+        backgroundColor: t.colors.white,
       }}
     >
       <View style={{}}>

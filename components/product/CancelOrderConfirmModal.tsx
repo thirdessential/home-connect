@@ -49,7 +49,7 @@ export default function CancelOrderConfirmModal({
     },
     modal: {
       width: "85%",
-      backgroundColor: t.colors.background,
+      backgroundColor: t.colors.white,
       borderRadius: 12,
       padding: 24,
       alignItems: "center",

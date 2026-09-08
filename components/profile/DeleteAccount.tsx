@@ -250,7 +250,7 @@ export default function DeleteAccount() {
                     style={[
                       styles.checkbox,
                       {
-                        backgroundColor: t.colors.background,
+                        backgroundColor: t.colors.white,
                         borderColor: t.colors.border,
                       },
                       selectedReasons.includes(account.id) &&

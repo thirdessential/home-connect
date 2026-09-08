@@ -71,7 +71,7 @@ export const AddReviewModal = memo(
         <View
           style={[
             styles.modalOverlay,
-            { backgroundColor: theme.colors.background },
+            { backgroundColor: theme.colors.white },
           ]}
         >
           <SafeAreaView

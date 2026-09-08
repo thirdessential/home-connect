@@ -90,7 +90,7 @@ export default function AdminApprovalModal({
     modal: {
       width: "90%",
       maxHeight: "85%",
-      backgroundColor: t.colors.background,
+      backgroundColor: t.colors.white,
       borderRadius: 12,
       padding: 20,
     },

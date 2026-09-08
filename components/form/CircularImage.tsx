@@ -56,7 +56,8 @@ export default function CircularImage({
   const showEditIcon = mode !== "view";
 
   // Validate and sanitize the URI before rendering
-  const validatedUri = isValidImageUrl(uri) ? sanitizeImageUrl(uri) : undefined;
+  const sanitized = isValidImageUrl(uri) ? sanitizeImageUrl(uri) : undefined;
+  const validatedUri = sanitized && sanitized.trim() ? sanitized : undefined;
 
   return (
     <View
@@ -124,7 +125,7 @@ export default function CircularImage({
               }}
             >
               <Ionicons name="camera-outline" size={14} color="#fff" />
-              <Text style={{ color: "#fff", marginLeft: 4, fontSize: 12 }}>
+              <Text style={{ color: "#000", marginLeft: 4, fontSize: 12 }}>
                 {PROFILE_CONSTANTS.PROFILE_EDIT_PHOTO}
               </Text>
             </View>

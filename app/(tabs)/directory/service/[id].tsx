@@ -1,3 +1,4 @@
+import RobustImage from "@/components/UI/RobustImage";
 import ActionButton from "@/components/inputs/ActionButton";
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
@@ -304,9 +305,10 @@ export default function ServiceProfileScreen() {
     return (
       <Card style={styles.profileHeaderCard}>
         <View style={styles.profileAvatarContainer}>
-          <Image
-            source={{ uri: selectedService?.images?.[0] }}
+          <RobustImage
+            uri={selectedService?.images?.[0]}
             style={styles.profileAvatar}
+            fallbackIcon="person"
           />
         </View>
         <Text style={[styles.profileName, { color: theme.colors.textPrimary }]}>
@@ -409,7 +411,7 @@ export default function ServiceProfileScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.colors.background, paddingTop: topPadding },
+        { backgroundColor: theme.colors.white, paddingTop: topPadding },
       ]}
     >
       {/* Fixed Header (non-scrollable) */}

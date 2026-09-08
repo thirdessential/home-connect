@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   cantFindCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: TERRACE_COLORS.orangeTint,
+    backgroundColor: TERRACE_COLORS.green + 10 ,
     borderRadius: getWidth(16),
     padding: getWidth(16),
     marginTop: getHeight(6),
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   fullPageLoader: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",

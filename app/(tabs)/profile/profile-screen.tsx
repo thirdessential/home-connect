@@ -177,7 +177,7 @@ export default function ProfileScreen() {
         },
       }),
     [
-      t.colors.background,
+      t.colors.white,
       t.colors.lightBackground,
       t.colors.primary,
       insets.top,

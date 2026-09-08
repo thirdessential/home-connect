@@ -48,15 +48,13 @@ export default function CreatePollScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: t.colors.background }]} edges={["top", "bottom"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: t.colors.white }]} edges={["top", "bottom"]}>
       <View style={styles.headerRow}>
         <Pressable onPress={goBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={t.colors.text} />
         </Pressable>
         <Heading level={3}>Create Poll</Heading>
-        <Pressable onPress={goBack} hitSlop={12}>
-          <Ionicons name="close" size={26} color={t.colors.text} />
-        </Pressable>
+        <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.body}>

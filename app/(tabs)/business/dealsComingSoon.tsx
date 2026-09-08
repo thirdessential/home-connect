@@ -12,7 +12,7 @@ export default function DealsComingSoon() {
     <View
       style={[
         styles.root,
-        { backgroundColor: t.colors.background, paddingTop: insets.top },
+        { backgroundColor: t.colors.white, paddingTop: insets.top },
       ]}
     >
       <View style={[styles.iconCircle, { backgroundColor: t.colors.brandWeak }]}>

@@ -4,11 +4,18 @@ import SocietyInfoCard from "@/components/directory/SocietyInfoCard";
 import { getVerificationStatus } from "@/lib/adminHelper";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
+import { useSocietyStore } from "@/store/useSocietyStore";
 import { useTheme } from "@/theme/theme";
 import { ServiceProvider } from "@/types/common.type";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
-import { Platform, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DirectoryHome() {
@@ -20,9 +27,28 @@ export default function DirectoryHome() {
   const businessList = useProductStore(
     useCallback((state) => state.productList, []),
   );
+  const businessLoading = useProductStore((s) => s.loading);
 
   const serviceList = useDailyHelperStore(
     useCallback((state) => state.dailyHelperList, []),
+  );
+  const serviceLoading = useDailyHelperStore((s) => s.loading);
+
+  const societyId = useSocietyStore((s) => s.selectedSociety?._id);
+  const fetchBusinessBySocietyId = useProductStore((s) => s.fetchBusinessBySocietyId);
+  const getAllApprovedDailyServices = useDailyHelperStore((s) => s.getAllApprovedDailyServices);
+
+  // Directory reads only from these two MySQL-backed stores. Neither list is
+  // guaranteed populated if this tab is opened before Home ever fetched them
+  // (or after a create-flow redirect from a different society), so refresh
+  // both real endpoints on every focus — same actions Home already uses, no
+  // new API/store logic.
+  useFocusEffect(
+    useCallback(() => {
+      if (!societyId) return;
+      fetchBusinessBySocietyId(societyId);
+      getAllApprovedDailyServices(societyId);
+    }, [societyId, fetchBusinessBySocietyId, getAllApprovedDailyServices]),
   );
 
   // Memoize the mapped business data to prevent unnecessary recalculations
@@ -121,16 +147,21 @@ export default function DirectoryHome() {
       style={{
         paddingTop: topPadding,
         flex: 1,
-        backgroundColor: t.colors.background,
+        backgroundColor: t.colors.white,
       }}
     >
       {/* Fixed Header (non-scrollable) */}
-      <Text style={{ fontWeight: "bold", fontSize: 24, padding: 16 }}>
-        Community Directory
-      </Text>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+        <Text style={{ fontWeight: "800", fontSize: 24, color: t.colors.textPrimary }}>
+          Directory
+        </Text>
+        <Text style={{ fontSize: 13.5, color: t.colors.textSecondary, marginTop: 2 }}>
+          Services and businesses in your society
+        </Text>
+      </View>
       <ScrollView
         style={{
-          backgroundColor: t.colors.background,
+          backgroundColor: t.colors.white,
           paddingHorizontal: t.spacing.l,
         }}
         contentContainerStyle={{
@@ -142,26 +173,32 @@ export default function DirectoryHome() {
         {/* Society Information Card */}
         <SocietyInfoCard />
 
-        {/* Service Providers Carousel - Use real business data */}
-        <ServiceProviderCarousel
-          title="Local Businesses"
-          data={mappedBusinessData.slice(0, 5)}
-          onViewAll={handleViewAllBusinesses}
-        />
+        {(serviceLoading && !serviceList) || (businessLoading && !businessList) ? (
+          <View style={{ paddingVertical: 32, alignItems: "center" }}>
+            <ActivityIndicator color={t.colors.brand} />
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionLabel(t)}>SERVICES</Text>
+            <ServiceProviderCarousel
+              title="Professional Services"
+              data={professionalServicesData.slice(0, 5)}
+              onViewAll={handleViewAllProfessionalServices}
+            />
+            <ServiceProviderCarousel
+              title="Daily Help"
+              data={dailyHelpData.slice(0, 5)}
+              onViewAll={handleViewAllDailyHelp}
+            />
 
-        {/* Service Providers Carousel - Mock data for demo */}
-
-        <ServiceProviderCarousel
-          title="Professional Services"
-          data={professionalServicesData.slice(0, 5)}
-          onViewAll={handleViewAllProfessionalServices}
-        />
-
-        <ServiceProviderCarousel
-          title="Daily Help"
-          data={dailyHelpData.slice(0, 5)}
-          onViewAll={handleViewAllDailyHelp}
-        />
+            <Text style={styles.sectionLabel(t)}>BUSINESS</Text>
+            <ServiceProviderCarousel
+              title="Local Businesses"
+              data={mappedBusinessData.slice(0, 5)}
+              onViewAll={handleViewAllBusinesses}
+            />
+          </>
+        )}
 
         {/* Additional content can be added here */}
         <View style={{ height: 20 }} />
@@ -169,3 +206,14 @@ export default function DirectoryHome() {
     </View>
   );
 }
+
+const styles = {
+  sectionLabel: (t: ReturnType<typeof useTheme>) => ({
+    fontSize: 12.5,
+    fontWeight: "700" as const,
+    letterSpacing: 0.6,
+    color: t.colors.textSecondary,
+    marginTop: 12,
+    marginBottom: 4,
+  }),
+};

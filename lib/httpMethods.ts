@@ -17,7 +17,7 @@ const DEVELOPMENT_URL = `http://${packagerIp || "localhost"}:4200`;
 // Local dev backend is opt-in only (set EXPO_PUBLIC_USE_LOCAL_API=1 in .env).
 // Without it, dev builds hit production too — avoids silently resolving to a
 // LAN IP (e.g. 192.168.x.x:4200) that no longer has a server running.
-const useLocalDevServer = "1";
+const useLocalDevServer = process.env.EXPO_PUBLIC_USE_LOCAL_API === "1";
 
 export const API_BASE = __DEV__ && useLocalDevServer ? DEVELOPMENT_URL : PRODUCTION_URL;
 

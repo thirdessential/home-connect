@@ -112,7 +112,11 @@ function NavLinker() {
         <SafeAreaProvider>
           <ToastProvider>
           <ImageUploadProvider>
-          <StatusBar style={t.isDark ? "light" : "dark"} />
+          {/* hidden explicitly false: this SDK's expo-status-bar has no
+              backgroundColor/translucent props (edge-to-edge is controlled
+              natively), so the only supported lever against "status bar not
+              visible" is guaranteeing it's never toggled hidden. */}
+          {/* <StatusBar style={t.isDark ? "light" : "dark"} hidden={false} /> */}
           <Stack
             screenOptions={{
               headerShown: false,

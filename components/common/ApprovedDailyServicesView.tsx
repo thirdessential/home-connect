@@ -116,7 +116,7 @@ const ApprovedDailyServicesView: React.FC<ApprovedDailyServicesViewProps> = ({
   return (
     <View style={styles.flex1}>
     <ScrollView
-      style={[styles.flex1, { backgroundColor: theme.colors.background }]}
+        style={[styles.flex1, { backgroundColor: theme.colors.white }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Filters */}

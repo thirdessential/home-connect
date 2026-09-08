@@ -485,7 +485,7 @@ export default function BusinessScreen() {
   if (loading && !business) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.white }]}
       >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -497,7 +497,7 @@ export default function BusinessScreen() {
   if (!business) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        style={[styles.container, { backgroundColor: theme.colors.white }]}
       >
         <View style={styles.emptyContainer}>
           <Text
@@ -514,7 +514,7 @@ export default function BusinessScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.colors.background, paddingTop: topPadding },
+        { backgroundColor: theme.colors.white, paddingTop: topPadding },
       ]}
     >
       <TitleHeader

@@ -493,7 +493,7 @@ export default function UserBusinessScreen() {
           style={[
             styles.container,
             {
-              backgroundColor: t.colors.background,
+              backgroundColor: t.colors.white,
               paddingTop: insets.top + 8,
             },
           ]}
@@ -509,7 +509,7 @@ export default function UserBusinessScreen() {
       <View
         style={[
           styles.container,
-          { backgroundColor: t.colors.background, paddingTop: insets.top + 8 },
+          { backgroundColor: t.colors.white, paddingTop: insets.top + 8 },
         ]}
       >
         {/* {ListHeader} */}

@@ -27,7 +27,16 @@ export const useDailyHelperStore = create<DailyHelperStore>()(
                         throw new Error("No response received from server");
                     }
                     if (response.code === 201) {
-                        set({ dailyHelper: response.dailyServices, loading: false });
+                        // Merge into the list immediately so the creator sees their own
+                        // new service right away, instead of waiting on the next
+                        // approved-only re-fetch (which may exclude it while pending).
+                        set((state) => ({
+                            dailyHelper: response.dailyServices,
+                            dailyHelperList: response.dailyServices
+                                ? [response.dailyServices, ...(state.dailyHelperList || [])]
+                                : state.dailyHelperList,
+                            loading: false,
+                        }));
                     } else {
                         set({ error: "Failed to create product", loading: false });
                         throw new Error("Failed to create product");

@@ -14,10 +14,10 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import GlobalInput from "../UI/GlobalInput";
 import InfoBanner from "../UI/InfoBanner";
-import SelectField from "../form/dropdown";
+import Select from "../UI/Select";
 import ActionButton from "../inputs/ActionButton";
-import TextField from "../inputs/TextField";
 import CircularImage from "./CircularImage";
 
 type ServiceFormData = {
@@ -35,9 +35,13 @@ type ServiceFormData = {
 
 interface ServiceFormProps {
   onSubmit: (data: Partial<DailyHelper>) => void;
+  /** Hide the step-number indicator — used by the dedicated Create Service
+   * page, which shows the whole form as one continuous page. The popup keeps
+   * the stepper (default true). Step-based logic/validation is unchanged. */
+  showStepper?: boolean;
 }
 
-export default function ServiceForm({ onSubmit }: ServiceFormProps) {
+export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFormProps) {
   const [step, setStep] = useState<number>(0);
   const [selectedDayPreset, setSelectedDayPreset] = useState<
     string | undefined
@@ -276,8 +280,8 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      {/* Stepper (identical look to BusinessForm) */}
-      {renderStepper()}
+      {/* Stepper (identical look to BusinessForm) — hidden on the dedicated page */}
+      {showStepper && renderStepper()}
 
       {step === 0 && (
         <>
@@ -287,7 +291,7 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
             borderColor="#15803D"
             titleColor="#F97316"
           />
-          <TextField
+          <GlobalInput
             value={form.name}
             onChangeText={(text) => {
               setForm((f) => ({ ...f, name: text }));
@@ -295,15 +299,14 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
                 setErrors((e: any) => ({ ...e, name: undefined }));
             }}
             placeholder="e.g., Sunita Devi"
-            label="Full Name*"
-            minLength={3}
+            label="Full Name"
+            required
             maxLength={30}
             error={errors.name}
-            containerStyle={{ marginBottom: 16 }}
           />
-          <SelectField
+          <Select
             label="Choose a Service*"
-            options={SERVICE_TYPE_OPTIONS}
+            options={SERVICE_TYPE_OPTIONS as any}
             selectedId={form.serviceType}
             onChange={(val) => {
               // Reset category when service type changes
@@ -329,17 +332,16 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
                 }));
             }}
             placeholder="Choose a service"
-            modalTitle="Choose service"
             style={{ marginBottom: 16 }}
             error={!!errors.serviceType}
           />
           {form.serviceType && (
-            <SelectField
+            <Select
               label="Select Category*"
               options={
-                form.serviceType === "daily-help"
+                (form.serviceType === "daily-help"
                   ? DAILYHELP_CAT_MOCK
-                  : SERVICES_CAT_MOCK
+                  : SERVICES_CAT_MOCK) as any
               }
               selectedId={form.categoryId}
               onChange={(val) => {
@@ -352,23 +354,21 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
                   ? "Choose a category"
                   : "Select a service first"
               }
-              modalTitle="Choose category"
               style={{ marginBottom: 16 }}
               error={!!errors.categoryId}
             />
           )}
-          <TextField
+          <GlobalInput
             value={form.phone}
             onChangeText={handlePhoneChange}
             placeholder="e.g., 9876543210"
             keyboardType="phone-pad"
-            label="Contact Number*"
+            label="Contact Number"
             error={errors.phone}
-            containerStyle={{ marginBottom: 16 }}
             required
             maxLength={10}
           />
-          <TextField
+          <GlobalInput
             value={form.description}
             onChangeText={(text) =>
               setForm((f) => ({ ...f, description: text }))
@@ -376,8 +376,7 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
             placeholder="Add a brief description of the service"
             label="Description (Optional)"
             multiline
-            inputStyle={{ minHeight: 60, maxHeight: 70 , textAlignVertical: "top" }}
-            containerStyle={{ marginBottom: 24 }}
+            numberOfLines={3}
           />
         </>
       )}
@@ -393,18 +392,17 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
               loading={false}
             />
           </View>
-          <TextField
+          <GlobalInput
             value={form.address}
             onChangeText={(text) => setForm((f) => ({ ...f, address: text }))}
             placeholder="e.g., Shop #4, near the main gate"
             label="Address (Optional)"
-            containerStyle={{ marginBottom: 16 }}
           />
 
           {/* Professional Services Fields */}
           {form.serviceType === "professional-services" && (
             <>
-              <TextField
+              <GlobalInput
                 value={form.rate}
                 onChangeText={(text) => {
                   const digits = text.replace(/[^0-9.]/g, "");
@@ -414,11 +412,11 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
                 }}
                 placeholder="e.g., 800"
                 keyboardType="decimal-pad"
-                label="Rate*"
+                label="Rate"
+                required
                 error={errors.rate}
-                containerStyle={{ marginBottom: 16 }}
               />
-              <TextField
+              <GlobalInput
                 value={form.additionalInfo}
                 onChangeText={(text) => {
                   setForm((f) => ({ ...f, additionalInfo: text }));
@@ -429,11 +427,11 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
                     }));
                 }}
                 placeholder="e.g., Pediatrician with 10 years experience"
-                label="Specialty/Description*"
+                label="Specialty/Description"
+                required
                 error={errors.additionalInfo}
                 multiline
-                inputStyle={{ minHeight: 60, textAlignVertical: "top" }}
-                containerStyle={{ marginBottom: 16 }}
+                numberOfLines={3}
               />
             </>
           )}
@@ -447,40 +445,42 @@ export default function ServiceForm({ onSubmit }: ServiceFormProps) {
               {pricingRows.map((row, index) => (
                 <View key={index} style={{ marginBottom: 16 }}>
                   <View
-                    style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}
+                    style={{ flexDirection: "row", gap: 8, marginBottom: 8, alignItems: "flex-start" }}
                   >
-                    <TextField
-                      value={row.rate}
-                      onChangeText={(text) => {
-                        const digits = text.replace(/[^0-9.]/g, "");
-                        const newRows = [...pricingRows];
-                        newRows[index] = { ...newRows[index], rate: digits };
-                        setPricingRows(newRows);
-                        if (errors.pricingRows)
-                          setErrors((e: any) => ({
-                            ...e,
-                            pricingRows: undefined,
-                          }));
-                      }}
-                      placeholder="Rate"
-                      keyboardType="decimal-pad"
-                      containerStyle={{ flex: 1, marginBottom: 0 }}
-                    />
-                    <TextField
-                      value={row.subtext}
-                      onChangeText={(text) => {
-                        const newRows = [...pricingRows];
-                        newRows[index] = { ...newRows[index], subtext: text };
-                        setPricingRows(newRows);
-                        if (errors.pricingRows)
-                          setErrors((e: any) => ({
-                            ...e,
-                            pricingRows: undefined,
-                          }));
-                      }}
-                      placeholder="Description"
-                      containerStyle={{ flex: 1.2, marginBottom: 0 }}
-                    />
+                    <View style={{ flex: 1 }}>
+                      <GlobalInput
+                        value={row.rate}
+                        onChangeText={(text) => {
+                          const digits = text.replace(/[^0-9.]/g, "");
+                          const newRows = [...pricingRows];
+                          newRows[index] = { ...newRows[index], rate: digits };
+                          setPricingRows(newRows);
+                          if (errors.pricingRows)
+                            setErrors((e: any) => ({
+                              ...e,
+                              pricingRows: undefined,
+                            }));
+                        }}
+                        placeholder="Rate"
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                    <View style={{ flex: 1.2 }}>
+                      <GlobalInput
+                        value={row.subtext}
+                        onChangeText={(text) => {
+                          const newRows = [...pricingRows];
+                          newRows[index] = { ...newRows[index], subtext: text };
+                          setPricingRows(newRows);
+                          if (errors.pricingRows)
+                            setErrors((e: any) => ({
+                              ...e,
+                              pricingRows: undefined,
+                            }));
+                        }}
+                        placeholder="Description"
+                      />
+                    </View>
                   </View>
                 </View>
               ))}

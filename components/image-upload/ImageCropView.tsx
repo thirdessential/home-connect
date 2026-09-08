@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   imageWrap: { alignItems: "center", justifyContent: "center" },
-  guides: { ...StyleSheet.absoluteFillObject },
+  guides: { ...StyleSheet.absoluteFill },
   vLine: { position: "absolute", top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.35)" },
   hLine: { position: "absolute", left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.35)" },
   hint: { color: "#9CA3AF", marginTop: 14 },

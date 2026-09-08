@@ -29,7 +29,7 @@ type ImgStatus = "uploading" | "success" | "failed";
 const MAX_LEN = 300;
 
 type CreateOption = {
-  key: "post" | "event" | "poll" | "business";
+  key: "post" | "event" | "poll" | "business" | "service";
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
@@ -40,6 +40,7 @@ const OPTIONS: CreateOption[] = [
   { key: "event", label: "Event", icon: "calendar-outline", color: "#7C3AED" },
   { key: "poll", label: "Poll", icon: "bar-chart-outline", color: "#D97706" },
   { key: "business", label: "Business", icon: "storefront-outline", color: "#0D9488" },
+  { key: "service", label: "Service", icon: "construct-outline", color: "#F97316" },
 ];
 
 /** Full-screen Create page — reference: preview/craete-option.html.
@@ -110,6 +111,10 @@ export default function CreatePostScreen() {
         openWithForm("poll");
         return;
       }
+      if (key === "service") {
+        router.push("/(shared)/create-service");
+        return;
+      }
       // Business reuses the existing "How will you use the terrace?"
       // Resident/Business onboarding flow — not rebuilt here. verify-role
       // pre-selects "Business" for an already-Business account (via its own
@@ -175,7 +180,7 @@ export default function CreatePostScreen() {
   }, [text, submitting, image, currentUser, societyId, createFeed, addFeedOptimistically, goBack, showToast]);
 
   return (
-    <View style={[styles.root, { backgroundColor: t.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
       <View style={[styles.header, { backgroundColor: t.colors.surface, borderBottomColor: t.colors.border }]}>
         <Pressable onPress={goBack} hitSlop={12} style={styles.headerBtn}>
           <Ionicons name="arrow-back" size={22} color={t.colors.textPrimary} />
@@ -362,7 +367,7 @@ const styles = StyleSheet.create({
   },
   imagePreviewImg: { width: "100%", height: "100%" },
   imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
     justifyContent: "center",

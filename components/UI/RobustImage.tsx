@@ -44,7 +44,7 @@ const RobustImage = memo(
     const [error, setError] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
 
-    const hasValidUri = !!uri && typeof uri === "string" && uri.length > 0;
+    const hasValidUri = !!uri && typeof uri === "string" && uri.trim().length > 0;
 
     const handleLoadStart = useCallback(() => {
       setIsLoading(true);

@@ -374,7 +374,7 @@ export default function MyOrdersScreen() {
   return (
     <>
       <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: t.colors.background }]}
+        style={[styles.safeArea, { backgroundColor: t.colors.white }]}
         edges={["left", "right", "bottom"]}
       >
         <View
@@ -382,7 +382,7 @@ export default function MyOrdersScreen() {
             styles.headerContainer,
             {
               paddingTop: insets.top + 16,
-              backgroundColor: t.colors.background,
+              backgroundColor: t.colors.white,
               borderBottomColor: t.colors.border,
             },
           ]}

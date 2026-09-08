@@ -58,8 +58,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     () =>
       [
         state.index === 0 ? "home" : "home-outline",
-        state.index === 1 ? "pricetag" : "pricetag-outline",
-        state.index === 2 ? "call" : "call-outline",
+        state.index === 1 ? "business" : "business-outline",
+        state.index === 2 ? "apps" : "apps-outline",
         state.index === 3 ? "person" : "person-outline",
       ] as const,
     [state.index],
@@ -85,7 +85,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   // Fix bottom bar height for Android and iOS
   const tabBarHeight = insets.bottom + 56; // 56 is a good default for both platforms
-  const activeKey = ["home", "business", "directory", "profile"][state.index] ?? "home";
+  // Route-name based (not a fixed-position array) so it stays correct now
+  // that "create" is a 5th route in this same Tabs navigator.
+  const activeKey = state.routes[state.index]?.name ?? "home";
   const handleCenterPress = useCallback(() => {
     // The old CreatePostModal popup is only reachable now from within the
     // new full-screen Create page (Event/Poll/Business handoff) — Plus opens
@@ -95,14 +97,15 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     if (isGuestUser) setGuestGateVisible(true);
     else if (isUserAllowed) setUnverifiedModalVisible(true);
     else if (modalOpen) close();
-    else router.push("/(shared)/create");
-  }, [isGuestUser, isUserAllowed, modalOpen, close]);
+    else if (activeKey === "create") navigation.goBack();
+    else router.push("/(tabs)/create");
+  }, [isGuestUser, isUserAllowed, modalOpen, close, activeKey, navigation]);
 
   return (
     <>
       <GlobalBottomNavigation
         activeKey={activeKey}
-        centerIcon={modalOpen ? "close" : "add"}
+        centerIcon={modalOpen || activeKey === "create" ? "close" : "add"}
         onCenterPress={handleCenterPress}
         items={[
           { key: "home", label: tabLabels[0], icon: tabIcons[0], onPress: handleHomePress },
@@ -174,6 +177,13 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="profile"
           options={{ title: COMMON_CONSTANTS.PROFILE, headerShown: false }}
+        />
+        {/* Part of the same Tabs navigator (not the sibling (shared) stack) so
+            CustomTabBar — and its one GlobalBottomNavigation — stays mounted
+            while Create is open. href:null keeps it out of any default tab UI. */}
+        <Tabs.Screen
+          name="create"
+          options={{ title: "Create", headerShown: false, href: null }}
         />
       </Tabs>
     </>

@@ -1,13 +1,13 @@
 import { Card } from "@/components/UI/Card";
 import CircularImage from "@/components/form/CircularImage";
 import ActionButton from "@/components/inputs/ActionButton";
+import ViewModal from "@/components/modals/ViewModal";
 import { getPendingColor } from "@/lib/adminHelper";
 import { callUser, capitalizeWords } from "@/lib/utils";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Alert, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
 import Badge from "../UI/Badge";
 
 interface DetailCardProps {
@@ -37,6 +37,7 @@ const DetailCard = memo(
     onRequestInfo,
   }: DetailCardProps) => {
     const t = useTheme();
+    const [detailsVisible, setDetailsVisible] = useState(false);
     const hasPhoto =
       typeof request.avatar === "string" && request.avatar.startsWith("http");
     const initials = getInitials(request.name);
@@ -64,13 +65,10 @@ const DetailCard = memo(
           return t.colors.primary;
       }
     };
-    const openDetails = () => {
-      const detailType = request.type === "user" || request.type === "resident" ? "resident" : "business";
-      const rawId = request.businessId ?? request.id;
-      router.push({ pathname: "/(tabs)/profile/admin-request-details", params: { type: detailType, id: String(rawId) } });
-    };
+    const openDetails = () => setDetailsVisible(true);
 
     return (
+      <>
       <Pressable onPress={openDetails}>
       <Card style={styles.requestCard}>
         <View style={styles.requestHeader}>
@@ -279,6 +277,28 @@ const DetailCard = memo(
         </View>
       </Card>
       </Pressable>
+      <ViewModal
+        visible={detailsVisible}
+        onClose={() => setDetailsVisible(false)}
+        onApprove={async () => onApprove(request.id, request.type)}
+        onReject={async () => onReject(request.id, request.type)}
+        data={{
+          id: request.id,
+          name: request.type !== "business" ? request.name : undefined,
+          businessTitle: request.type === "business" ? request.name : undefined,
+          email: request.email,
+          phone: request.phone,
+          flatNo: request.unitFlat,
+          building: request.buildingBlock,
+          status: request.status,
+          requestDate: request.appliedDate,
+          description: request.description,
+          completeAddress: request.address || request.location || request.from,
+          category: request.category,
+          images: attachments.length ? attachments : undefined,
+        }}
+      />
+      </>
     );
   },
 );

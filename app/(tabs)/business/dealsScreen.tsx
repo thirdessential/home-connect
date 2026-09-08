@@ -33,7 +33,7 @@ export default function DealsScreen() {
       style={{
         paddingTop: topPadding,
         flex: 1,
-        backgroundColor: t.colors.background,
+        backgroundColor: t.colors.white,
       }}
     >
       {/* Fixed Header (non-scrollable) */}

@@ -26,7 +26,7 @@ export default function DealsListScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: t.colors.white }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         {loading && (
           <Text

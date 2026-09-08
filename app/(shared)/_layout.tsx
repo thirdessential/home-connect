@@ -9,7 +9,7 @@ export default function SharedLayout() {
       screenOptions={{
         headerShown: false,
         headerStyle: {
-          backgroundColor: t.colors.background,
+          backgroundColor: t.colors.white,
         },
         headerTintColor: t.colors.textPrimary,
         headerTitleStyle: {
@@ -18,7 +18,7 @@ export default function SharedLayout() {
         },
         headerShadowVisible: false,
         contentStyle: {
-          backgroundColor: t.colors.background,
+          backgroundColor: t.colors.white,
         },
       }}
     >

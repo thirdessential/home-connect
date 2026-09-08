@@ -725,7 +725,7 @@ export default function EventRequestScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.colors.background, paddingTop: topPadding },
+        { backgroundColor: theme.colors.white, paddingTop: topPadding },
       ]}
     >
       {/* Header */}
@@ -931,7 +931,7 @@ export default function EventRequestScreen() {
           <View
             style={[
               styles.bottomActions,
-              { backgroundColor: theme.colors.background },
+              { backgroundColor: theme.colors.white },
             ]}
           >
             <ActionButton

@@ -699,7 +699,7 @@ function ProductDetail() {
       style={{
         paddingTop: topPadding,
         flex: 1,
-        backgroundColor: t.colors.background,
+        backgroundColor: t.colors.white,
       }}
     >
       <TitleHeader
@@ -1436,7 +1436,7 @@ function ProductDetail() {
             style={[
               styles.stickyBottom,
               {
-                backgroundColor: t.colors.background,
+                backgroundColor: t.colors.white,
                 borderTopColor: t.colors.border,
               },
             ]}

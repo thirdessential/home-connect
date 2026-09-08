@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   ownerOptionSelected: {
-    borderColor: TERRACE_COLORS.orange,
-    backgroundColor: TERRACE_COLORS.orangeTint,
+    borderColor: TERRACE_COLORS.green,
+    backgroundColor: TERRACE_COLORS.greenTint,
   },
   ownerOptionText: { fontSize: getWidth(15), fontWeight: "600", color: TERRACE_COLORS.textMuted },
   ownerOptionTextSelected: { color: TERRACE_COLORS.orange },

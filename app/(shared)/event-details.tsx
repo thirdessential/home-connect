@@ -161,7 +161,7 @@ export default function EventDetailsScreen() {
 
   if (loading && !currentEvent) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.background }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white }]}>
         <ActivityIndicator color={t.colors.brandDark} />
       </View>
     );
@@ -169,7 +169,7 @@ export default function EventDetailsScreen() {
 
   if (!currentEvent) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.background }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white }]}>
         <Text style={{ color: t.colors.secondaryText }}>Event not found.</Text>
       </View>
     );
@@ -217,13 +217,13 @@ export default function EventDetailsScreen() {
       >
         <View style={[styles.hero, { backgroundColor: t.colors.surfaceAlt }]}>
           {e.image ? (
-            <Image source={{ uri: e.image }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+            <Image source={{ uri: e.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
           ) : (
             // Default visual when the event has no image — same brand
             // gradient + calendar icon used on the Home event card.
             <LinearGradient
               colors={[t.colors.brand, t.colors.brandDark]}
-              style={[StyleSheet.absoluteFillObject, styles.heroFallback]}
+              style={[StyleSheet.absoluteFill, styles.heroFallback]}
             >
               <Ionicons name="calendar-outline" size={56} color={t.colors.onBrand} />
             </LinearGradient>

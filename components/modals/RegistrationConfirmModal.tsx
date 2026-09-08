@@ -139,7 +139,7 @@ export default function RegistrationConfirmModal({
         <View
           style={[
             styles.modalContainer,
-            { backgroundColor: t.colors.background },
+            { backgroundColor: t.colors.white },
           ]}
           onStartShouldSetResponder={() => true}
         >

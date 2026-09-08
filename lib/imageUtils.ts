@@ -56,8 +56,13 @@ export const sanitizeImageUrl = (url: any): string | undefined => {
     // Remove any extra whitespace
     sanitized = sanitized.replace(/\s+/g, "");
 
-    // Ensure https for better security
-    sanitized = sanitized.replace(/^http:/, "https:");
+    // Do NOT blindly force https here: the local dev backend
+    // (EXPO_PUBLIC_USE_LOCAL_API, see lib/httpMethods.ts DEVELOPMENT_URL)
+    // intentionally serves plain HTTP on a non-TLS port. Rewriting its
+    // http:// image URLs to https:// makes RCTImageView attempt a TLS
+    // handshake against a plain-HTTP port, which fails as
+    // "Unable to parse TLS packet header". Each URL's own scheme already
+    // reflects what its host actually serves (https in production).
 
     return sanitized;
 };

@@ -265,7 +265,7 @@ export const navFromTheme = (t: Theme) => ({
     dark: t.isDark,
     colors: {
         primary: t.colors.primary,
-        background: t.colors.background,
+        background: t.colors.white,
         card: t.colors.surface,
         text: t.colors.textPrimary,
         border: t.colors.border,
