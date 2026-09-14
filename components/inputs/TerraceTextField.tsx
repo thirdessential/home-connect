@@ -88,12 +88,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: getWidth(14),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(8),
   },
   optional: {
-    fontWeight: "400",
+    fontWeight: "400", fontFamily: "Manrope_400Regular",
     color: TERRACE_COLORS.textMuted,
   },
   inputRow: {

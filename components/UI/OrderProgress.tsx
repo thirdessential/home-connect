@@ -44,7 +44,7 @@ function OrderProgressBar({
           <Text
             style={{
               fontSize: 12,
-              fontWeight: "500",
+              fontWeight: "500", fontFamily: "Manrope_500Medium",
               color: t.colors.textSecondary,
               marginTop: 4,
             }}

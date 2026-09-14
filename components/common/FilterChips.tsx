@@ -47,7 +47,7 @@ export default function FilterChips({
             style={{
               color: selected === opt.id ? "#15803D" : "#374151",
               fontSize: 14,
-              fontWeight: "500",
+              fontFamily: "Manrope_500Medium",
               lineHeight: 21,
             }}
           >

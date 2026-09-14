@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   tabBadge: {
     borderRadius: 10,
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
   },
   tabBadgeText: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   listContent: {
     paddingHorizontal: 16,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   cardSubtitle: {
     fontSize: 13,
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: "#EF4444",
   },
   countLabel: {
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   },
   reasonsHeading: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.4,

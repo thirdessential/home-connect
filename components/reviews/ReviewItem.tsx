@@ -31,7 +31,7 @@ export default function ReviewItem({
               justifyContent: "space-between",
             }}
           >
-            <Text style={{ color: t.colors.textPrimary, fontWeight: "700" }}>
+            <Text style={{ color: t.colors.textPrimary, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
               {review.userName || "Anonymous"}
             </Text>
             <Stars value={review.rating ?? 0} />

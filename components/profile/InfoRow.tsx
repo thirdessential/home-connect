@@ -51,6 +51,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   infoTextContainer: { flex: 1 },
-  infoLabel: { fontSize: 12, fontWeight: "500", marginBottom: 2 },
-  infoValue: { fontSize: 15, fontWeight: "600" },
+  infoLabel: { fontSize: 12, fontWeight: "500", fontFamily: "Manrope_500Medium", marginBottom: 2 },
+  infoValue: { fontSize: 15, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
 });

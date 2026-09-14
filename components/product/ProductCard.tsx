@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   heroTitleText: {
     color: "#FFFFFF",
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     lineHeight: 28,
     letterSpacing: -0.4,
   },
@@ -778,17 +778,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  heroCategoryText: { color: "#19212d", fontSize: 10, fontWeight: "700" },
+  heroCategoryText: { color: "#19212d", fontSize: 10, fontWeight: "700", fontFamily: "Manrope_700Bold" },
 
   // Title / price (deal header row)
   titleRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
   titleColumn: { flex: 1 },
   titleTextRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
-  titleText: { fontWeight: "600", fontSize: 20, color: "#19212d",paddingBottom: 5 },
+  titleText: { fontWeight: "600", fontFamily: "Manrope_600SemiBold", fontSize: 20, color: "#19212d",paddingBottom: 5 },
   priceColumn: { flexDirection: "column", alignItems: "flex-end", flexShrink: 0 },
   priceRow: { flexDirection: "row", alignItems: "baseline" },
-  sellingPrice: { color: "#15803D", fontWeight: "700", fontSize: 24, lineHeight: 32 },
-  unitText: { color: "#6B7280", fontSize: 14, fontWeight: "500", marginLeft: 4 },
+  sellingPrice: { color: "#15803D", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 24, lineHeight: 32 },
+  unitText: { color: "#6B7280", fontSize: 14, fontWeight: "500", fontFamily: "Manrope_500Medium", marginLeft: 4 },
   mrpText: { color: "#6B7280", fontSize: 14, textDecorationLine: "line-through" },
 
   // Descriptions
@@ -808,12 +808,12 @@ const styles = StyleSheet.create({
   infoLabelRow: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
   infoLabelIcon: { marginRight: 5 },
   infoLabelText: { fontSize: 11.5, color: "#9CA3AF" },
-  infoValueText: { fontSize: 13, color: "#374151", fontWeight: "600" },
+  infoValueText: { fontSize: 13, color: "#374151", fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
 
   // Spots-filled progress bar
   progressWrapper: { marginBottom: 10 },
   progressHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  progressCountText: { fontSize: 13.5, fontWeight: "700", color: "#15803D" },
+  progressCountText: { fontSize: 13.5, fontWeight: "700", fontFamily: "Manrope_700Bold", color: "#15803D" },
   progressHintText: { fontSize: 11.5, color: "#6B7280", flexShrink: 1, textAlign: "right" },
   progressTrack: { height: 6, borderRadius: 3, backgroundColor: "#E5E7EB", overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 3, backgroundColor: "#15803D" },
@@ -840,10 +840,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarMoreText: { fontSize: 10, fontWeight: "700", color: "#4B5563" },
+  avatarMoreText: { fontSize: 10, fontWeight: "700", fontFamily: "Manrope_700Bold", color: "#4B5563" },
   attendeesText: { fontSize: 12, color: "#6B7280", marginLeft: 8, flex: 1 },
   seeAllButton: { flexDirection: "row", alignItems: "center", paddingLeft: 6 },
-  seeAllText: { fontSize: 12, fontWeight: "600" },
+  seeAllText: { fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
 
   // Registration deadline / price boxes
   infoBoxRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
@@ -866,9 +866,9 @@ const styles = StyleSheet.create({
   joinedAvatarsRow: { flexDirection: "row", alignItems: "center" },
   joinedImage: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "#fff" },
   joinedText: { color: "#6B7280", fontSize: 14, paddingLeft: 8 },
-  firstToJoinText: { color: "#6B7280", fontSize: 14, fontWeight: "500" },
+  firstToJoinText: { color: "#6B7280", fontSize: 14, fontWeight: "500", fontFamily: "Manrope_500Medium" },
   dealCtaButton: { borderRadius: 9999, paddingVertical: 8, paddingHorizontal: 16 },
-  dealCtaButtonText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  dealCtaButtonText: { fontSize: 14, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#fff" },
   deleteButtonSmall: {
     backgroundColor: "#EF4444",
     borderRadius: 50,
@@ -890,11 +890,11 @@ const styles = StyleSheet.create({
   // Join Event CTA + social row
   joinEventWrapper: { marginTop: 8 },
   joinEventButton: { borderRadius: 12, paddingVertical: 14, width: "100%", justifyContent: "center" },
-  joinEventButtonText: { fontSize: 15, fontWeight: "700" },
+  joinEventButtonText: { fontSize: 15, fontWeight: "700", fontFamily: "Manrope_700Bold" },
 
   // Deal status pill
   statusBadge: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  statusBadgeText: { fontSize: 12, fontWeight: "600" },
+  statusBadgeText: { fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
 
   // Unverified-user modal
   unverifiedModalBody: { paddingVertical: 20, paddingHorizontal: 16 },

@@ -10,6 +10,7 @@ import {
   type GestureResponderEvent,
 } from "react-native";
 import { useTheme } from "../../theme/theme";
+import { manropeFamily } from "@/theme/fonts";
 
 function CTAButton({
   title,
@@ -147,7 +148,7 @@ function CTAButton({
               {
                 color: text,
                 fontSize: font,
-                fontWeight: "700",
+                fontFamily: manropeFamily('700'),
                 marginTop: 6,
                 textAlign: "center",
               },
@@ -164,7 +165,7 @@ function CTAButton({
           <Left />
           <Text
             style={[
-              { color: text, fontSize: font, fontWeight: "700" },
+              { color: text, fontSize: font, fontFamily: manropeFamily('700'), },
               textStyle,
             ]}
             numberOfLines={1}

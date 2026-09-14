@@ -19,6 +19,7 @@ import InfoBanner from "../UI/InfoBanner";
 import Select from "../UI/Select";
 import ActionButton from "../inputs/ActionButton";
 import CircularImage from "./CircularImage";
+import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 
 type ServiceFormData = {
   name: string;
@@ -287,9 +288,9 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
         <>
           <InfoBanner
             title="Add your service to the directory after admin approval."
-            backgroundColor="#FFF7ED"
+            backgroundColor={TERRACE_COLORS.greenTint}
             borderColor="#15803D"
-            titleColor="#F97316"
+            titleColor="#000000"
           />
           <GlobalInput
             value={form.name}
@@ -493,7 +494,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                   setPricingRows([...pricingRows, { rate: "", subtext: "" }]);
                 }}
               >
-                <Ionicons name="add-circle" size={18} color="#F97316" />
+                <Ionicons name="add-circle" size={18} color={TERRACE_COLORS.green} />
                 <Text style={styles.addRowButtonText}>Add Row</Text>
               </Pressable>
             </>
@@ -529,7 +530,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                     style={{
                       fontSize: 14,
                       color: "#1F2937",
-                      fontWeight: "500",
+                      fontWeight: "500", fontFamily: "Manrope_500Medium",
                     }}
                   >
                     {slot.displayText}
@@ -575,7 +576,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                   borderRadius: 20,
                   borderWidth: 1,
                   borderColor:
-                    selectedDayPreset === day.id ? "#F97316" : "#D1D5DB",
+                    selectedDayPreset === day.id ? TERRACE_COLORS.green  : "#D1D5DB",
                   backgroundColor:
                     selectedDayPreset === day.id ? "#FFF7ED" : "#fff",
                 }}
@@ -583,7 +584,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                 <Text
                   style={{
                     fontSize: 13,
-                    color: selectedDayPreset === day.id ? "#F97316" : "#6B7280",
+                    color: selectedDayPreset === day.id ? TERRACE_COLORS.green : "#6B7280",
                     fontWeight: selectedDayPreset === day.id ? "600" : "500",
                   }}
                 >
@@ -613,7 +614,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                     style={{
                       fontSize: 13,
                       color: "#1F2937",
-                      fontWeight: "500",
+                      fontWeight: "500", fontFamily: "Manrope_500Medium",
                       marginBottom: 8,
                     }}
                   >
@@ -640,7 +641,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                         hour12: true,
                       })}
                     </Text>
-                    <Ionicons name="time" size={18} color="#F97316" />
+                    <Ionicons name="time" size={18} color={TERRACE_COLORS.green} />
                   </Pressable>
                   {showStartTimePicker && (
                     <DateTimePicker
@@ -663,7 +664,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                     style={{
                       fontSize: 13,
                       color: "#1F2937",
-                      fontWeight: "500",
+                      fontWeight: "500", fontFamily: "Manrope_500Medium",
                       marginBottom: 8,
                     }}
                   >
@@ -690,7 +691,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                         hour12: true,
                       })}
                     </Text>
-                    <Ionicons name="time" size={18} color="#F97316" />
+                    <Ionicons name="time" size={18} color={TERRACE_COLORS.green} />
                   </Pressable>
                   {showEndTimePicker && (
                     <DateTimePicker
@@ -750,13 +751,13 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                   }
                 }}
                 style={{
-                  backgroundColor: "#F97316",
+                  backgroundColor: TERRACE_COLORS.green,
                   borderRadius: 8,
                   paddingVertical: 12,
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                <Text style={{ color: "#fff", fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>
                   Add Working Hours
                 </Text>
               </Pressable>
@@ -804,7 +805,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
 const styles = StyleSheet.create({
   header: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     marginBottom: 24,
     textAlign: "center",
     color: "#22223B",
@@ -816,7 +817,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   submitButton: {
-    backgroundColor: "#F97316",
+    backgroundColor: TERRACE_COLORS.green,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -825,7 +826,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     flex: 1,
-    backgroundColor: "#F97316",
+    backgroundColor: TERRACE_COLORS.green,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -854,7 +855,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#6B7280",
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 15,
   },
   activeCircleText: {
@@ -864,7 +865,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 8,
     color: "#6B7280",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
   activeStepLabel: {
@@ -879,15 +880,15 @@ const styles = StyleSheet.create({
   backButton: {
     flex: 1,
     backgroundColor: "#fff",
-    borderColor: "#E5E7EB",
-    borderWidth: 1,
+    borderColor: TERRACE_COLORS.greenTint,
+    borderWidth: 2,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
   },
   labelText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
     marginBottom: 8,
   },
@@ -896,15 +897,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#F97316",
+    borderColor: TERRACE_COLORS.greenTint,
     borderRadius: 12,
     paddingVertical: 12,
     marginBottom: 16,
     gap: 6,
   },
   addRowButtonText: {
-    color: "#F97316",
-    fontWeight: "600",
+    color: TERRACE_COLORS.green,
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
 });

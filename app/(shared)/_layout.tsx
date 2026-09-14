@@ -13,7 +13,7 @@ export default function SharedLayout() {
         },
         headerTintColor: t.colors.textPrimary,
         headerTitleStyle: {
-          fontWeight: "600",
+          fontWeight: "600", fontFamily: "Manrope_600SemiBold",
           fontSize: 18,
         },
         headerShadowVisible: false,

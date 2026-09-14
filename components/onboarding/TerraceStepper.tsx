@@ -40,13 +40,13 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#fff",
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 13,
   },
   label: {
     fontSize: 11.5,
     color: TERRACE_COLORS.textMuted,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   line: {
     flex: 1,

@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useMemo } from 'react';
 import { ColorSchemeName, useColorScheme, Dimensions } from 'react-native';
+import { manropeFamily } from './fonts';
 
 export type ColorRoles = {
     background: string;
@@ -136,23 +137,26 @@ const iconSizes: IconSizes = {
 };
 
 // Typography matching HTML: font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif
+// fontFamily on each entry resolves to the Manrope weight that matches its
+// fontWeight (custom fonts don't reliably synthesize bold, so each weight
+// needs its own font file/family rather than relying on `fontWeight` alone).
 const typography: Typography = {
-    h1: { fontSize: getWidth(24), lineHeight: getHeight(30), fontWeight: '700' },
-    h2: { fontSize: getWidth(22), lineHeight: getHeight(28), fontWeight: '800' },
-    h3: { fontSize: getWidth(18), lineHeight: getHeight(24), fontWeight: '700' },
-    h4: { fontSize: getWidth(16), lineHeight: getHeight(20), fontWeight: '600' },
-    h5: { fontSize: getWidth(15), lineHeight: getHeight(20), fontWeight: '600' },
-    h6: { fontSize: getWidth(13), lineHeight: getHeight(18), fontWeight: '600' },
-    body: { fontSize: getWidth(16), lineHeight: getHeight(22), fontWeight: '400', color: '#1F2937' }, // color: var(--text)
-    bodySmall: { fontSize: getWidth(13), lineHeight: getHeight(19), fontWeight: '400' },
-    button1: { fontSize: getWidth(14), lineHeight: getHeight(20), fontWeight: '600' },
-    buttonText: { fontSize: getWidth(14), lineHeight: getHeight(20), fontWeight: '600' },
-    text: { fontSize: getWidth(14), lineHeight: getHeight(20), fontWeight: '400' },
-    label: { fontSize: getWidth(13), lineHeight: getHeight(18), fontWeight: '600' },
-    caption: { fontSize: getWidth(11), lineHeight: getHeight(15), fontWeight: '400' },
-    small: { fontSize: getWidth(12), lineHeight: getHeight(18), fontWeight: '400' },
-    iconText: { fontSize: getWidth(12), lineHeight: getHeight(16), fontWeight: '600' },
-    fontFamily: 'System', // React Native will use system font (San Francisco on iOS, Roboto on Android)
+    h1: { fontSize: getWidth(24), lineHeight: getHeight(30), fontFamily: manropeFamily('700') } as any,
+    h2: { fontSize: getWidth(22), lineHeight: getHeight(28),  fontFamily: manropeFamily('800') } as any,
+    h3: { fontSize: getWidth(18), lineHeight: getHeight(24), fontFamily: manropeFamily('700') } as any,
+    h4: { fontSize: getWidth(16), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,
+    h5: { fontSize: getWidth(15), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,
+    h6: { fontSize: getWidth(13), lineHeight: getHeight(18), fontFamily: manropeFamily('600') } as any,
+    body: { fontSize: getWidth(16), lineHeight: getHeight(22),  color: '#1F2937', fontFamily: manropeFamily('400') } as any, // color: var(--text)
+    bodySmall: { fontSize: getWidth(13), lineHeight: getHeight(19),  fontFamily: manropeFamily('400') } as any,
+    button1: { fontSize: getWidth(14), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,
+    buttonText: { fontSize: getWidth(14), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,
+    text: { fontSize: getWidth(14), lineHeight: getHeight(20),  fontFamily: manropeFamily('400') } as any,
+    label: { fontSize: getWidth(13), lineHeight: getHeight(18), fontFamily: manropeFamily('600') } as any,
+    caption: { fontSize: getWidth(11), lineHeight: getHeight(15),  fontFamily: manropeFamily('400') } as any,
+    small: { fontSize: getWidth(12), lineHeight: getHeight(18),  fontFamily: manropeFamily('400') } as any,
+    iconText: { fontSize: getWidth(12), lineHeight: getHeight(16), fontFamily: manropeFamily('600') } as any,
+    fontFamily: manropeFamily('400'), // default/base family (Heading/Label resolve their own per-weight family)
 };
 
 const lightColors: ColorRoles = {
@@ -273,10 +277,10 @@ export const navFromTheme = (t: Theme) => ({
     },
     // Provide fonts expected by React Navigation v7
     fonts: {
-        regular: { fontFamily: 'System', fontWeight: '400' as const },
-        medium: { fontFamily: 'System', fontWeight: '500' as const },
-        bold: { fontFamily: 'System', fontWeight: '700' as const },
-        heavy: { fontFamily: 'System', fontWeight: '800' as const },
+        regular: { fontFamily: manropeFamily('400'), fontWeight: '400' as const },
+        medium: { fontFamily: manropeFamily('500'), fontWeight: '500' as const },
+        bold: { fontFamily: manropeFamily('700'), fontWeight: '700' as const },
+        heavy: { fontFamily: manropeFamily('800'), fontWeight: '800' as const },
     },
 });
 

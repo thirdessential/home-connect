@@ -98,5 +98,5 @@ const styles = StyleSheet.create({
   rowFlush: { paddingTop: 0, marginTop: 0 },
   group: { flexDirection: "row", alignItems: "center", gap: 16 },
   action: { flexDirection: "row", alignItems: "center", gap: 6 },
-  label: { fontSize: 14, lineHeight: 15 },
+  label: { fontSize: 14, fontFamily: "Manrope_500Medium", lineHeight: 15 },
 });

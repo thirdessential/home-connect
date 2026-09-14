@@ -43,7 +43,7 @@ const RecommendationCard = memo(
         style={[styles.recommendationText, { color: theme.colors.textPrimary }]}
       >
         {isProfessionalService ? "Recomended" : "Verified"} by
-        <Text style={{ fontWeight: "bold" }}> {createdBy.fullName}</Text>
+        <Text style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold" }}> {createdBy.fullName}</Text>
       </Text>
     </Card>
   ),
@@ -160,7 +160,7 @@ const DetailsCard = memo(
               key={idx}
             >
               <Text
-                style={{ fontWeight: "bold", fontSize: 15, marginRight: 4 }}
+                style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold", fontSize: 15, marginRight: 4 }}
               >
                 ₹{it?.rate}
               </Text>
@@ -418,7 +418,7 @@ export default function ServiceProfileScreen() {
       <View style={styles.headerRow}>
         <Text
           style={{
-            fontWeight: "bold",
+             fontFamily: "Manrope_700Bold",
             fontSize: 24,
             padding: 16,
             paddingBottom: 0,
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   reviewTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 12,
     color: "#1F2937",
   },
@@ -613,12 +613,12 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   profileSubtitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
   },
   ratingContainer: {
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   actionButtonsRow: {
     flexDirection: "row",
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     color: "white",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
   },
   mapButton: {
@@ -665,12 +665,12 @@ const styles = StyleSheet.create({
   },
   recommendationText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     flex: 1,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 12,
   },
   detailsCard: {
@@ -682,12 +682,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   optionModalContent: {
     paddingBottom: 20,

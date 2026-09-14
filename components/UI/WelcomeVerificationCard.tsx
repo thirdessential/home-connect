@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   title: {
     fontSize: 14.5,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 2,
   },
   description: {
@@ -80,6 +80,6 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
 });

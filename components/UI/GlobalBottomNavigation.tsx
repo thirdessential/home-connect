@@ -95,7 +95,7 @@ function TabItem({
       <Text
         style={{
           ...t.typography.caption,
-          fontWeight: active ? "700" : "400",
+          // fontWeight: active ? "700" : "400",
           color,
           marginTop: 2,
         }}
@@ -272,7 +272,7 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
             style={{
               ...t.typography.caption,
               color: t.colors.primary,
-              fontWeight: "700",
+              fontWeight: "700", fontFamily: "Manrope_700Bold",
               marginTop: CENTER_SIZE * 0.55 + 4,
             }}
           >

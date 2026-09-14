@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(28),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(18),
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   },
   locationTitle: {
     fontSize: getWidth(16),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
   },
   locationAddress: {
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: getWidth(14),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.orange,
   },
   orRow: {
@@ -426,12 +426,12 @@ const styles = StyleSheet.create({
   },
   manualText: {
     fontSize: getWidth(15),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.orange,
   },
   sectionLabel: {
     fontSize: getWidth(16),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
     marginTop: getHeight(24),
     marginBottom: getHeight(12),
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   societyName: {
     fontSize: getWidth(17),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
   },
   societyLocality: {
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   cantFindTitle: {
     fontSize: getWidth(16),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
   },
   cantFindSub: {

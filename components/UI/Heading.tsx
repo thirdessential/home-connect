@@ -1,3 +1,4 @@
+import { manropeFamily } from "@/theme/fonts";
 import { useTheme } from "@/theme/theme";
 import { memo } from "react";
 import { Text, type StyleProp, type TextStyle } from "react-native";
@@ -37,7 +38,7 @@ const Heading = memo(function Heading({
       numberOfLines={numberOfLines}
       style={[
         t.typography[typographyKey],
-        { color: color ?? t.colors[colorKey], fontFamily: t.typography.fontFamily },
+        { color: color ?? t.colors[colorKey], fontFamily: manropeFamily(t.typography[typographyKey].fontWeight) },
         style,
       ]}
     >

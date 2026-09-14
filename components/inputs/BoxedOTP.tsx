@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   },
   char: {
     fontSize: getWidth(24),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
   },
   hiddenInput: {

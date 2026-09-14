@@ -281,7 +281,7 @@ const RequestCard = memo(
               },
             ]}
           >
-            <Text style={{ color: "#EF4444", fontSize: 11, fontWeight: "700" }}>
+            <Text style={{ color: "#EF4444", fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
               Rejected
             </Text>
           </View>
@@ -1060,12 +1060,12 @@ const styles = StyleSheet.create({
   },
   eventListTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 4,
   },
   eventListPrice: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
   },
   eventListProgressSection: {
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
   },
   eventListProgressText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   detailContainer: {
     flex: 1,
@@ -1116,12 +1116,12 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 4,
   },
   eventPrice: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   eventGoal: {
@@ -1138,12 +1138,12 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     letterSpacing: 0.5,
   },
   progressValue: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   statsGrid: {
     flexDirection: "row",
@@ -1158,13 +1158,13 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   statValue: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   statDescription: {
@@ -1188,10 +1188,10 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   activeTabText: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   requestCard: {
     padding: 12,
@@ -1212,14 +1212,14 @@ const styles = StyleSheet.create({
   avatarText: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   requestInfo: {
     flex: 1,
   },
   requestName: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 2,
   },
   requestDetails: {
@@ -1278,7 +1278,7 @@ const styles = StyleSheet.create({
   },
   messageTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     marginBottom: 8,
   },
   messageText: {

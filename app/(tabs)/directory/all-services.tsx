@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "Manrope_600SemiBold",
     marginBottom: 2,
   },
   category: {
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "Manrope_600SemiBold",
   },
   reviewCount: {
     fontSize: 12,

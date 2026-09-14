@@ -31,7 +31,7 @@ const GlobalIconButton = memo(function GlobalIconButton({ icon, onPress, badgeCo
             paddingHorizontal: 3,
           }}
         >
-          <Text style={{ color: t.colors.white, fontSize: 10, fontWeight: "700" }}>{badgeCount}</Text>
+          <Text style={{ color: t.colors.white, fontSize: 10, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>{badgeCount}</Text>
         </View>
       ) : null}
     </Pressable>

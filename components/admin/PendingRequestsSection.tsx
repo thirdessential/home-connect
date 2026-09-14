@@ -231,7 +231,7 @@ const PendingRequestsSection = memo(function PendingRequestsSection({
               <Text
                 style={[
                   t.typography.body,
-                  { color: t.colors.primary, fontWeight: "500" },
+                  { color: t.colors.primary, fontWeight: "500", fontFamily: "Manrope_500Medium" },
                 ]}
               >
                 {allRequestsSelected ? "Clear Selection" : "Select All"}
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 2,
   },
-  pendingBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  pendingBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   tabsRow: {
     flexDirection: "row",
     gap: 6,
@@ -284,9 +284,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   tabPillActive: { backgroundColor: "#E4F3EA", borderColor: "#1B6E3C" },
-  tabLabel: { fontSize: 13.5, fontWeight: "600" },
+  tabLabel: { fontSize: 13.5, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   tabCountBadge: { borderRadius: 999, paddingHorizontal: 7, paddingVertical: 1 },
-  tabCountText: { fontSize: 11, fontWeight: "700" },
+  tabCountText: { fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   toolbarRow: { flexDirection: "row", justifyContent: "space-between" },
   sortButton: {
     flexDirection: "row",
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E6E2D6",
   },
-  sortButtonText: { fontSize: 13, fontWeight: "500", color: "#374151" },
+  sortButtonText: { fontSize: 13, fontWeight: "500", fontFamily: "Manrope_500Medium", color: "#374151" },
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E6E2D6",
   },
-  filterButtonText: { fontSize: 13, fontWeight: "500", color: "#374151" },
+  filterButtonText: { fontSize: 13, fontWeight: "500", fontFamily: "Manrope_500Medium", color: "#374151" },
   filterButtonActive: { backgroundColor: "#DCFCE7", borderColor: "#1B6E3C" },
   filterPanel: {
     flexDirection: "row",
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
   },
   filterChipActive: { backgroundColor: "#1B6E3C", borderColor: "#1B6E3C" },
-  filterChipText: { fontSize: 13, color: "#374151", fontWeight: "500" },
+  filterChipText: { fontSize: 13, color: "#374151", fontWeight: "500", fontFamily: "Manrope_500Medium" },
   filterChipTextActive: { color: "#fff" },
   section: { marginBottom: 4 },
   sectionHeader: {

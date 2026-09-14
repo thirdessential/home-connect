@@ -5,6 +5,7 @@ import { useToast } from "@/components/common/Toast";
 import ActionButton from "@/components/inputs/ActionButton";
 import BoxedOTP from "@/components/inputs/BoxedOTP";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useUserStore } from "@/store/useUserStore";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -99,7 +100,13 @@ export default function VerifyOtpScreen() {
       // triggered more than once (e.g. a duplicate resolved promise).
       if (!navigatedRef.current) {
         navigatedRef.current = true;
-        router.replace("/onboarding/location-permission");
+        // Backend already links this user to a society (set during a prior
+        // onboarding pass) — skip location/select-society and go straight
+        // home instead of forcing onboarding again on every login.
+        const hasSociety = !!useUserStore.getState().user?.societyId;
+        router.replace(
+          hasSociety ? "/(tabs)/home" : "/onboarding/location-permission",
+        );
       }
     } catch (err: any) {
       setError(true);
@@ -218,7 +225,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(26),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(24),
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
   },
   phoneText: {
     fontSize: getWidth(18),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
   },
   otpWrap: {
@@ -252,7 +259,7 @@ const styles = StyleSheet.create({
   },
   continueBtn: {
     marginTop: getHeight(24),
-    borderRadius: getWidth(28),
+    borderRadius: getWidth(14),
     paddingVertical: getHeight(16),
   },
   resendRow: {
@@ -264,12 +271,12 @@ const styles = StyleSheet.create({
   resendMuted: {
     fontSize: getWidth(14),
     color: TERRACE_COLORS.textDark,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   resendCta: {
     fontSize: getWidth(14),
     color: TERRACE_COLORS.orange,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   footer: {
     flexDirection: "row",

@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   viewAllButton: {
     paddingVertical: 4,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   cardContainer: {
     marginRight: 16,
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   providerNameText: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
     marginBottom: 0,
     color: "#1F2937",
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     marginLeft: 4,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 12,
     color: "#374151",
   },
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   viewProfileText: {
     color: "#15803D",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 13,
     marginRight: 2,
   },

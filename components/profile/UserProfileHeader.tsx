@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 36,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: "#FFFFFF",
   },
   actionButtonsRow: {
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 20,
   },
   infoSection: {

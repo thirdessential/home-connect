@@ -69,7 +69,7 @@ export default function ImagePickerField({
       >
         <Text
           style={{
-            fontWeight: "700",
+            fontWeight: "700", fontFamily: "Manrope_700Bold",
             color: t.colors.textPrimary,
             marginRight: 6,
           }}
@@ -101,7 +101,7 @@ export default function ImagePickerField({
               <Text
                 style={{
                   color: t.colors.textSecondary,
-                  fontWeight: "700",
+                  fontWeight: "700", fontFamily: "Manrope_700Bold",
                   fontSize: 18,
                 }}
               >
@@ -145,7 +145,7 @@ export default function ImagePickerField({
                 }}
               >
                 <Text
-                  style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}
+                  style={{ color: "#fff", fontSize: 12, fontWeight: "700", fontFamily: "Manrope_700Bold" }}
                 >
                   ×
                 </Text>

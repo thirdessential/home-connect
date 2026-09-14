@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 16,
   },
   reasonCard: {
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   reasonLabel: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   reasonDescription: {
     fontSize: 14,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   confirmTitle: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     textAlign: "center",
     marginBottom: 12,
   },
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     textAlign: "center",
     marginBottom: 12,
   },
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     textAlign: "center",
     marginBottom: 12,
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   deletingText: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginTop: 16,
   },
 });

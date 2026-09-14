@@ -1,4 +1,5 @@
 import FormSheetModal from "@/components/modals/FormSheetModal";
+import ReportModal from "@/components/modals/ReportModal";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedComment } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,13 +20,15 @@ type Props = {
   onClose: () => void;
   comments: HomeFeedComment[];
   onSubmit: (text: string) => Promise<void>;
+  feedId?: string; // needed to report an individual comment
 };
 
 /** Comment thread + composer. Submission is delegated to the caller. */
-export default function CommentsSheet({ visible, onClose, comments, onSubmit }: Props) {
+export default function CommentsSheet({ visible, onClose, comments, onSubmit, feedId }: Props) {
   const t = useTheme();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [reportCommentId, setReportCommentId] = useState<string | null>(null);
 
   const handleSend = useCallback(async () => {
     const value = text.trim();
@@ -120,9 +123,21 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit }: 
               </Text>
               <Text style={[styles.text, { color: t.colors.textSecondary }]}>{item.text}</Text>
             </View>
+            <TouchableOpacity onPress={() => setReportCommentId(item.id)} hitSlop={8} style={styles.commentMenu}>
+              <Ionicons name="ellipsis-vertical" size={16} color={t.colors.textSecondary} />
+            </TouchableOpacity>
           </View>
         )}
       />
+      {feedId && (
+        <ReportModal
+          visible={!!reportCommentId}
+          onClose={() => setReportCommentId(null)}
+          reportType="comment"
+          itemId={reportCommentId ?? ""}
+          parentId={feedId}
+        />
+      )}
     </FormSheetModal>
   );
 }
@@ -131,12 +146,13 @@ const styles = StyleSheet.create({
   list: { maxHeight: 150 },
   empty: { textAlign: "center", paddingVertical: 28, fontSize: 13 },
   comment: { flexDirection: "row", gap: 10, paddingVertical: 10 },
+  commentMenu: { padding: 4, alignSelf: "flex-start" },
   avatar: { width: 32, height: 32, borderRadius: 16 },
   fallback: { alignItems: "center", justifyContent: "center" },
-  initial: { fontSize: 12, fontWeight: "700" },
+  initial: { fontSize: 12, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   commentBody: { flex: 1 },
-  author: { fontSize: 13, fontWeight: "600" },
-  time: { fontSize: 11, fontWeight: "400" },
+  author: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
+  time: { fontSize: 11, fontWeight: "400", fontFamily: "Manrope_400Regular" },
   text: { fontSize: 13, lineHeight: 19, marginTop: 2 },
   // FormSheetModal's footer slot already supplies the top border + spacing
   // above this (footerContainer), so this only needs the row layout.

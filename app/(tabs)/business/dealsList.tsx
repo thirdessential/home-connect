@@ -7,9 +7,11 @@ import { WholesaleDeal } from "@/types/business.type";
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { Image, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DealsListScreen() {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const { deals, loading } = useWholesaleDealStore();
 
   const filteredDeals = useMemo(() => {
@@ -26,8 +28,8 @@ export default function DealsListScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.colors.white }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <View style={{ flex: 1, backgroundColor: t.colors.white, paddingTop: insets.top }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}>
         {loading && (
           <Text
             style={{
@@ -45,7 +47,7 @@ export default function DealsListScreen() {
               textAlign: "center",
               color: "#F43F5E",
               marginVertical: 20,
-              fontWeight: "600",
+              fontWeight: "600", fontFamily: "Manrope_600SemiBold",
             }}
           >
             No deals available.
@@ -93,7 +95,7 @@ export default function DealsListScreen() {
                       style={{
                         color: "#fff",
                         fontSize: 12,
-                        fontWeight: "700",
+                        fontWeight: "700", fontFamily: "Manrope_700Bold",
                       }}
                     >
                       🔥 Closing Soon
@@ -117,7 +119,7 @@ export default function DealsListScreen() {
                       style={{
                         color: "#fff",
                         fontSize: 12,
-                        fontWeight: "700",
+                        fontWeight: "700", fontFamily: "Manrope_700Bold",
                       }}
                     >
                       🕐 Coming Soon
@@ -142,7 +144,7 @@ export default function DealsListScreen() {
                 <Text
                   style={{
                     fontSize: 18,
-                    fontWeight: "bold",
+                    fontWeight: "bold", fontFamily: "Manrope_700Bold",
                     color: t.colors.textPrimary,
                     marginBottom: 6,
                   }}
@@ -185,7 +187,7 @@ export default function DealsListScreen() {
                           style={{
                             color: "#fff",
                             fontSize: 11,
-                            fontWeight: "700",
+                            fontWeight: "700", fontFamily: "Manrope_700Bold",
                           }}
                         >
                           {(creator.fullName || "U")[0].toUpperCase()}
@@ -196,7 +198,7 @@ export default function DealsListScreen() {
                       style={{
                         fontSize: 13,
                         color: t.colors.textSecondary,
-                        fontWeight: "500",
+                        fontWeight: "500", fontFamily: "Manrope_500Medium",
                       }}
                     >
                       {creator.fullName || "Unknown Seller"}
@@ -216,10 +218,10 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     MRP:
                   </Text>
-                  <Text style={{ color: "#0F172A", fontWeight: "500" }}>
+                  <Text style={{ color: "#0F172A", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
                     {deal.price?.mrp}
                   </Text>
                 </View>
@@ -230,10 +232,10 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Deal Price:
                   </Text>
-                  <Text style={{ color: "#0F172A", fontWeight: "500" }}>
+                  <Text style={{ color: "#0F172A", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
                     {deal.price?.sellingPrice}
                   </Text>
                 </View>
@@ -244,10 +246,10 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Unit:
                   </Text>
-                  <Text style={{ color: "#0F172A", fontWeight: "500" }}>
+                  <Text style={{ color: "#0F172A", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
                     {deal.quantityUnit}
                   </Text>
                 </View>
@@ -258,10 +260,10 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Min Order:
                   </Text>
-                  <Text style={{ color: "#0F172A", fontWeight: "500" }}>
+                  <Text style={{ color: "#0F172A", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
                     {deal.minimumOrderQty}
                   </Text>
                 </View>
@@ -272,10 +274,10 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Max Order:
                   </Text>
-                  <Text style={{ color: "#0F172A", fontWeight: "500" }}>
+                  <Text style={{ color: "#0F172A", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
                     {deal.maximumOrderQty}
                   </Text>
                 </View>
@@ -286,7 +288,7 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Deadline:
                   </Text>
                   <Text
@@ -305,10 +307,10 @@ export default function DealsListScreen() {
                     marginBottom: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Delivery:
                   </Text>
-                  <Text style={{ color: "#0F172A", fontWeight: "500" }}>
+                  <Text style={{ color: "#0F172A", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
                     {deal.estimatedDeliveryDate}
                   </Text>
                 </View>
@@ -323,7 +325,7 @@ export default function DealsListScreen() {
                     marginTop: 4,
                   }}
                 >
-                  <Text style={{ fontWeight: "600", color: "#334155" }}>
+                  <Text style={{ fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#334155" }}>
                     Status:
                   </Text>
                   <View
@@ -351,7 +353,7 @@ export default function DealsListScreen() {
                   >
                     <Text
                       style={{
-                        fontWeight: "700",
+                        fontWeight: "700", fontFamily: "Manrope_700Bold",
                         fontSize: 12,
                         color:
                           dealStatus === "UNLOCKED"
@@ -387,7 +389,7 @@ export default function DealsListScreen() {
                     borderRadius: 8,
                     backgroundColor: t.colors.primary,
                   }}
-                  textStyle={{ color: "#fff", fontWeight: "700" }}
+                  textStyle={{ color: "#fff", fontWeight: "700", fontFamily: "Manrope_700Bold" }}
                 />
               </Card>
             );

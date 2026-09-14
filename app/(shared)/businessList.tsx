@@ -384,12 +384,12 @@ const styles = StyleSheet.create({
   addCtaIcon: {
     fontSize: 20,
     color: "#6B7280",
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     marginTop: -2,
   },
   addCtaText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#22223B",
   },
   gridContainer: {
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FCFBF8",
   },
   pageHeading: {
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     fontSize: 24,
     padding: 16,
   },
@@ -446,20 +446,20 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#FFF",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   cardContent: {
     padding: 12,
   },
   title: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: "#22223B",
     marginBottom: 4,
   },
   price: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#222",
   },
 });

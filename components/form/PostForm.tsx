@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  retryText: { color: "#fff", fontSize: 11, fontWeight: "600", marginTop: 2 },
+  retryText: { color: "#fff", fontSize: 11, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 2 },
   removeBtn: { position: "absolute", top: 3, right: 3 },
   addRow: { flexDirection: "row", gap: 10 },
   addTile: {
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  addText: { fontSize: 11, fontWeight: "600" },
+  addText: { fontSize: 11, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   failedHint: { color: "#DC2626", fontSize: 12, marginBottom: 8 },
   submitButton: {
     backgroundColor: "#F97316",
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     fontSize: 18,
   },
 });

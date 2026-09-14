@@ -95,7 +95,7 @@ const DetailCard = memo(
               ]}
               textStyle={[
                 t.typography.small,
-                { color: request.type === "business" ? "#6E4FE8" : "#2F5FE0", fontWeight: "700", fontSize: 11 },
+                { color: request.type === "business" ? "#6E4FE8" : "#2F5FE0", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 11 },
               ]}
             />
           </View>
@@ -222,7 +222,7 @@ const DetailCard = memo(
                 )
               }
             >
-              <Text style={[t.typography.small, { color: "#1B6E3C", fontWeight: "700" }]}>
+              <Text style={[t.typography.small, { color: "#1B6E3C", fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>
                 View on map
               </Text>
             </Pressable>
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     color: "#166534",
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   statusBadgeRejected: { backgroundColor: "#FEE2E2" },
   statusBadgeTextRejected: { color: "#DC2626" },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   avatarLetters: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   profileInfo: {
     flex: 1,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
   },
-  attachmentsLabel: { color: "#9A9C90", fontWeight: "600", marginRight: 2 },
+  attachmentsLabel: { color: "#9A9C90", fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginRight: 2 },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  attachmentMoreText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  attachmentMoreText: { color: "#fff", fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   requestActions: {
     flexDirection: "row",
     gap: 8,

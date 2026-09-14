@@ -23,7 +23,7 @@ export default function SocietyHeader() {
         <Text
           style={{
             fontSize: 12,
-            fontWeight: "500",
+            fontWeight: "500", fontFamily: "Manrope_500Medium",
             color: t.colors.textSecondary,
             marginBottom: t.spacing.xs,
             letterSpacing: 0.5,
@@ -43,7 +43,7 @@ export default function SocietyHeader() {
           <Text
             style={{
               fontSize: 18,
-              fontWeight: "700",
+              fontWeight: "700", fontFamily: "Manrope_700Bold",
               flex: 1,
             }}
             numberOfLines={1}

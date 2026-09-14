@@ -75,7 +75,7 @@ const BusinessCardItem = memo(
 
           <View style={styles.actionsRow}>
             <View style={[styles.viewBtn, { borderColor: theme.colors.border }]}>
-              <Text style={{ fontSize: 12.5, fontWeight: "700", color: theme.colors.textPrimary }}>View details</Text>
+              <Text style={{ fontSize: 12.5, fontWeight: "700", fontFamily: "Manrope_700Bold", color: theme.colors.textPrimary }}>View details</Text>
             </View>
           </View>
         </Pressable>
@@ -173,7 +173,7 @@ const ApprovedBusinessView: React.FC<ApprovedBusinessViewProps> = ({
           style={[styles.filterBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
         >
           <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
-          <Text style={{ fontSize: 13.5, fontWeight: "600", color: theme.colors.textPrimary }}>Filter</Text>
+          <Text style={{ fontSize: 13.5, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: theme.colors.textPrimary }}>Filter</Text>
           {activeFilterCount > 0 ? (
             <View style={[styles.filterBadge, { backgroundColor: theme.colors.brand }]}>
               <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
@@ -186,7 +186,7 @@ const ApprovedBusinessView: React.FC<ApprovedBusinessViewProps> = ({
       {filteredBusinesses.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="search" size={26} color={theme.colors.textSecondary} />
-          <Text style={{ marginTop: 8, fontWeight: "700", color: theme.colors.textPrimary }}>
+          <Text style={{ marginTop: 8, fontWeight: "700", fontFamily: "Manrope_700Bold", color: theme.colors.textPrimary }}>
             No businesses match your filters
           </Text>
         </View>
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 4,
   },
-  filterBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  filterBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   emptyState: { alignItems: "center", paddingVertical: 40 },
   card: {
     marginBottom: 12,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   headingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   businessTitle: {
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 15,
     flexShrink: 1,
   },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   categoryChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  categoryChipText: { fontSize: 12, fontWeight: "600" },
+  categoryChipText: { fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
   metaText: { fontSize: 12.5, flexShrink: 1 },
   actionsRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 10 },
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   approvedText: {
     color: "#1B6E3C",
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 11,
   },
 });

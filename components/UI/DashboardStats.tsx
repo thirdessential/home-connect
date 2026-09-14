@@ -28,7 +28,7 @@ export default function DashboardStats({
           <Text
             style={{
               fontSize: 24,
-              fontWeight: "700",
+              fontWeight: "700", fontFamily: "Manrope_700Bold",
               marginTop: 8,
               color: t.colors.textPrimary,
             }}
@@ -57,7 +57,7 @@ export default function DashboardStats({
           <Text
             style={{
               fontSize: 24,
-              fontWeight: "700",
+              fontWeight: "700", fontFamily: "Manrope_700Bold",
               marginTop: 8,
               color: t.colors.textPrimary,
             }}

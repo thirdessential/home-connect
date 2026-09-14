@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   requiredBadgeText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#166534",
   },
   chipRow: {
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   },
   uploadText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   removeRow: {
     flexDirection: "row",
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   },
   removeText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#DC2626",
   },
   locationRow: {
@@ -341,6 +341,6 @@ const styles = StyleSheet.create({
   locationText: {
     flex: 1,
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
 });

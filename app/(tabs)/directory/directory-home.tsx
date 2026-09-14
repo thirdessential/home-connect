@@ -152,10 +152,10 @@ export default function DirectoryHome() {
     >
       {/* Fixed Header (non-scrollable) */}
       <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-        <Text style={{ fontWeight: "800", fontSize: 24, color: t.colors.textPrimary }}>
+        <Text style={{ fontFamily: "Manrope_800ExtraBold", fontSize: 24, color: t.colors.textPrimary }}>
           Directory
         </Text>
-        <Text style={{ fontSize: 13.5, color: t.colors.textSecondary, marginTop: 2 }}>
+        <Text style={{ fontSize: 13.5, fontFamily: "Manrope_400Regular", color: t.colors.textSecondary, marginTop: 2 }}>
           Services and businesses in your society
         </Text>
       </View>
@@ -210,7 +210,7 @@ export default function DirectoryHome() {
 const styles = {
   sectionLabel: (t: ReturnType<typeof useTheme>) => ({
     fontSize: 12.5,
-    fontWeight: "700" as const,
+    fontFamily: "Manrope_700Bold" as const,
     letterSpacing: 0.6,
     color: t.colors.textSecondary,
     marginTop: 12,

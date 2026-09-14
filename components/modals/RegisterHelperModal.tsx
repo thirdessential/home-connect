@@ -109,7 +109,7 @@ export default function RegisterHelperModal({
             <Text
               style={{
                 fontSize: 20,
-                fontWeight: "bold",
+                fontWeight: "bold", fontFamily: "Manrope_700Bold",
                 color: t.colors.textPrimary,
               }}
             >
@@ -128,7 +128,7 @@ export default function RegisterHelperModal({
             }}
           >
             {FORM_CONSTANTS.ADD_HELPER_NEARBY}{" "}
-            <Text style={{ fontWeight: "bold" }}>{selectedSociety?.name}</Text>
+            <Text style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold" }}>{selectedSociety?.name}</Text>
           </Text>
 
           <ScrollView style={{ width: "100%", paddingTop: 10 }}>

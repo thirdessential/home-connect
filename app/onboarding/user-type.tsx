@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(26),
-    fontWeight: "800",
+    fontWeight: "800", fontFamily: "Manrope_800ExtraBold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(16),
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     flex: 1,
     fontSize: getWidth(16),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
   },
   radio: {
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   continueBtn: {
-    borderRadius: getWidth(28),
+    borderRadius: getWidth(14),
     paddingVertical: getHeight(16),
   },
   footer: {

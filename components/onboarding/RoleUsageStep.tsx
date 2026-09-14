@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   radio: {
     width: 22,

@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   verifiedIconWrap: { flexShrink: 0 },
   // username class styling
   username: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 15,
     flexShrink: 1,
   },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   badgePillText: {
     color: "#002114",
     fontSize: 9,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     letterSpacing: 0.5,
   },
   // text-sm text-gray-500

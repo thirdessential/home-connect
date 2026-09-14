@@ -42,7 +42,7 @@ export default function ProductDetails({
             <Text
               style={{
                 color: t.colors.textPrimary,
-                fontWeight: "500",
+                fontWeight: "500", fontFamily: "Manrope_500Medium",
               }}
             >
               {capitalizeWords(product?.category || "General")}
@@ -63,7 +63,7 @@ export default function ProductDetails({
             <Text
               style={{
                 color: t.colors.textPrimary,
-                fontWeight: "500",
+                fontWeight: "500", fontFamily: "Manrope_500Medium",
               }}
             >
               {product?.createdAt ? formatDate(product.createdAt) : ""}
@@ -86,7 +86,7 @@ export default function ProductDetails({
             <Text
               style={{
                 color: t.colors.textSecondary,
-                fontWeight: "500",
+                fontWeight: "500", fontFamily: "Manrope_500Medium",
                 textDecorationLine: "line-through",
               }}
             >
@@ -108,7 +108,7 @@ export default function ProductDetails({
             <Text
               style={{
                 color: t.colors.primary,
-                fontWeight: "600",
+                fontWeight: "600", fontFamily: "Manrope_600SemiBold",
               }}
             >
               {"₹"} {product?.price?.sellingPrice || "0"}
@@ -134,7 +134,7 @@ export default function ProductDetails({
             <Text
               style={{
                 color: t.colors.textPrimary,
-                fontWeight: "500",
+                fontWeight: "500", fontFamily: "Manrope_500Medium",
               }}
             >
               {"₹"} {product && product?.price?.saveAmount}
@@ -160,7 +160,7 @@ export default function ProductDetails({
               <Text
                 style={{
                   color: "#4CAF50",
-                  fontWeight: "500",
+                  fontWeight: "500", fontFamily: "Manrope_500Medium",
                 }}
               >
                 {"Not Available"}

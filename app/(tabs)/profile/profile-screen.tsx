@@ -4,14 +4,11 @@ import { Card } from "@/components/UI/Card";
 import CircularImage from "@/components/form/CircularImage";
 import ActionButton from "@/components/inputs/ActionButton";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
-import FormSheetModal from "@/components/modals/FormSheetModal";
-import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
-import DeleteAccount from "@/components/profile/DeleteAccount";
 import VerificationGateModal from "@/components/common/VerificationGateModal";
 import { useVerificationGate } from "@/hooks/useVerificationGate";
+import { sendDevelopmentTestPushToCurrentDevice } from "@/hooks/usePushNotifications";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useImageUpload } from "@/lib/cloudinary";
-import { ManageProfilePayload } from "@/store/auth.type";
+import { uploadToBackendKeyed } from "@/lib/backendUpload";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -20,9 +17,8 @@ import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import ManageProfileForm from "../../../components/form/ManageProfileForm";
 
 // Static styles — defined once at module level, never recreated
 const staticStyles = StyleSheet.create({
@@ -39,7 +35,7 @@ const staticStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  logoutBtn: { borderRadius: 12, paddingVertical: 12, marginBottom: 8 },
+  logoutBtn: { borderRadius: 12, paddingVertical: 12, marginBottom: 8, fontFamily: "Manrope_500Medium" },
   logoutSpacing: { marginTop: 20 },
   roleBadge: { paddingVertical: 4, paddingHorizontal: 10 },
   listRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14 },
@@ -59,7 +55,7 @@ const staticStyles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 14,
   },
-  listLabel: { flex: 1, fontSize: 15, fontWeight: "500" },
+  listLabel: { flex: 1, fontSize: 15, fontFamily: "Manrope_500Medium" },
   cardPadding: { padding: 16 },
   quickLinksInner: {},
   infoRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 14 },
@@ -72,11 +68,10 @@ const staticStyles = StyleSheet.create({
     marginRight: 12,
   },
   infoRowText: { flex: 1, paddingTop: 2 },
-  infoLabel: { fontSize: 11, fontWeight: "600" },
-  infoValue: { fontSize: 14, lineHeight: 20, marginTop: 2 },
+  infoLabel: { fontFamily: "Manrope_600SemiBold" },
+  infoValue: { fontSize: 14, fontFamily: "Manrope_600SemiBold" ,lineHeight: 20, marginTop: 2 },
   infoDivider: { height: 1, marginLeft: 48, marginBottom: 14 },
   flexOne: { flex: 1 },
-  actionCaption: { paddingTop: 4, textAlign: "center", fontSize: 11 },
 });
 
 // Extracted outside the parent component so it has a stable identity across renders.
@@ -135,7 +130,7 @@ const SectionTitle = memo(function SectionTitle({
     <Text
       style={{
         fontSize: 16,
-        fontWeight: "700",
+      fontFamily: "Manrope_700Bold",
         color: t.colors.textPrimary,
         marginBottom: 10,
       }}
@@ -170,11 +165,6 @@ export default function ProfileScreen() {
           marginHorizontal: -16,
           marginTop: -16,
         },
-        updateProfileBtn: {
-          borderRadius: 10,
-          backgroundColor: t.colors.primary,
-          paddingVertical: 12,
-        },
       }),
     [
       t.colors.white,
@@ -188,28 +178,41 @@ export default function ProfileScreen() {
   const [avatarUri, setAvatarUri] = useState<string | undefined>(
     user?.profilePhotoUrl || undefined,
   );
-  const { upload } = useImageUpload();
+  const [sendingTestPush, setSendingTestPush] = useState(false);
+  const sendTestPush = useCallback(async () => {
+    setSendingTestPush(true);
+    try {
+      await sendDevelopmentTestPushToCurrentDevice();
+      Alert.alert("Test sent", "Check this device for the push notification.");
+    } catch (error: any) {
+      Alert.alert("Test push failed", error?.message || "Register notifications first.");
+    } finally {
+      setSendingTestPush(false);
+    }
+  }, []);
   const { requireVerified, gate, closeGate } = useVerificationGate();
   const onChangeAvatar = useCallback(
     async (uri: string) => {
-      setAvatarUri(uri); // immediate UI update
+      setAvatarUri(uri); // immediate local preview of the cropped photo
+      if (!user?._id) return;
       try {
-        // Upload to Cloudinary (use 'profiles' folder for user avatars)
-        const result = await upload(uri, "profiles");
-        if (result?.secure_url && user?._id) {
-          // Persist Cloudinary URL to user profile
-          await updateUser({ profilePhotoUrl: result.secure_url }, user._id);
-          updateUserField("profilePhotoUrl", result.secure_url);
-        } else {
-          // fallback: just update local
-          updateUserField("profilePhotoUrl", uri);
-        }
+        // POST /api/media/upload — S3 (purpose defaults to "profile-images").
+        // The response's signed `url` expires; only the `key` is safe to store.
+        const { key, url } = await uploadToBackendKeyed(uri);
+        await updateUser({ profilePhotoUrl: key }, user._id);
+        // Store the signed, displayable URL (not the raw S3 key) so every
+        // consumer of the user store shows a usable image immediately; a
+        // future fetch/reload re-signs the persisted key via
+        // getUserWithSociety's isS3Key() handling.
+        updateUserField("profilePhotoUrl", url);
+        setAvatarUri(url);
       } catch {
-        // fallback: just update local
-        updateUserField("profilePhotoUrl", uri);
+        // Upload failed — do not persist anything invalid; keep showing the
+        // last known-good photo instead of the (unusable) local preview.
+        setAvatarUri(user.profilePhotoUrl || undefined);
       }
     },
-    [upload, updateUser, updateUserField, user?._id],
+    [updateUser, updateUserField, user?._id, user?.profilePhotoUrl],
   );
 
   // Narrow dep: only fullName + role changes should recompute
@@ -227,14 +230,17 @@ export default function ProfileScreen() {
   const address =
     user?.completeAddress || societyName || "No address available";
 
-  const isUserVerified = useMemo(() => {
-    return (
-      hasAnyRole([UserRole.RESIDENT, UserRole.BUSINESS]) &&
-      user?.isAddressVerified?.status === verificationStatus.APPROVED
-    );
-  }, [hasAnyRole, user?.isAddressVerified?.status]);
+  // Single source of truth: the backend's own isAddressVerified.status — same
+  // field Home reads (see HomeScreen's userVerification). Role flags come from
+  // useAuthStore, which is only refreshed on login/explicit setRoles() calls
+  // and can lag behind this status, so it must not gate verification display.
+  const isUserVerified = useMemo(
+    () => user?.isAddressVerified?.status === verificationStatus.APPROVED,
+    [user?.isAddressVerified?.status],
+  );
 
   const verificationBadge = useMemo(() => {
+    const status = user?.isAddressVerified?.status;
     if (isUserVerified) {
       return {
         label: "Verified",
@@ -242,10 +248,7 @@ export default function ProfileScreen() {
         color: '#15803D',
       };
     }
-    if (
-      hasAnyRole([UserRole.RESIDENT, UserRole.BUSINESS]) &&
-      user?.isAddressVerified?.status === verificationStatus.REJECTED
-    ) {
+    if (status === verificationStatus.REJECTED) {
       return {
         label: "Rejected",
         icon: "close-circle-outline" as const,
@@ -253,7 +256,7 @@ export default function ProfileScreen() {
         iconBgColor: t.colors.error,
       };
     }
-    if (hasAnyRole([UserRole.RESIDENT, UserRole.BUSINESS])) {
+    if (status === verificationStatus.PENDING) {
       return {
         label: "Pending",
         icon: "time-outline" as const,
@@ -267,14 +270,7 @@ export default function ProfileScreen() {
       color: t.colors.error,
       iconBgColor: t.colors.error,
     };
-  }, [
-    isUserVerified,
-    hasAnyRole,
-    user?.isAddressVerified?.status,
-    t.colors.success,
-    t.colors.warning,
-    t.colors.error,
-  ]);
+  }, [isUserVerified, user?.isAddressVerified?.status, t.colors.warning, t.colors.error]);
 
   const onLogout = useCallback(() => {
     setLogoutConfirmVisible(true);
@@ -287,9 +283,6 @@ export default function ProfileScreen() {
   }, [signOut, router]);
 
   // Navigation callbacks to avoid recreating inline lambdas each render
-  const goMyRequests = useCallback(() => {
-    router.navigate("/profile/my-requests");
-  }, [router]);
   const goAdminDashboard = useCallback(() => {
     router.navigate("/profile/admin-dashboard");
   }, [router]);
@@ -297,68 +290,20 @@ export default function ProfileScreen() {
     router.navigate("/(shared)/businessCatalogue");
   }, [router]);
 
-  // Manage Profile modal state
-  const [manageVisible, setManageVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [successVisible, setSuccessVisible] = useState(false);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
-
-  const onManageProfile = useCallback(() => {
-    setManageVisible(true);
-  }, []);
-
-  const closeManage = useCallback(() => {
-    setManageVisible(false);
-  }, []);
-
-  const onSubmitManage = useCallback(
-    async (payload: ManageProfilePayload) => {
-      if (!user?._id) return closeManage();
-      try {
-        let updatedRoles = Array.isArray(user?.roles)
-          ? user.roles.filter((r) => r !== "guest")
-          : user?.roles;
-        if (
-          Array.isArray(updatedRoles) &&
-          !updatedRoles.includes(UserRole.RESIDENT)
-        ) {
-          updatedRoles.push(UserRole.RESIDENT);
-        }
-        await updateUser(
-          {
-            fullName: payload.fullName,
-            societyId: payload.societyId,
-            tower: payload.towerId,
-            flatNo: payload.flatNo,
-            roles: updatedRoles,
-            profilePhotoUrl:
-              user.profilePhotoUrl ||
-              "https://randomuser.me/api/portraits/men/1.jpg",
-            completeAddress: payload.completeAddress,
-            isAddressVerified: payload.isAddressVerified,
-          },
-          user._id,
-        );
-        // Close sheet first, then briefly after show success overlay
-        closeManage();
-        setSuccessVisible(true);
-      } catch (error) {
-        console.error("[ProfileScreen] ❌ Profile update failed:", error);
-      }
-    },
-    [updateUser, user?._id, user?.roles, user?.profilePhotoUrl, closeManage],
-  );
-
-  const closeDeleteModal = useCallback(() => setDeleteModalVisible(false), []);
-  const closeSuccessModal = useCallback(() => setSuccessVisible(false), []);
 
   const goEventDashboard = useCallback(() => {
     router.navigate("/profile/event-dashboard");
   }, [router]);
-
-  const onDeleteAccount = useCallback(() => {
-    setDeleteModalVisible(true);
-  }, []);
+  const goSocietyReports = useCallback(() => {
+    router.navigate("/profile/society-reports");
+  }, [router]);
+  const goMyReports = useCallback(() => {
+    router.navigate("/profile/my-reports");
+  }, [router]);
+  const goMyProfiles = useCallback(() => {
+    router.navigate("/profile/my-profiles");
+  }, [router]);
 
   const menuItems = useMemo(() => {
     const items: {
@@ -367,6 +312,11 @@ export default function ProfileScreen() {
       onPress: () => void;
     }[] = [];
     if (hasAnyRole([UserRole.BUSINESS, UserRole.RESIDENT])) {
+      items.push({
+        label: "My Profiles",
+        icon: "person-circle-outline",
+        onPress: goMyProfiles,
+      });
       items.push({
         label: "My Events",
         icon: "calendar-outline",
@@ -380,12 +330,13 @@ export default function ProfileScreen() {
         onPress: goBusinessCatalog,
       });
     }
-    if (!hasRole(UserRole.GUEST) && !hasRole(UserRole.ADMIN)) {
+    if (!hasRole(UserRole.GUEST)) {
       items.push({
-        label: "My Requests",
-        icon: "document-outline",
-        onPress: goMyRequests,
+        label: "My Reports",
+        icon: "flag-outline",
+        onPress: goMyReports,
       });
+      
     }
     if (hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN])) {
       items.push({
@@ -393,14 +344,21 @@ export default function ProfileScreen() {
         icon: "shield-checkmark-outline",
         onPress: goAdminDashboard,
       });
+      items.push({
+        label: "Society Reports",
+        icon: "flag-outline",
+        onPress: goSocietyReports,
+      });
     }
     return items;
   }, [
     hasAnyRole,
     hasRole,
+    goSocietyReports,
+    goMyReports,
+    goMyProfiles,
     goEventDashboard,
     goBusinessCatalog,
-    goMyRequests,
     goAdminDashboard,
   ]);
 
@@ -429,13 +387,13 @@ export default function ProfileScreen() {
                 {name}
               </Text>
               {phone ? (
-                <Text style={{ color: t.colors.textSecondary, marginTop: 4, fontSize: 14 }}>
+                <Text style={{ color: t.colors.textSecondary, marginTop: 4, fontSize: 14, fontFamily: "Manrope_500Medium" }}>
                   {phone}
                 </Text>
               ) : null}
               {/* Render email if available on user shape */}
               {(user as any)?.email ? (
-                <Text style={{ color: t.colors.textSecondary, marginTop: 2, fontSize: 14 }}>
+                <Text style={{ color: t.colors.textSecondary, marginTop: 2, fontSize: 14, fontFamily: "Manrope_500Medium" }}>
                   {(user as any).email}
                 </Text>
               ) : null}
@@ -536,16 +494,6 @@ export default function ProfileScreen() {
                 </View>
               </View>
             )}
-            {hasRole(UserRole.RESIDENT) && (
-              <ActionButton
-                title="Update profile"
-                onPress={onManageProfile}
-                variant="primary"
-                size="lg"
-                containerStyle={dynamicStyles.updateProfileBtn}
-                fullWidth
-              />
-            )}
           </View>
         </Card>
 
@@ -566,6 +514,19 @@ export default function ProfileScreen() {
           </Card>
         )}
 
+        {/* {__DEV__ && (
+          <ActionButton
+            title={sendingTestPush ? "Sending test push..." : "Send test push"}
+            onPress={sendTestPush}
+            variant="secondary"
+            size="lg"
+            leftIconName="notifications-outline"
+            containerStyle={[staticStyles.logoutBtn, { marginTop: 16 }]}
+            fullWidth
+            disabled={sendingTestPush}
+          />
+        )} */}
+
         {/* Logout */}
         <ActionButton
           title="Log out"
@@ -582,64 +543,7 @@ export default function ProfileScreen() {
           fullWidth
         />
 
-        {/* Delete */}
-        <ActionButton
-          title="Delete account"
-          onPress={onDeleteAccount}
-          variant="danger"
-          size="lg"
-          leftIconName="trash-bin-outline"
-          iconColor={t.colors.error}
-          textStyle={{ color: t.colors.error }}
-          containerStyle={[
-            staticStyles.logoutBtn,
-            {
-              backgroundColor: "#00000000",
-              borderWidth: 1,
-              borderColor: t.colors.error + 80 ,
-            },
-          ]}
-          fullWidth
-        />
-        <Text style={[staticStyles.actionCaption, { color: t.colors.textSecondary }]}>
-          Deleting your account removes your data permanently.
-        </Text>
       </ScrollView>
-      {/* Manage Profile Form Sheet */}
-      <FormSheetModal
-        visible={manageVisible}
-        onClose={closeManage}
-        title="Manage Personal Profile"
-        subtitle="Update your name and address details"
-        dismissOnBackdrop={true}
-      >
-        {manageVisible ? (
-          <ManageProfileForm
-            onCancel={closeManage}
-            onSubmit={onSubmitManage}
-            showMobileField={false}
-          />
-        ) : null}
-      </FormSheetModal>
-
-      {/* Manage Profile Form Sheet */}
-      <FormSheetModal
-        visible={deleteModalVisible}
-        onClose={closeDeleteModal}
-        title="Delete Account"
-        dismissOnBackdrop={true}
-      >
-        {deleteModalVisible ? <DeleteAccount /> : null}
-      </FormSheetModal>
-
-      {/* Success overlay after profile update */}
-      <OrderSuccessModal
-        visible={successVisible}
-        onDismiss={closeSuccessModal}
-        title="Profile updated"
-        subtitle="Your personal details were saved."
-        autoHideMs={1800}
-      />
 
       <ConfirmationModal
         visible={logoutConfirmVisible}

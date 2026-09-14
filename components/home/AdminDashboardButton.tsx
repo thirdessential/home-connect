@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 9,
     lineHeight: 11,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     textAlign: "center",
     paddingHorizontal: 2,
   },
@@ -105,6 +105,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#fff",
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
 });

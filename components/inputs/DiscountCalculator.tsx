@@ -254,23 +254,23 @@ const styles = StyleSheet.create({
   },
   discountButtonText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   discountResultContainer: {
     gap: 2,
   },
   discountPercentText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   discountSaveText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   errorText: {
     fontSize: 13,
     color: "#EF4444",
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
 });
 

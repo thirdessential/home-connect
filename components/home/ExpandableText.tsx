@@ -42,5 +42,5 @@ export default memo(ExpandableText);
 
 const styles = StyleSheet.create({
   hidden: { position: "absolute", opacity: 0, zIndex: -1 },
-  link: { fontSize: 13, fontWeight: "600", marginTop: 4 },
+  link: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 4 },
 });

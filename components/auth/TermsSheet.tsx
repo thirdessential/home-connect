@@ -4,6 +4,7 @@ import {
   TERRACE_COLORS,
 } from "@/assets/constants/auth.constant";
 import ActionButton from "@/components/inputs/ActionButton";
+import { manropeFamily } from "@/theme/fonts";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -182,7 +183,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(18),
-    fontWeight: "800",
+    // fontWeight: "800",
+    fontFamily: manropeFamily('800'), 
     color: TERRACE_COLORS.textDark,
   },
   body: {
@@ -197,6 +199,7 @@ const styles = StyleSheet.create({
     fontSize: getWidth(14),
     lineHeight: getHeight(22),
     color: "#374151",
+    fontFamily: manropeFamily('400'), 
   },
   footer: {
     paddingHorizontal: getWidth(20),
@@ -205,7 +208,8 @@ const styles = StyleSheet.create({
     borderTopColor: TERRACE_COLORS.inputBorder,
   },
   agreeBtn: {
-    borderRadius: getWidth(14),
+    borderRadius: getWidth(10),
     paddingVertical: getHeight(15),
+    fontFamily: manropeFamily('700'), 
   },
 });

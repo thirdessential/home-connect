@@ -92,6 +92,7 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
       avatarUrl: user.profilePhotoUrl,
       initials: initialsOf(user.fullName),
       verified: user?.isAddressVerified?.status === "approved",
+      authorId: idOf(user) ?? undefined,
     },
     meta: [f.towerName, f.flatNo, formatPostTime(f.createdAt ?? "")]
       .filter(Boolean)

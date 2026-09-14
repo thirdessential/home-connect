@@ -137,7 +137,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
                       borderColor: theme.colors.border,
                     }}
                   >
-                    <Text style={{ fontSize: 26, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 26, fontWeight: "700", fontFamily: "Manrope_700Bold", color: theme.colors.textPrimary, marginBottom: 10 }}>
                       {tower?.name?.[0] ?? "?"}
                     </Text>
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -176,7 +176,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
           style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 14, alignSelf: "flex-start" }}
         >
           <Ionicons name="arrow-back" size={16} color={theme.colors.brandDark ?? theme.colors.primary} />
-          <Text style={{ fontSize: 14.5, fontWeight: "700", color: theme.colors.brandDark ?? theme.colors.primary }}>
+          <Text style={{ fontSize: 14.5, fontWeight: "700", fontFamily: "Manrope_700Bold", color: theme.colors.brandDark ?? theme.colors.primary }}>
             All Towers
           </Text>
         </TouchableOpacity>
@@ -190,7 +190,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
         {towerUsers.length === 0 ? (
           <View style={{ alignItems: "center", padding: 40, borderWidth: 1, borderStyle: "dashed", borderColor: theme.colors.border, borderRadius: 18 }}>
             <Ionicons name="people-outline" size={28} color={theme.colors.textSecondary} />
-            <Text style={{ marginTop: 10, fontWeight: "700", color: theme.colors.textPrimary }}>No approved residents yet</Text>
+            <Text style={{ marginTop: 10, fontWeight: "700", fontFamily: "Manrope_700Bold", color: theme.colors.textPrimary }}>No approved residents yet</Text>
             <Text style={{ marginTop: 4, fontSize: 13, color: theme.colors.textSecondary, textAlign: "center" }}>
               {selectedTowerName} has no approved residents at the moment.
             </Text>
@@ -226,7 +226,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
                   mode="view"
                 />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: theme.colors.textPrimary }}>
+                  <Text style={{ fontSize: 15, fontWeight: "700", fontFamily: "Manrope_700Bold", color: theme.colors.textPrimary }}>
                     {user.fullName}
                   </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 3 }}>
@@ -236,7 +236,7 @@ const ApprovedResidentsView: React.FC<ApprovedResidentsViewProps> = ({
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
                     <Ionicons name="checkmark-circle" size={14} color={theme.colors.brand} />
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: theme.colors.brand }}>
+                    <Text style={{ fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: theme.colors.brand }}>
                       Verified resident
                     </Text>
                   </View>

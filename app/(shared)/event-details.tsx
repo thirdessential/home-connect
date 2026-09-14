@@ -1,6 +1,7 @@
 import Heading from "@/components/UI/Heading";
 import SuccessModal from "@/components/UI/SuccessModal";
 import { useToast } from "@/components/common/Toast";
+import ReportModal from "@/components/modals/ReportModal";
 import ActionButton from "@/components/inputs/ActionButton";
 import { useEventStore } from "@/store/useEventStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -75,7 +76,7 @@ function Avatar({ p, size = 40 }: { p: { name: string; profileImage: string | nu
   }
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: t.colors.brandWeak, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontSize: size * 0.35 }}>{initials(p.name)}</Text>
+      <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: size * 0.35 }}>{initials(p.name)}</Text>
     </View>
   );
 }
@@ -90,6 +91,7 @@ export default function EventDetailsScreen() {
     toggleLike,
   } = useEventStore();
   const currentUserId = useUserStore((s) => s.user?._id);
+  const [reportVisible, setReportVisible] = useState(false);
 
   const [joinSheetOpen, setJoinSheetOpen] = useState(false);
   const [joinedUsersOpen, setJoinedUsersOpen] = useState(false);
@@ -205,10 +207,24 @@ export default function EventDetailsScreen() {
           <Ionicons name="arrow-back" size={20} color={t.colors.text} />
         </Pressable>
         <Heading level={4}>Event Details</Heading>
-        <Pressable onPress={onShare} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
-          <Ionicons name="share-outline" size={20} color={t.colors.text} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable onPress={onShare} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
+            <Ionicons name="share-outline" size={20} color={t.colors.text} />
+          </Pressable>
+          <Pressable onPress={() => setReportVisible(true)} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
+            <Ionicons name="flag-outline" size={20} color={t.colors.text} />
+          </Pressable>
+        </View>
       </View>
+      {eventId && (
+        <ReportModal
+          visible={reportVisible}
+          onClose={() => setReportVisible(false)}
+          reportType="event"
+          itemId={eventId}
+          itemName={e?.title}
+        />
+      )}
 
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: FOOTER_SPACE + insets.bottom }}
@@ -251,7 +267,7 @@ export default function EventDetailsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Date & Time</Text>
-              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600" }]}>
+              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }]}>
                 {formatEventDate(e.startDate)}
                 {e.startTime ? ` • ${e.startTime}` : ""}
                 {e.endTime ? ` – ${e.endTime}` : ""}
@@ -268,7 +284,7 @@ export default function EventDetailsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Duration</Text>
-                  <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600" }]}>{duration}</Text>
+                  <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }]}>{duration}</Text>
                 </View>
               </View>
             </>
@@ -281,7 +297,7 @@ export default function EventDetailsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Location</Text>
-              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600" }]}>{e.venue}</Text>
+              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }]}>{e.venue}</Text>
             </View>
           </View>
         </View>
@@ -309,7 +325,7 @@ export default function EventDetailsScreen() {
               <Ionicons name="people-outline" size={18} color={t.colors.secondaryText} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", marginBottom: 8 }]}>
+              <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginBottom: 8 }]}>
                 {e.joinedCount} of {e.maxParticipants} spots filled
               </Text>
               <View style={[styles.progressTrack, { backgroundColor: t.colors.surfaceAlt }]}>
@@ -324,11 +340,11 @@ export default function EventDetailsScreen() {
               <Pressable style={styles.joinedPreviewRow} onPress={openJoinedUsers}>
                 <Avatar p={joinedPreview[0]} size={24} />
                 <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 8, flex: 1 }]}>
-                  <Text style={{ color: t.colors.text, fontWeight: "600" }}>{joinedPreview[0]?.name}</Text>
+                  <Text style={{ color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>{joinedPreview[0]?.name}</Text>
                   {" and "}
                   {Math.max(0, e.joinedCount - 1)} neighbours are attending.
                 </Text>
-                <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700" }]}>See all</Text>
+                <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>See all</Text>
                 <Ionicons name="chevron-forward" size={14} color={t.colors.brandDark} />
               </Pressable>
             </>
@@ -341,7 +357,7 @@ export default function EventDetailsScreen() {
             <View style={[styles.iconCircleSm, { backgroundColor: t.colors.brandWeak }]}>
               <Ionicons name="time-outline" size={16} color={t.colors.brandDark} />
             </View>
-            <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "600", flexShrink: 1 }]}>
+            <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold", flexShrink: 1 }]}>
               Closes {e.registrationClosesBeforeHours}h before
             </Text>
           </View>
@@ -349,7 +365,7 @@ export default function EventDetailsScreen() {
             <View style={[styles.iconCircleSm, { backgroundColor: t.colors.brandWeak }]}>
               <Ionicons name="pricetag-outline" size={16} color={t.colors.brandDark} />
             </View>
-            <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "600" }]}>
+            <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }]}>
               {e.participationType === "free" ? "Free" : `₹${e.feeAmount}`}
             </Text>
           </View>
@@ -365,7 +381,7 @@ export default function EventDetailsScreen() {
         {e.currentUserJoined ? (
           <View style={[styles.joinedBadge, { backgroundColor: t.colors.brandWeak }]}>
             <Ionicons name="checkmark-circle" size={18} color={t.colors.brandDark} />
-            <Text style={[t.typography.body, { color: t.colors.brandDark, marginLeft: 6, fontWeight: "700" }]}>
+            <Text style={[t.typography.body, { color: t.colors.brandDark, marginLeft: 6, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>
               You've joined this event
             </Text>
           </View>
@@ -374,7 +390,7 @@ export default function EventDetailsScreen() {
           // user tap into a guaranteed error.
           <View style={[styles.joinedBadge, { backgroundColor: t.colors.surfaceAlt }]}>
             <Ionicons name="lock-closed-outline" size={18} color={t.colors.secondaryText} />
-            <Text style={[t.typography.body, { color: t.colors.secondaryText, marginLeft: 6, fontWeight: "700" }]}>
+            <Text style={[t.typography.body, { color: t.colors.secondaryText, marginLeft: 6, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>
               {joinBlockedReason}
             </Text>
           </View>
@@ -410,7 +426,7 @@ export default function EventDetailsScreen() {
             </View>
             {e.participationType === "paid" ? (
               <View style={[styles.feeNotice, { backgroundColor: t.colors.surfaceAlt }]}>
-                <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "700" }]}>₹{e.feeAmount} per participant</Text>
+                <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>₹{e.feeAmount} per participant</Text>
                 <Text style={[t.typography.small, { color: t.colors.secondaryText, marginTop: 2 }]}>
                   Terrace doesn't process payments. Please pay the organiser directly.
                 </Text>
@@ -438,7 +454,7 @@ export default function EventDetailsScreen() {
               <Heading level={4}>Residents joining this event</Heading>
               <Pressable onPress={() => setJoinedUsersOpen(false)}><Ionicons name="close" size={22} color={t.colors.text} /></Pressable>
             </View>
-            <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700", marginBottom: 8 }]}>
+            <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold", marginBottom: 8 }]}>
               {e.joinedCount} of {e.maxParticipants} spots filled
             </Text>
             <FlatList
@@ -449,7 +465,7 @@ export default function EventDetailsScreen() {
                 <View style={styles.participantRow}>
                   <Avatar p={item} />
                   <View style={{ marginLeft: 10 }}>
-                    <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "700" }]}>{item.name}</Text>
+                    <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>{item.name}</Text>
                     <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>
                       {[cleanLocationPart(item.tower), cleanLocationPart(item.unit)].filter(Boolean).join(" • ") || "—"}
                     </Text>
@@ -521,7 +537,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 999,
     paddingHorizontal: 12, paddingVertical: 6,
   },
-  categoryPillText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  categoryPillText: { color: "#fff", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 12 },
   card: { padding: 16, borderRadius: 24, borderWidth: 1, gap: 12 },
   organizerCard: { gap: 0 },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },

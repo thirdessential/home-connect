@@ -153,7 +153,7 @@ export default function OrderSuccessModal({
               marginBottom: 8,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
+            <Text style={{ color: "#fff", fontWeight: "800", fontFamily: "Manrope_800ExtraBold", fontSize: 18 }}>
               {title}
             </Text>
           </View>
@@ -165,7 +165,7 @@ export default function OrderSuccessModal({
               borderRadius: 6,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{subtitle}</Text>
+            <Text style={{ color: "#fff", fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>{subtitle}</Text>
           </View>
         </Animated.View>
       </Animated.View>

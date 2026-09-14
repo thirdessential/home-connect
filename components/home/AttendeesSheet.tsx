@@ -49,6 +49,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   fallback: { alignItems: "center", justifyContent: "center" },
-  initial: { fontSize: 13, fontWeight: "700" },
-  name: { fontSize: 14, fontWeight: "500" },
+  initial: { fontSize: 13, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+  name: { fontSize: 14, fontWeight: "500", fontFamily: "Manrope_500Medium" },
 });

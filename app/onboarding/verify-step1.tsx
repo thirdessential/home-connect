@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(24),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(24),
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     marginBottom: getHeight(20),
   },
   continueBtn: {
-    borderRadius: getWidth(28),
+    borderRadius: getWidth(14),
     paddingVertical: getHeight(15),
   },
   footerText: {

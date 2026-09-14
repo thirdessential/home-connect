@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   content: {
     marginBottom: 24,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   confirmButton: {
     justifyContent: "center",
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#fff",
   },
   successIconContainer: {

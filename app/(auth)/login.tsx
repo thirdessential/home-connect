@@ -9,6 +9,7 @@ import TerraceHeader from "@/components/auth/TerraceHeader";
 import { useToast } from "@/components/common/Toast";
 import ActionButton from "@/components/inputs/ActionButton";
 import { useAuthStore } from "@/store/useAuthStore";
+import { manropeFamily } from "@/theme/fonts";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -39,8 +40,10 @@ function FeatureColumn({ item }: { item: (typeof TERRACE_FEATURES)[number] }) {
           <Ionicons name={item.icon as any} size={getWidth(24)} color={item.color} />
         )}
       </View>
-      <Text style={[styles.featureTitle, { color: item.color }]}>{item.title}</Text>
-      <Text style={styles.featureDesc}>{item.desc}</Text>
+      <Text style={[styles.featureTitle, {
+        color: item.color
+      }]}>{item.title}</Text>
+      <Text style={[styles.featureDesc]}>{item.desc}</Text>
     </View>
   );
 }
@@ -259,6 +262,7 @@ const styles = StyleSheet.create({
     fontSize: getWidth(27),
     lineHeight: getHeight(34),
     fontWeight: "600",
+    fontFamily: manropeFamily('700'),
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     // marginTop: getHeight(16),
@@ -266,6 +270,7 @@ const styles = StyleSheet.create({
   headlineAccent: {
     color: TERRACE_COLORS.orange,
     fontWeight: "600",
+    fontFamily: manropeFamily('700'),
   },
   featureRow: {
     flexDirection: "row",
@@ -287,7 +292,9 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: getWidth(15),
-    fontWeight: "600",
+    // lineHeight: getHeight(15),
+    // fontWeight: "700",
+    fontFamily: manropeFamily('700'),
     // marginBottom: getHeight(5),
   },
   featureDesc: {
@@ -325,12 +332,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: getWidth(22),
-    fontWeight: "700",
+    // fontWeight: "700",
+    fontFamily: manropeFamily('700'),
     color: TERRACE_COLORS.textDark,
   },
   cardSubtitle: {
     fontSize: getWidth(14),
     fontWeight: "400",
+    fontFamily: manropeFamily('400'),
     color: TERRACE_COLORS.textMuted,
     marginTop: getHeight(4),
   },
@@ -359,7 +368,8 @@ const styles = StyleSheet.create({
   },
   ccText: {
     fontSize: getWidth(16),
-    fontWeight: "600",
+    // fontWeight: "700",
+    fontFamily: manropeFamily('700'),
     color: TERRACE_COLORS.textDark,
     marginRight: getWidth(4),
   },
@@ -378,7 +388,7 @@ const styles = StyleSheet.create({
   },
   continueBtn: {
     marginTop: getHeight(16),
-    borderRadius: getWidth(28),
+    borderRadius: getWidth(14),
     paddingVertical: getHeight(15),
   },
   tcBox: {
@@ -402,10 +412,12 @@ const styles = StyleSheet.create({
     fontSize: getWidth(14),
     color: TERRACE_COLORS.textDark,
     fontWeight: "500",
+    fontFamily: manropeFamily('500'),
   },
   tcLink: {
     color: TERRACE_COLORS.orange,
     fontWeight: "600",
+    fontFamily: manropeFamily('700'),
     textDecorationLine: "underline",
   },
   footer: {
@@ -417,6 +429,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: getWidth(13),
     fontWeight: "400",
+    fontFamily: manropeFamily('400'),
     color: TERRACE_COLORS.textMuted,
     marginLeft: getWidth(8),
   },

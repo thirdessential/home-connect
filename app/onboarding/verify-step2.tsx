@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(24),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(20),
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   stepWrap: { marginBottom: getHeight(12) },
   question: {
     fontSize: getWidth(16),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(12),
   },
@@ -146,6 +146,6 @@ const styles = StyleSheet.create({
     borderColor: TERRACE_COLORS.green,
     backgroundColor: TERRACE_COLORS.greenTint,
   },
-  ownerOptionText: { fontSize: getWidth(15), fontWeight: "600", color: TERRACE_COLORS.textMuted },
+  ownerOptionText: { fontSize: getWidth(15), fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: TERRACE_COLORS.textMuted },
   ownerOptionTextSelected: { color: TERRACE_COLORS.orange },
 });

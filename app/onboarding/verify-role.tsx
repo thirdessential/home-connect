@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(26),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(16),

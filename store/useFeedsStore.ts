@@ -496,6 +496,23 @@ export const useFeedsStore = create<FeedsState>()(
                     throw error;
                 }
             },
+            // Centralized report API — targetId/targetType per backend contract.
+            // JWT identifies the reporter; no userId/feedId in the payload.
+            reportComment: async (_feedId: string, commentId: string, _userId: string, reason: string) => {
+                set({ loading: true, error: null });
+                try {
+                    await Post<{ id: number }>("/api/reports", {
+                        targetType: "COMMENT",
+                        targetId: commentId,
+                        reason,
+                    });
+                    set({ loading: false });
+                } catch (error) {
+                    const errorMsg = error instanceof Error ? error.message : "Failed to report comment";
+                    set({ error: errorMsg, loading: false });
+                    throw error;
+                }
+            },
             addReview: async (feedId: string, reviewData: { userId: string; rating: number; comment: string }) => {
                 set({ loading: true, error: null });
                 try {

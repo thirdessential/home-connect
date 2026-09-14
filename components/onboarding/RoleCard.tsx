@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   roleTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 4,
   },
   roleSubtitle: {

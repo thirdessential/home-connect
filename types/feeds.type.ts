@@ -27,6 +27,7 @@ export interface FeedsState {
     addOrUpdateRSVP: (feedId: string, rsvpData: RsvpUser) => Promise<void>;
     removeRSVP: (feedId: string, userId: string) => Promise<void>;
     reportFeed: (feedId: string, userId: string, reason: string) => Promise<void>;
+    reportComment: (feedId: string, commentId: string, userId: string, reason: string) => Promise<void>;
     addReview: (feedId: string, reviewData: { userId: string; rating: number; comment: string }) => Promise<void>;
     clear: () => void;
 }

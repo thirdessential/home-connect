@@ -61,7 +61,7 @@ export default function FilterSheet({ visible, title, fields, onApply, onClear, 
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: t.colors.textPrimary }}>{title}</Text>
+            <Text style={{ fontSize: 17, fontWeight: "700", fontFamily: "Manrope_700Bold", color: t.colors.textPrimary }}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={22} color={t.colors.textSecondary} />
             </TouchableOpacity>
@@ -70,7 +70,7 @@ export default function FilterSheet({ visible, title, fields, onApply, onClear, 
           <ScrollView showsVerticalScrollIndicator={false}>
             {fields.map((f) => (
               <View key={f.key} style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12.5, fontWeight: "600", color: t.colors.textSecondary, marginBottom: 8 }}>
+                <Text style={{ fontSize: 12.5, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: t.colors.textSecondary, marginBottom: 8 }}>
                   {f.label}
                 </Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -89,7 +89,7 @@ export default function FilterSheet({ visible, title, fields, onApply, onClear, 
                           backgroundColor: active ? t.colors.brandWeak : t.colors.surface,
                         }}
                       >
-                        <Text style={{ fontSize: 13, fontWeight: "600", color: active ? t.colors.brandDark : t.colors.textSecondary }}>
+                        <Text style={{ fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: active ? t.colors.brandDark : t.colors.textSecondary }}>
                           {opt.label}
                         </Text>
                       </TouchableOpacity>
@@ -112,7 +112,7 @@ export default function FilterSheet({ visible, title, fields, onApply, onClear, 
                 borderColor: t.colors.border,
               }}
             >
-              <Text style={{ fontWeight: "700", color: t.colors.textPrimary }}>Clear All</Text>
+              <Text style={{ fontWeight: "700", fontFamily: "Manrope_700Bold", color: t.colors.textPrimary }}>Clear All</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onApply}
@@ -124,7 +124,7 @@ export default function FilterSheet({ visible, title, fields, onApply, onClear, 
                 backgroundColor: t.colors.brand,
               }}
             >
-              <Text style={{ fontWeight: "700", color: "#fff" }}>Apply Filters</Text>
+              <Text style={{ fontWeight: "700", fontFamily: "Manrope_700Bold", color: "#fff" }}>Apply Filters</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

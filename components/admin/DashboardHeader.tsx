@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   titleWrap: { flex: 1 },
-  title: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
+  title: { fontSize: 20, fontWeight: "800", fontFamily: "Manrope_800ExtraBold", letterSpacing: -0.3 },
   subRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   subtitle: { fontSize: 13.5, flexShrink: 1 },
 });

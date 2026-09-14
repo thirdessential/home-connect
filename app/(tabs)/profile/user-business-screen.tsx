@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   profileInfoText: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 20,
   },
   contentContainerStyle: {
@@ -638,20 +638,20 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#FFF",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   cardContent: {
     padding: 12,
   },
   title: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: "#22223B",
     marginBottom: 4,
   },
   price: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#222",
   },
   optionText: {
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 36,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: "#FFFFFF",
   },
   actionButtonsRow: {
@@ -730,12 +730,12 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   profileInfo: {
     paddingBottom: 24,

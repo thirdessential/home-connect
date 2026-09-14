@@ -24,7 +24,7 @@ const BulkActionBar = memo(function BulkActionBar({
       <Text
         style={[
           t.typography.body,
-          { color: t.colors.textSecondary, fontWeight: "500" },
+          { color: t.colors.textSecondary, fontWeight: "500", fontFamily: "Manrope_500Medium" },
         ]}
       >
         {selectedCount} Selected

@@ -3,11 +3,13 @@ import { useTheme } from "@/theme/theme";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Minimal details screen for GET /api/admin/requests/:type/:id.
 // Renders whatever fields the API actually returns — no fabricated data.
 export default function AdminRequestDetails() {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const { type, id } = useLocalSearchParams<{ type: string; id: string }>();
   const [data, setData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function AdminRequestDetails() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.white }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
         <ActivityIndicator color={t.colors.primary} />
       </View>
     );
@@ -33,7 +35,7 @@ export default function AdminRequestDetails() {
 
   if (error || !data) {
     return (
-      <View style={[styles.center, { backgroundColor: t.colors.white }]}>
+      <View style={[styles.center, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
         <Text style={{ color: t.colors.textSecondary }}>{error ?? "No data found"}</Text>
       </View>
     );
@@ -44,8 +46,8 @@ export default function AdminRequestDetails() {
 
   return (
     <ScrollView
-      style={{ backgroundColor: t.colors.white }}
-      contentContainerStyle={styles.content}
+      style={{ backgroundColor: t.colors.white, paddingTop: insets.top }}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
     >
       <Text style={[t.typography.h2, { color: t.colors.textPrimary, marginBottom: 12 }]}>
         {data.name || data.business_name || "Request Details"}

@@ -100,7 +100,10 @@ export const transformDataForDisplay = (
         return {
             id: residentId,
             type: UserType.RESIDENT,
-            name: fullName || "Unknown User",
+            // MySQL resident requests (adminRequest.service.js) serialize the
+            // name as `name`, not `fullName` — only legacy Mongo user docs use
+            // `fullName`. Fall back to `name` before showing "Unknown User".
+            name: fullName || name || "Unknown User",
             society: society?.name || "Unknown Society",
             flatTower: unit_flat && building_block
                 ? `${building_block}, ${unit_flat}`

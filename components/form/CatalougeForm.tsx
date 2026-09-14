@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     textAlign: "center",
     marginBottom: 18,
     marginTop: 8,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 20,
     color: "#111827",
   },
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#6B7280",
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 15,
   },
   activeCircleText: {
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 8,
     color: "#6B7280",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
   activeStepLabel: {
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 6,
     color: "#111827",
   },

@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   text: {
     color: "#fff",
     fontSize: getWidth(14),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginLeft: getWidth(10),
     flex: 1,
     flexShrink: 1,

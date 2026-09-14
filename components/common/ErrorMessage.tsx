@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     alignSelf: "center",
   },
 });

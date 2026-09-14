@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   societyInfo: { flex: 1 },
-  societyName: { fontSize: 15, fontWeight: "600" },
+  societyName: { fontSize: 15, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   societyLocality: { fontSize: 13, marginTop: 2 },
   empty: { padding: 24, alignItems: "center" },
 });

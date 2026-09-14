@@ -112,13 +112,13 @@ function TerraceSelectField({
                     }}
                     style={[
                       styles.optionRow,
-                      isSelected && { borderColor: TERRACE_COLORS.orange, backgroundColor: TERRACE_COLORS.orangeTint },
+                      isSelected && { borderColor: TERRACE_COLORS.orange, backgroundColor: TERRACE_COLORS.greenTint },
                     ]}
                   >
                     <Text
                       style={[
                         styles.optionText,
-                        isSelected && { color: TERRACE_COLORS.orange, fontWeight: "700" },
+                        isSelected && { color: TERRACE_COLORS.orange, fontWeight: "700", fontFamily: "Manrope_700Bold" },
                       ]}
                     >
                       {item.name}
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: getWidth(14),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(8),
   },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: getWidth(17),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(14),
   },
@@ -202,6 +202,6 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: getWidth(15),
     color: TERRACE_COLORS.textDark,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
 });

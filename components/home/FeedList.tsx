@@ -12,6 +12,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AttendeesSheet from "./AttendeesSheet";
 import CommentsSheet from "./CommentsSheet";
+import ReportModal, { ReportType } from "@/components/modals/ReportModal";
 import EventFeedCard from "./EventFeedCard";
 import PollFeedCard from "./PollFeedCard";
 import PostFeedCard from "./PostFeedCard";
@@ -50,6 +51,7 @@ function FeedList({
   // ("post" vs "poll") can't flip mid-flow once the item leaves `items`.
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; kind: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: ReportType; id: string; name?: string } | null>(null);
 
   const byId = useMemo(
     () => Object.fromEntries(items.map((i) => [i.id, i])),
@@ -80,11 +82,18 @@ function FeedList({
         setMoreFor(null);
         return;
       }
+      if (key === "report-post" && activeMoreItem) {
+        setReportTarget({ type: activeMoreItem.kind as ReportType, id: activeMoreItem.id, name: activeMoreItem.title });
+        setMoreFor(null);
+        return;
+      }
+      if (key === "report-user" && activeMoreItem) {
+        setReportTarget({ type: "user", id: activeMoreItem.author.authorId ?? "", name: activeMoreItem.author.name });
+        setMoreFor(null);
+        return;
+      }
       setMoreFor(null);
-      showToast(
-        key === "hide" ? "Hidden from your feed" : "Report submitted for review",
-        "info",
-      );
+      if (key === "hide") showToast("Hidden from your feed", "info");
     },
     [showToast, activeMoreItem],
   );
@@ -191,10 +200,21 @@ function FeedList({
         windowSize={7}
       />
 
+      {reportTarget && (
+        <ReportModal
+          visible={!!reportTarget}
+          onClose={() => setReportTarget(null)}
+          reportType={reportTarget.type}
+          itemId={reportTarget.id}
+          itemName={reportTarget.name}
+        />
+      )}
+
       <CommentsSheet
         visible={!!commentsFor}
         onClose={() => setCommentsFor(null)}
         comments={commentsFor ? (byId[commentsFor]?.comments ?? []) : []}
+        feedId={commentsFor ?? undefined}
         onSubmit={async (text) => {
           if (commentsFor) await actions.addComment(commentsFor, text);
         }}

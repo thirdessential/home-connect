@@ -37,16 +37,16 @@ export default function DealsScreen() {
       }}
     >
       {/* Fixed Header (non-scrollable) */}
-      <Text style={{ fontWeight: "bold", fontSize: 24, padding: 16 }}>
+      <Text style={{  fontFamily: "Manrope_700Bold", fontSize: 24, padding: 16 }}>
         Community Deals
       </Text>
 
       {/* Deals feature not live yet — content/API list hidden until launch */}
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
-        <Text style={{ fontWeight: "700", fontSize: 20, color: t.colors.textPrimary, marginBottom: 8 }}>
+        <Text style={{  fontFamily: "Manrope_700Bold", fontSize: 20, color: t.colors.textPrimary, marginBottom: 8 }}>
           Coming Soon
         </Text>
-        <Text style={{ fontSize: 14, color: t.colors.textSecondary, textAlign: "center" }}>
+        <Text style={{ fontSize: 14, color: t.colors.textSecondary, textAlign: "center", fontFamily: "Manrope_500Medium", }}>
           Deals are coming soon to Home Connect.
         </Text>
       </View>

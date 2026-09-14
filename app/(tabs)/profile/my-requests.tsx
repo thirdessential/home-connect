@@ -107,7 +107,7 @@ const RequestGridCard = memo(function RequestGridCard({
             opacity: 0.9,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
             {chip}
           </Text>
         </View>
@@ -118,7 +118,7 @@ const RequestGridCard = memo(function RequestGridCard({
           numberOfLines={2}
           style={{
             fontSize: 14,
-            fontWeight: "700",
+            fontWeight: "700", fontFamily: "Manrope_700Bold",
             color: "#1f2937",
             height: 30,
           }}
@@ -145,7 +145,7 @@ const RequestGridCard = memo(function RequestGridCard({
           }}
         >
           {sellingPrice ? (
-            <Text style={{ fontWeight: "800", color: "#0f172a" }}>
+            <Text style={{ fontWeight: "800", fontFamily: "Manrope_800ExtraBold", color: "#0f172a" }}>
               {COMMON_CONSTANTS.CURRENCY} {sellingPrice}
               {item?.unit ? ` / ${item.unit}` : ""}
             </Text>
@@ -481,7 +481,7 @@ export default function MyRequestsScreen() {
       }}
     >
       <View style={{}}>
-        <Text style={{ fontWeight: "bold", fontSize: 24, padding: 16 }}>
+        <Text style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold", fontSize: 24, padding: 16 }}>
           My Requests
         </Text>
       </View>
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#374151",
     marginBottom: 8,
   },

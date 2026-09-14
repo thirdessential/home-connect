@@ -1,3 +1,4 @@
+import { manropeFamily } from "@/theme/fonts";
 import { useTheme } from "@/theme/theme";
 import { memo } from "react";
 import { Text, type StyleProp, type TextStyle } from "react-native";
@@ -16,7 +17,7 @@ const Label = memo(function Label({ children, required, style }: Props) {
     <Text
       style={[
         t.typography.label,
-        { color: t.colors.text, marginBottom: t.spacing.xs, fontFamily: t.typography.fontFamily },
+        { color: t.colors.text, marginBottom: t.spacing.xs, fontFamily: manropeFamily(t.typography.label.fontWeight) },
         style,
       ]}
     >

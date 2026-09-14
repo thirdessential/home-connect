@@ -53,7 +53,7 @@ export default function TextArea({
           }}
           pointerEvents="none"
         >
-          <Text style={{ fontSize: 12, fontWeight: "600", color: labelColor }}>
+          <Text style={{ fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: labelColor }}>
             {label}
           </Text>
         </View>

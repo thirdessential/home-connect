@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   heroImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   heroFallbackIcon: { alignItems: "center", justifyContent: "center" },
   heroInner: { ...StyleSheet.absoluteFill, padding: 16, justifyContent: "space-between" },
-  heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "700", lineHeight: 28, letterSpacing: -0.4 },
+  heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "700", fontFamily: "Manrope_700Bold", lineHeight: 28, letterSpacing: -0.4 },
   categoryPill: {
     alignSelf: "flex-start",
     marginTop: 8,
@@ -264,23 +264,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  categoryText: { fontSize: 14, fontWeight: "600", color: "#ffffff", letterSpacing: -0.4 },
+  categoryText: { fontSize: 14, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#ffffff", letterSpacing: -0.4 },
 
   plainHeader: { paddingHorizontal: 16, paddingTop: 16 },
   body: { padding: 16, gap: 14 },
-  plainTitle: { fontSize: 20, fontWeight: "700", lineHeight: 28, letterSpacing: -0.4 },
+  plainTitle: { fontSize: 20, fontWeight: "700", fontFamily: "Manrope_700Bold", lineHeight: 28, letterSpacing: -0.4 },
 
   metaRow: { flexDirection: "row", flexWrap: "wrap", rowGap: 6, columnGap: 16 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
-  metaText: { fontSize: 13, lineHeight: 16, letterSpacing: -0.4 },
+  metaText: { fontSize: 13, fontFamily: "Manrope_400Regular" ,lineHeight: 16, letterSpacing: -0.4 },
 
-  description: { fontSize: 14, lineHeight: 20, letterSpacing: -0.4 },
+  description: { fontSize: 14, fontFamily: "Manrope_400Regular", lineHeight: 20, letterSpacing: -0.4 },
 
   progressBlock: { gap: 8 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  spotsText: { fontSize: 12, lineHeight: 16, letterSpacing: -0.4 },
-  spotsCount: { fontSize: 14, fontWeight: "700", letterSpacing: -0.4 },
-  progressHint: { fontSize: 12, flexShrink: 1, textAlign: "right", letterSpacing: -0.4 },
+  spotsText: { fontSize: 12, fontFamily: "Manrope_400Regular", lineHeight: 16, letterSpacing: -0.4 },
+  spotsCount: { fontSize: 14, fontFamily: "Manrope_700Bold", letterSpacing: -0.4 },
+  progressHint: { fontSize: 12, fontFamily: "Manrope_400Regular",  flexShrink: 1, textAlign: "right", letterSpacing: -0.4 },
   track: { width: "100%", height: 8, borderRadius: 999, overflow: "hidden" },
   fill: { height: 8, borderRadius: 999 },
 
@@ -288,10 +288,10 @@ const styles = StyleSheet.create({
   avatarStack: { flexDirection: "row" },
   attendeeAvatar: { width: 24, height: 24, borderRadius: 12, borderWidth: 2 },
   attendeeFallback: { alignItems: "center", justifyContent: "center" },
-  attendeeInitial: { fontSize: 12, fontWeight: "700", letterSpacing: -0.4 },
+  attendeeInitial: { fontSize: 12, fontWeight: "700", fontFamily: "Manrope_700Bold", letterSpacing: -0.4 },
   overlap: { marginLeft: -8 },
-  attendeeText: { flex: 1, fontSize: 12, lineHeight: 16, letterSpacing: -0.4 },
-  seeAll: { fontSize: 12, fontWeight: "600", letterSpacing: -0.4 },
+  attendeeText: { flex: 1, fontSize: 12, fontFamily: "Manrope_500Medium", lineHeight: 16, letterSpacing: -0.4 },
+  seeAll: { fontSize: 12,  fontFamily: "Manrope_600SemiBold", letterSpacing: -0.4 },
 
   cta: {
     height: 45,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  ctaText: { fontSize: 18, fontWeight: "600", letterSpacing: -0.4 },
+  ctaText: { fontSize: 18,  fontFamily: "Manrope_600SemiBold", letterSpacing: -0.4 },
 
   footer: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1 },
 });

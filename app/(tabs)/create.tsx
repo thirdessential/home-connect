@@ -209,7 +209,7 @@ export default function CreatePostScreen() {
               <Image source={{ uri: currentUser.profilePhotoUrl }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: t.colors.brandWeak }]}>
-                <Text style={{ color: t.colors.brandDark, fontWeight: "700" }}>
+                <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
                   {(currentUser?.fullName || "U").slice(0, 1).toUpperCase()}
                 </Text>
               </View>
@@ -346,13 +346,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700" },
+  headerTitle: { fontSize: 17, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   postBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  postBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  postBtnText: { color: "#fff", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 14 },
   userRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   avatar: { width: 48, height: 48, borderRadius: 24 },
   avatarFallback: { alignItems: "center", justifyContent: "center" },
-  userName: { fontSize: 15, fontWeight: "700" },
+  userName: { fontSize: 15, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
   locationText: { fontSize: 12, flexShrink: 1 },
   composer: { borderWidth: 1, borderRadius: 16, padding: 16, minHeight: 220 },
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  retryText: { color: "#fff", fontSize: 12, fontWeight: "600", marginTop: 4 },
+  retryText: { color: "#fff", fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 4 },
   removeImageBtn: { position: "absolute", top: 8, right: 8 },
   composerFooter: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginTop: 12 },
   composerActions: { flexDirection: "row", gap: 8 },
@@ -385,18 +385,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  chipText: { fontSize: 13, fontWeight: "600" },
+  chipText: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   counter: { fontSize: 12 },
   section: { paddingVertical: 20, paddingHorizontal: 16 },
   dividerRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   divider: { flex: 1, height: 1 },
-  sectionTitle: { fontSize: 14, fontWeight: "700", paddingHorizontal: 12 },
+  sectionTitle: { fontSize: 14, fontWeight: "700", fontFamily: "Manrope_700Bold", paddingHorizontal: 12 },
   optionsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-around" },
   optionItem: { width: "30%", alignItems: "center", gap: 6, marginBottom: 16 },
   optionCircle: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center" },
-  optionLabel: { fontSize: 13, fontWeight: "600" },
+  optionLabel: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   optionUnderline: { width: 28, height: 2, borderRadius: 1, marginTop: 2 },
   banner: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 14, padding: 14 },
-  bannerTitle: { fontSize: 13, fontWeight: "700" },
+  bannerTitle: { fontSize: 13, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   bannerSubtitle: { fontSize: 11, marginTop: 2 },
 });

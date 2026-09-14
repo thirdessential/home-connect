@@ -445,7 +445,7 @@ export default function BusinessForm({
 const styles = StyleSheet.create({
   header: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     textAlign: "center",
     marginBottom: 18,
     marginTop: 8,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#6B7280",
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 15,
   },
   activeCircleText: {
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 8,
     color: "#6B7280",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
   activeStepLabel: {
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   },
   radioLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#111827",
     marginBottom: 12,
   },
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   },
   radioText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     color: "#374151",
   },
 });

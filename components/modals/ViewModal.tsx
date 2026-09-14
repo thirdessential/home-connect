@@ -129,7 +129,7 @@ export default function ViewModal({
               borderBottomColor: "#E0E0E0",
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: "600" }}>Details</Text>
+            <Text style={{ fontSize: 18, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>Details</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
@@ -162,7 +162,7 @@ export default function ViewModal({
                       <Text
                         style={{
                           fontSize: 16,
-                          fontWeight: "600",
+                          fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                           marginBottom: 8,
                         }}
                       >
@@ -178,7 +178,7 @@ export default function ViewModal({
                 <Text
                   style={{
                     fontSize: 16,
-                    fontWeight: "600",
+                    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                     marginBottom: 8,
                   }}
                 >
@@ -201,7 +201,7 @@ export default function ViewModal({
                       style={{
                         flex: 1,
                         padding: 8,
-                        fontWeight: "600",
+                        fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                         fontSize: 14,
                       }}
                     >
@@ -211,7 +211,7 @@ export default function ViewModal({
                       style={{
                         flex: 2,
                         padding: 8,
-                        fontWeight: "600",
+                        fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                         fontSize: 14,
                       }}
                     >
@@ -427,7 +427,7 @@ export default function ViewModal({
                         Status
                       </Text>
                       <Text
-                        style={{ flex: 2, padding: 8, fontWeight: "600" }}
+                        style={{ flex: 2, padding: 8, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}
                       >{`${data.status}`}</Text>
                     </View>
                   )}
@@ -471,7 +471,7 @@ export default function ViewModal({
                     <Text
                       style={{
                         fontSize: 16,
-                        fontWeight: "600",
+                        fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                         marginBottom: 8,
                       }}
                     >
@@ -496,7 +496,7 @@ export default function ViewModal({
                           style={{
                             flex: 1,
                             padding: 8,
-                            fontWeight: "600",
+                            fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                             fontSize: 14,
                           }}
                         >
@@ -506,7 +506,7 @@ export default function ViewModal({
                           style={{
                             flex: 1,
                             padding: 8,
-                            fontWeight: "600",
+                            fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                             fontSize: 14,
                           }}
                         >
@@ -516,7 +516,7 @@ export default function ViewModal({
                           style={{
                             flex: 1,
                             padding: 8,
-                            fontWeight: "600",
+                            fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                             fontSize: 14,
                           }}
                         >
@@ -526,7 +526,7 @@ export default function ViewModal({
                           style={{
                             flex: 1,
                             padding: 8,
-                            fontWeight: "600",
+                            fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                             fontSize: 14,
                           }}
                         >
@@ -536,7 +536,7 @@ export default function ViewModal({
                           style={{
                             flex: 1,
                             padding: 8,
-                            fontWeight: "600",
+                            fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                             fontSize: 14,
                           }}
                         >
@@ -569,7 +569,7 @@ export default function ViewModal({
               {data.businessInfo && (
                 <View style={{ gap: 12 }}>
                   <Text
-                    style={{ fontSize: 16, fontWeight: "600", marginTop: 8 }}
+                    style={{ fontSize: 16, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 8 }}
                   >
                     Business Details
                   </Text>

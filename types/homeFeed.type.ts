@@ -4,6 +4,7 @@
 export type HomeFeedKind = "event" | "post" | "poll";
 
 export type HomeFeedAuthor = {
+  authorId?: string;
   name: string;
   avatarUrl?: string;
   /** Fallback shown when there is no profile photo. */

@@ -151,7 +151,7 @@ const PollCard = React.memo(function PollCard({
   const handleReportPost = useCallback(() => { setReportType("poll"); setReportVisible(true); }, []);
   const handleCloseReportModal = useCallback(() => setReportVisible(false), []);
   const handleRemovePost = useCallback(() => setConfirmDeleteVisible(true), []);
-  const handleReportUser = useCallback(() => { }, []);
+  const handleReportUser = useCallback(() => { setReportType("user"); setReportVisible(true); }, []);
 
   // OS share sheet — no deep link, feed polls have no route in the app scheme.
   const handleShare = useCallback(async () => {
@@ -240,7 +240,7 @@ const PollCard = React.memo(function PollCard({
       {/* Poll Question */}
       <Text
         style={{
-          fontWeight: "600",
+          fontWeight: "600", fontFamily: "Manrope_600SemiBold",
           paddingTop: 10,
           fontSize: 15.5,
           color: t.colors.textPrimary,
@@ -310,7 +310,7 @@ const PollCard = React.memo(function PollCard({
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      fontWeight: "600",
+                      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                       fontSize: 15,
                       color: t.colors.textPrimary,
                     }}
@@ -334,7 +334,7 @@ const PollCard = React.memo(function PollCard({
                 {showResults && (
                   <Text
                     style={{
-                      fontWeight: "700",
+                      fontWeight: "700", fontFamily: "Manrope_700Bold",
                       fontSize: 14,
                       color: t.colors.brand,
                       minWidth: 38,

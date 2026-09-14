@@ -777,7 +777,7 @@ function ProductDetail() {
                   >
                     <Text
                       style={{
-                        fontWeight: "700",
+                        fontWeight: "700", fontFamily: "Manrope_700Bold",
                         fontSize: 12,
                         color:
                           selectedProduct.dealStatus === "UNLOCKED"
@@ -809,7 +809,7 @@ function ProductDetail() {
                         style={{
                           color: "#fff",
                           fontSize: 12,
-                          fontWeight: "700",
+                          fontWeight: "700", fontFamily: "Manrope_700Bold",
                         }}
                       >
                         🔥 Closing Soon
@@ -848,7 +848,7 @@ function ProductDetail() {
                 <Text
                   style={[
                     t.typography.text,
-                    { color: t.colors.textSecondary, fontWeight: "500" },
+                    { color: t.colors.textSecondary, fontWeight: "500", fontFamily: "Manrope_500Medium" },
                   ]}
                 >
                   / {priceData.quantityUnit}
@@ -1130,7 +1130,7 @@ function ProductDetail() {
                 selectedProduct?.rsvps?.length > 0) && (
                   <Text
                     style={{
-                      fontWeight: "600",
+                      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                       fontSize: 16,
                       marginBottom: 12,
                     }}
@@ -1271,12 +1271,12 @@ function ProductDetail() {
                             borderRadius: 6,
                             paddingHorizontal: 8,
                             paddingVertical: 12,
-                            fontWeight: "500",
+                            fontWeight: "500", fontFamily: "Manrope_500Medium",
                           }}
                         >
                           <Text
                             style={{
-                              fontWeight: "600",
+                              fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                               color: t.colors.primary,
                             }}
                           >
@@ -1307,7 +1307,7 @@ function ProductDetail() {
                       borderRadius: 6,
                       paddingHorizontal: 8,
                       paddingVertical: 20,
-                      fontWeight: "600",
+                      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                     }}
                   >
                     Hurry up! be the first one to join
@@ -1322,7 +1322,7 @@ function ProductDetail() {
               style={{
                 color: t.colors.textPrimary,
                 fontSize: 16,
-                fontWeight: "600",
+                fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                 marginBottom: 6,
               }}
             >
@@ -1341,7 +1341,7 @@ function ProductDetail() {
                 style={{
                   color: t.colors.textPrimary,
                   fontSize: 16,
-                  fontWeight: "600",
+                  fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                   marginVertical: 12,
                 }}
               >
@@ -1357,11 +1357,11 @@ function ProductDetail() {
                   }}
                 >
                   <Text
-                    style={{ color: t.colors.textPrimary, fontWeight: "500" }}
+                    style={{ color: t.colors.textPrimary, fontWeight: "500", fontFamily: "Manrope_500Medium" }}
                   >
                     Order Deadline
                   </Text>
-                  <Text style={{ color: t.colors.warning, fontWeight: "700" }}>
+                  <Text style={{ color: t.colors.warning, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
                     {formatPostTime(selectedProduct?.orderDeadlineDate || "")}
                   </Text>
                   {selectedProduct?.orderDeadlineDate && (
@@ -1376,13 +1376,13 @@ function ProductDetail() {
                   <Text
                     style={{
                       color: t.colors.textSecondary,
-                      fontWeight: "500",
+                      fontWeight: "500", fontFamily: "Manrope_500Medium",
                     }}
                   >
                     Est. Delivery
                   </Text>
                   <Text
-                    style={{ color: t.colors.textPrimary, fontWeight: "700" }}
+                    style={{ color: t.colors.textPrimary, fontWeight: "700", fontFamily: "Manrope_700Bold" }}
                   >
                     {selectedProduct?.estimatedDeliveryDate
                       ? formatToReadableDate(
@@ -1631,7 +1631,7 @@ const styles = StyleSheet.create({
   },
   reviewTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 12,
     color: "#1F2937",
   },
@@ -1671,7 +1671,7 @@ const styles = StyleSheet.create({
   },
   metricNumber: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   starContainer: {
     flexDirection: "row",
@@ -1720,7 +1720,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   hostedByName: {
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 16,
   },
   hostedBySubtext: {
@@ -1755,13 +1755,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   assuranceName: {
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   assuranceSubtext: {
     marginTop: 2,
   },
   communityGoalTitle: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
     marginBottom: 12,
   },
@@ -1810,10 +1810,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 12,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   goalHighlight: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   hurryText: {
     fontSize: 18,
@@ -1821,11 +1821,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 20,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 6,
   },
   description: {
@@ -1833,7 +1833,7 @@ const styles = StyleSheet.create({
   },
   keyDatesTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginVertical: 12,
   },
   keyDatesRow: {
@@ -1845,10 +1845,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deadlineLabel: {
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   deadlineValue: {
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   deadlineDate: {
     marginTop: 4,

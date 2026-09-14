@@ -104,14 +104,15 @@ export const useUserStore = create<UserStore>()(
             fetchUser: async (_id: string) => {
                 set({ loading: true, error: null });
                 try {
-                    const userResponse = await Get<{ success: boolean; user: User }>(
-                        `/api/user/${_id}`,
-                    );
-                    if (userResponse?.success) {
+                    // GET /api/user/:id returns the user object directly (no
+                    // {success,user} envelope) — same shape fetchViewedUser
+                    // already relies on above.
+                    const userResponse = await Get<User>(`/api/user/${_id}`);
+                    if (userResponse?._id) {
                         set({
-                            user: userResponse?.user,
+                            user: userResponse,
                             loading: false,
-                            isAddressVerified: userResponse?.user?.isAddressVerified || null,
+                            isAddressVerified: userResponse?.isAddressVerified || null,
                         });
                     }
                 } catch (err: any) {
@@ -500,7 +501,10 @@ export const useUserStore = create<UserStore>()(
             name: "user-store",
             // storage: createJSONStorage(() => AsyncStorage),
             storage: createJSONStorage(() => zustandStorage),
-            partialize: (state) => ({ user: state.user }),
+            partialize: (state) => ({
+                user: state.user,
+                isAddressVerified: state.isAddressVerified,
+            }),
             onRehydrateStorage: () => (state, err) => {
                 state?._setHasHydrated(true);
                 if (err) console.warn("User rehydrate error", err);

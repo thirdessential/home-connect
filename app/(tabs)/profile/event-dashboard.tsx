@@ -128,6 +128,7 @@ export default function MyEventsScreen() {
     load();
   }, [load]);
 
+
   // Status comes straight from the DB-backed /my-events response — never
   // inferred from date/time on the client.
   const events = useMemo(
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   filterRow: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   filterChip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1 },
-  filterChipLabel: { fontSize: 12, fontWeight: "600" },
+  filterChipLabel: { fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
   list: { paddingHorizontal: 16, paddingTop: 8 },
   listEmpty: { flexGrow: 1, justifyContent: "center" },
   skeletons: { paddingHorizontal: 16, paddingTop: 12 },
@@ -236,6 +237,6 @@ const styles = StyleSheet.create({
   thumbFallback: { alignItems: "center", justifyContent: "center" },
   rowBody: { flex: 1, marginLeft: 12 },
   rowTitleLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  rowTitle: { fontSize: 15, fontWeight: "600", marginBottom: 2, flexShrink: 1 },
+  rowTitle: { fontSize: 15, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginBottom: 2, flexShrink: 1 },
   rowMeta: { fontSize: 12, marginTop: 1 },
 });

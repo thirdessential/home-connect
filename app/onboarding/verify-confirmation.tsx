@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(22),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(20),
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   },
   browseBtn: {
     marginTop: getHeight(32),
-    borderRadius: getWidth(28),
+    borderRadius: getWidth(14),
     paddingVertical: getHeight(15),
     width: "100%",
   },

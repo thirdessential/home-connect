@@ -2,6 +2,7 @@
 // theme.ts (which stays untouched). Reuses the existing responsive helpers
 // instead of duplicating them.
 import { getHeight, getWidth } from "./theme";
+import { manropeFamily } from "./fonts";
 
 export { getHeight, getWidth };
 
@@ -44,10 +45,8 @@ export const darkColors: typeof colors = {
   disabled: "#475569",
 };
 
-const fontFamily = "System"; // matches theme.ts — no new font introduced
-
 function textStyle(fontSize: number, lineHeight: number, fontWeight: "400" | "600" | "700" | "800" = "600") {
-  return { fontFamily, fontSize: getWidth(fontSize), lineHeight: getHeight(lineHeight), fontWeight };
+  return { fontFamily: manropeFamily(fontWeight), fontSize: getWidth(fontSize), lineHeight: getHeight(lineHeight), fontWeight };
 }
 
 // All headings default to SemiBold (600) per spec.

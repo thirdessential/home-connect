@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     letterSpacing: 0.2,
   },
 });

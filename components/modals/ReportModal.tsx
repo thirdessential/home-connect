@@ -1,8 +1,8 @@
 import ActionButton from "@/components/inputs/ActionButton";
 import TextArea from "@/components/inputs/TextArea";
+import { Post } from "@/lib/httpMethods";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
-import { useFeedsStore } from "@/store/useFeedsStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useWholesaleDealStore } from "@/store/useWholesaleDealStore";
 import { useTheme } from "@/theme/theme";
@@ -25,7 +25,8 @@ export type ReportType =
   | "business"
   | "deal"
   | "user"
-  | "service";
+  | "service"
+  | "comment";
 
 const REPORT_REASONS = {
   feed: [
@@ -41,6 +42,12 @@ const REPORT_REASONS = {
     { id: "spam", label: "Spam/Misleading" },
     { id: "harassment", label: "Harassment/Abuse" },
     { id: "misinformation", label: "Misinformation" },
+    { id: "other", label: "Other" },
+  ],
+  comment: [
+    { id: "inappropriate", label: "Inappropriate content" },
+    { id: "spam", label: "Spam/Misleading" },
+    { id: "harassment", label: "Harassment/Abuse" },
     { id: "other", label: "Other" },
   ],
   poll: [
@@ -95,6 +102,7 @@ interface ReportModalProps {
   reportType: ReportType;
   itemId: string;
   itemName?: string; // Name or title of the item being reported
+  parentId?: string; // e.g. the feedId a reported comment belongs to
 }
 
 export default function ReportModal({
@@ -103,10 +111,10 @@ export default function ReportModal({
   reportType,
   itemId,
   itemName,
+  parentId,
 }: ReportModalProps) {
   const t = useTheme();
-  const { user: currentUser, reportUser } = useUserStore();
-  const { reportFeed } = useFeedsStore();
+  const { user: currentUser } = useUserStore();
   const { reportBusiness } = useProductStore();
   const { reportDeal } = useWholesaleDealStore();
   const { reportService } = useDailyHelperStore();
@@ -152,17 +160,26 @@ export default function ReportModal({
 
     setSubmitting(true);
     try {
-      // Call API based on report type
+      // Call API based on report type.
+      // USER/POST/POLL/EVENT/COMMENT go through the centralized, unlimited
+      // POST /api/reports (JWT-identified reporter, no daily cap). Business/
+      // deal/service stay on their existing legacy per-entity endpoints —
+      // out of scope for this change.
       if (
         reportType === "post" ||
         reportType === "poll" ||
-        reportType === "event"
+        reportType === "event" ||
+        reportType === "user" ||
+        reportType === "comment"
       ) {
-        // Feed-related reports use the reportFeed API
         if (!currentUser?._id) {
           throw new Error("User ID not found");
         }
-        await reportFeed(itemId, currentUser._id, reasonToSubmit);
+        await Post("/api/reports", {
+          targetType: reportType.toUpperCase(),
+          targetId: itemId,
+          reason: reasonToSubmit,
+        });
       } else if (reportType === "business") {
         if (!currentUser?._id) {
           throw new Error("User ID not found");
@@ -173,11 +190,6 @@ export default function ReportModal({
           throw new Error("User ID not found");
         }
         await reportDeal(itemId, currentUser._id, reasonToSubmit);
-      } else if (reportType === "user") {
-        if (!currentUser?._id) {
-          throw new Error("User ID not found");
-        }
-        await reportUser(itemId, currentUser._id, reasonToSubmit);
       } else if (reportType === "service") {
         if (!currentUser?._id) {
           throw new Error("User ID not found");
@@ -468,7 +480,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   content: {
     flex: 1,
@@ -478,7 +490,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 12,
   },
   itemInfo: {
@@ -518,7 +530,7 @@ const styles = StyleSheet.create({
   },
   reasonLabel: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     flex: 1,
   },
   infoBanner: {
@@ -550,7 +562,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
     textAlign: "center",
   },

@@ -99,7 +99,7 @@ export default function AdminApprovalModal({
     },
     title: {
       fontSize: 18,
-      fontWeight: "700",
+      fontWeight: "700", fontFamily: "Manrope_700Bold",
       color: t.colors.textPrimary,
       marginBottom: 8,
     },
@@ -118,7 +118,7 @@ export default function AdminApprovalModal({
     },
     sectionTitle: {
       fontSize: 14,
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       color: t.colors.textPrimary,
       marginBottom: 12,
     },
@@ -164,7 +164,7 @@ export default function AdminApprovalModal({
     },
     approveButtonText: {
       color: "#fff",
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       fontSize: 15,
     },
     rejectButton: {
@@ -175,7 +175,7 @@ export default function AdminApprovalModal({
     },
     rejectButtonText: {
       color: "#fff",
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       fontSize: 15,
     },
     cancelButton: {
@@ -187,7 +187,7 @@ export default function AdminApprovalModal({
     },
     cancelButtonText: {
       color: t.colors.textPrimary,
-      fontWeight: "500",
+      fontWeight: "500", fontFamily: "Manrope_500Medium",
       fontSize: 15,
     },
     backButton: {
@@ -198,7 +198,7 @@ export default function AdminApprovalModal({
     },
     backButtonText: {
       color: t.colors.primary,
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       fontSize: 14,
       marginLeft: 8,
     },

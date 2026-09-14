@@ -144,13 +144,13 @@ const styles = StyleSheet.create({
     borderColor: "#00000010"
   },
   block: { gap: 12 },
-  question: { fontSize: 16, fontWeight: "600", letterSpacing: -0.16, lineHeight: 22 },
+  question: { fontSize: 16, fontFamily: "Manrope_600SemiBold", letterSpacing: -0.16, lineHeight: 22 },
   options: { gap: 8 },
   option: { borderRadius: 8, borderWidth: 1, padding: 12, overflow: "hidden" },
   optionFill: { position: "absolute", left: 0, top: 0, bottom: 0 },
   optionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   optionLabelWrap: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
-  optionLabel: { fontSize: 13, lineHeight: 20, flexShrink: 1 },
-  optionPct: { fontSize: 13, fontWeight: "700", marginLeft: 8 },
-  footnote: { fontSize: 11, lineHeight: 16 },
+  optionLabel: { fontSize: 13, fontFamily: "Manrope_500Medium", lineHeight: 20, flexShrink: 1 },
+  optionPct: { fontSize: 13, fontFamily: "Manrope_700Bold", marginLeft: 8 },
+  footnote: { fontSize: 11, fontFamily: "Manrope_500Medium", lineHeight: 16 },
 });

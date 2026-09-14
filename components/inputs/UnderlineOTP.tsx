@@ -30,7 +30,7 @@ export default function UnderlineOTP({
               <Text
                 style={{
                   fontSize: getWidth(24),
-                  fontWeight: "600",
+                  fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                   color: isFilled ? t.colors.textPrimary : t.colors.textSecondary,
                   width: getWidth(28),
                   textAlign: "center",

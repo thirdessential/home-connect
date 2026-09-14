@@ -76,10 +76,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  title: { fontSize: 16, fontWeight: "700", marginBottom: 6, textAlign: "center" },
+  title: { fontSize: 16, fontWeight: "700", fontFamily: "Manrope_700Bold", marginBottom: 6, textAlign: "center" },
   message: { fontSize: 13.5, lineHeight: 19, textAlign: "center", marginBottom: 18 },
   cta: { width: "100%", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
-  ctaText: { color: "#fff", fontSize: 14.5, fontWeight: "700" },
+  ctaText: { color: "#fff", fontSize: 14.5, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   dismiss: { marginTop: 12, paddingVertical: 4 },
-  dismissText: { fontSize: 13, fontWeight: "600" },
+  dismissText: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
 });

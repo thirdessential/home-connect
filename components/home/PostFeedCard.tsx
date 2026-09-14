@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#00000010"
   },
-  title: { fontSize: 16, fontWeight: "600", letterSpacing: -0.16, marginBottom: -8 },
-  body: { fontSize: 13, lineHeight: 20 },
+  title: { fontSize: 16, fontWeight: "600", fontFamily: "Manrope_600SemiBold", letterSpacing: -0.16, marginBottom: -8 },
+  body: { fontSize: 13, lineHeight: 20, fontFamily: "Manrope_500Medium", },
   image: { width: "100%", aspectRatio: 1.6, borderRadius: 8 },
 });

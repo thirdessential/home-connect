@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 14, lineHeight: 18, fontWeight: "600", marginTop: 2 },
-  value: { fontSize: 26, lineHeight: 30, fontWeight: "800", letterSpacing: -0.5 },
+  title: { fontSize: 14, lineHeight: 18, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 2 },
+  value: { fontSize: 26, lineHeight: 30, fontWeight: "800", fontFamily: "Manrope_800ExtraBold", letterSpacing: -0.5 },
   caption: { fontSize: 12, lineHeight: 16, marginTop: 2 },
 });

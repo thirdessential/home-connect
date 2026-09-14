@@ -28,7 +28,6 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
     router.push("/onboarding/select-society");
   };
 
-  const handleComingSoon = () => showToast("Coming soon", "info");
 
   return (
     <View
@@ -75,13 +74,7 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
         )}
 
         <View style={styles.iconRow}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={handleComingSoon}
-            style={styles.iconButton}
-          >
-            <Ionicons name="search-outline" size={22} color={t.colors.textSecondary} />
-          </TouchableOpacity>
+        
 
           <TouchableOpacity
             accessibilityRole="button"
@@ -96,18 +89,6 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
             {hasUnread ? (
               <View style={[styles.unreadDot, { borderColor: t.colors.surface }]} />
             ) : null}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={handleComingSoon}
-            style={styles.iconButton}
-          >
-            <Ionicons
-              name="chatbubble-outline"
-              size={22}
-              color={t.colors.textSecondary}
-            />
           </TouchableOpacity>
         </View>
       </View>
@@ -149,7 +130,7 @@ const styles = StyleSheet.create({
   },
   societyName: {
     fontSize: 20,
-    fontWeight: "700",
+    fontFamily: "Manrope_800ExtraBold",
     flexShrink: 1,
   },
   societyNameFull: {
@@ -165,6 +146,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     flexShrink: 0,
+    marginLeft: 50
   },
   iconButton: {
     width: 38,

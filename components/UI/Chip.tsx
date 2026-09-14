@@ -50,7 +50,7 @@ const Chip = memo(function Chip({ label, variant = "default", onPress, style, di
         style,
       ]}
     >
-      <Text style={[t.typography.small, { color: c.text, fontWeight: "600" }]}>{label}</Text>
+      <Text style={[t.typography.small, { color: c.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }]}>{label}</Text>
     </Pressable>
   );
 });

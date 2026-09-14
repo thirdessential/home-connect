@@ -15,6 +15,21 @@ import { useSocietyStore } from "./useSocietyStore";
 import { useUserStore } from "./useUserStore";
 import { useWholesaleDealStore } from "./useWholesaleDealStore";
 
+// Restores the Society auth context (fresh login or session restore).
+// `societyId` comes back as a populated Society object whenever the user has
+// one selected (see user.service.js#getUserWithSociety) — regardless of
+// resident/business verification approval. Gating this on "approved" was
+// conflating OTP/session login with verification-approval status, so a Guest
+// who only submitted a verification request never got their selected Society
+// restored after OTP or app restart. Guest/role status is untouched here —
+// only which Society is shown as selected.
+function syncSelectedSociety(user?: User | null) {
+  const society = user?.societyId;
+  if (society && typeof society !== "string") {
+    useSocietyStore.getState().setSelectedSociety(society, society.towers || []);
+  }
+}
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -78,6 +93,7 @@ export const useAuthStore = create<AuthStore>()(
             expiresAt: res?.expiresAt || null,
           });
           useUserStore.getState().setUser(res.user); // set user in user store
+          syncSelectedSociety(res.user);
         } catch (err) {
           console.error("Verify OTP failed:", err);
           throw err;
@@ -105,6 +121,7 @@ export const useAuthStore = create<AuthStore>()(
           const verification = await verifyCurrentToken();
           if (verification?.user) {
             useUserStore.getState().setUser(verification.user);
+            syncSelectedSociety(verification.user);
           }
           if (verification?.tokenExpiry) {
             set({ expiresAt: verification.tokenExpiry });

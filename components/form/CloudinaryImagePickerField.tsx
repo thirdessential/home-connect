@@ -109,7 +109,7 @@ function CloudinaryImagePickerField({
             <Text
               style={{
                 color: t.colors.textSecondary,
-                fontWeight: "700",
+                fontWeight: "700", fontFamily: "Manrope_700Bold",
                 fontSize: 18,
               }}
             >
@@ -182,7 +182,7 @@ function CloudinaryImagePickerField({
       >
         <Text
           style={{
-            fontWeight: "700",
+            fontWeight: "700", fontFamily: "Manrope_700Bold",
             color: t.colors.textPrimary,
             marginRight: 6,
           }}

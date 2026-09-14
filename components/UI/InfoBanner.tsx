@@ -102,7 +102,7 @@ export default function InfoBanner({
         <View style={{ flex: 1 }}>
           {title && (
             <Text
-              style={{ fontSize: 14.5, fontWeight: "700", color: "#1F2937", marginBottom: 2 }}
+              style={{ fontSize: 15, fontFamily: "Manrope_700Bold", color: "#1F2937", marginBottom: 2 }}
               numberOfLines={1}
             >
               {title}
@@ -122,16 +122,16 @@ export default function InfoBanner({
     <View
       style={{
         padding: 12,
-        borderLeftWidth: 4,
+        borderWidth: 1,
         borderRadius: 8,
         marginBottom: 12,
         backgroundColor: bg,
-        borderLeftColor: border,
+        borderColor: border,
         ...containerStyle,
       }}
     >
       {title && (
-        <Text style={{ fontWeight: "600", color: tColor }}>{title}</Text>
+        <Text style={{ fontWeight: "700", fontFamily: "Manrope_700Bold", color: tColor }}>{title}</Text>
       )}
       {description && (
         <Text style={{ marginTop: 4, color: dColor }}>{description}</Text>

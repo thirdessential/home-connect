@@ -64,7 +64,7 @@ export default function CreateEventScreen() {
   const [participationType, setParticipationType] = useState<ParticipationType>("free");
   const [feeAmount, setFeeAmount] = useState("");
   const [minParticipants, setMinParticipants] = useState(1);
-  const [maxParticipants, setMaxParticipants] = useState<number | null>(null);
+  const [maxParticipants, setMaxParticipants] = useState<number | null>(20);
   const [closesHours, setClosesHours] = useState("3");
   const [rules, setRules] = useState("");
   const [agree, setAgree] = useState(false);
@@ -143,7 +143,7 @@ export default function CreateEventScreen() {
 
       {/* Stepper */}
       
-      <Text style={[t.typography.h4, { color: t.colors.brandDark, textAlign: "center", fontWeight: "700", marginBottom: 8, marginTop: 15 }]}>
+      <Text style={[t.typography.h4, { color: t.colors.brandDark, textAlign: "center", fontWeight: "700", fontFamily: "Manrope_700Bold", marginBottom: 8, marginTop: 15 }]}>
         {STEP_LABELS[step - 1]}
       </Text>
 
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   feeOption: { flexDirection: "row", alignItems: "center" },
   stepperControlRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   stepperBtn: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB", alignItems: "center", justifyContent: "center" },
-  stepperBtnText: { fontSize: 20, fontWeight: "700" },
+  stepperBtnText: { fontSize: 20, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   previewCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden", marginBottom: 16 },
   previewImage: { width: "100%", height: 160 },
   metaRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },

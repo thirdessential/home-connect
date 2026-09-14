@@ -184,7 +184,7 @@ function Badge({
     () => ({
       color: labelColor,
       fontSize: dims.font,
-      fontWeight: "700" as const,
+      fontFamily: "Manrope_700Bold" as const,
     }),
     [labelColor, dims.font],
   );

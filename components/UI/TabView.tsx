@@ -80,6 +80,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   activeTabText: {
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
   },
 });

@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: "800", fontFamily: "Manrope_800ExtraBold",
     textAlign: "center",
   },
   flatListContent: {
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   profileSection: {
     flexDirection: "row",
@@ -499,11 +499,11 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   subText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   detailSection: {
     paddingVertical: 16,
@@ -513,12 +513,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     marginBottom: 6,
   },
   detailValue: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   cardFooter: {
     flexDirection: "row",
@@ -534,13 +534,13 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
 
   // Legacy styles (can be removed if not used elsewhere)
   sourceTypeText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     marginBottom: 16,
   },
   orderHeader: {
@@ -558,13 +558,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   vendorName: {
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 16,
     marginBottom: 4,
   },
   locality: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   itemsContainer: {
     paddingVertical: 12,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   itemName: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
   orderFooter: {
     flexDirection: "row",
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   },
   orderTotal: {
     fontSize: 16,
-    fontWeight: "800",
+    fontWeight: "800", fontFamily: "Manrope_800ExtraBold",
   },
 
   // Quantity chip styles
@@ -610,6 +610,6 @@ const styles = StyleSheet.create({
   },
   quantityChipText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
 });

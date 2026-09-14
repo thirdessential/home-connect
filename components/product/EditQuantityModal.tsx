@@ -187,7 +187,7 @@ export default function EditQuantityModal({
     },
     title: {
       fontSize: 18,
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       color: t.colors.textPrimary,
     },
     closeButton: {
@@ -217,7 +217,7 @@ export default function EditQuantityModal({
     },
     quantityValue: {
       fontSize: 20,
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       marginHorizontal: 24,
       color: t.colors.textPrimary,
       minWidth: 40,
@@ -232,7 +232,7 @@ export default function EditQuantityModal({
     },
     saveButtonText: {
       color: "#fff",
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       fontSize: 16,
     },
     cancelButton: {
@@ -245,7 +245,7 @@ export default function EditQuantityModal({
     },
     cancelButtonText: {
       color: t.colors.textPrimary,
-      fontWeight: "500",
+      fontWeight: "500", fontFamily: "Manrope_500Medium",
       fontSize: 16,
     },
     successIconCircle: {
@@ -270,7 +270,7 @@ export default function EditQuantityModal({
     },
     statusTitle: {
       fontSize: 20,
-      fontWeight: "700",
+      fontWeight: "700", fontFamily: "Manrope_700Bold",
       color: t.colors.textPrimary,
       textAlign: "center",
       marginBottom: 8,
@@ -304,7 +304,7 @@ export default function EditQuantityModal({
     priceValue: {
       color: t.colors.textPrimary,
       fontSize: 16,
-      fontWeight: "700",
+      fontWeight: "700", fontFamily: "Manrope_700Bold",
     },
   });
 
@@ -399,7 +399,7 @@ export default function EditQuantityModal({
                         color: "#E28743",
                         fontSize: 14,
                         marginBottom: 16,
-                        fontWeight: "600",
+                        fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                       }}
                     >
                       Only {maxQuantity} units available to order
@@ -445,7 +445,7 @@ export default function EditQuantityModal({
                       </View>
                     )}
                     <View style={styles.priceRow}>
-                      <Text style={[styles.priceLabel, { fontWeight: "700" }]}>
+                      <Text style={[styles.priceLabel, { fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>
                         New total ({quantity})
                       </Text>
                       <Text style={styles.priceValue}>

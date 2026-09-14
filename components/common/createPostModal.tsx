@@ -305,7 +305,7 @@ function CreatePostModal({
       description: (
         <Text>
           Complete your resident profile to continue with{" "}
-          <Text style={{ fontWeight: "700" }}>
+          <Text style={{ fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
             Resident/business registration
           </Text>
           . Please note that your residency details will be verified by the
@@ -1076,7 +1076,7 @@ function CreatePostModal({
                     <Text
                       style={{
                         fontSize: 20,
-                        fontWeight: "700",
+                        fontWeight: "700", fontFamily: "Manrope_700Bold",
                         color: t.colors.textPrimary,
                         marginBottom: 8,
                         textAlign: "center",
@@ -1291,7 +1291,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   optionsScroll: {
     flexGrow: 1,
@@ -1316,7 +1316,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   cardSubtitle: {
     fontSize: 12,

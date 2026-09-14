@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
   },
   content: {
@@ -268,12 +268,12 @@ const styles = StyleSheet.create({
   },
   businessName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 12,
     color: "#1F2937",
   },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   ratingLabel: {
     textAlign: "center",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
     color: "#6B7280",
   },
   buttonContainer: {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   cancelButton: {
     borderWidth: 1,
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
   },
 });

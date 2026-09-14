@@ -166,7 +166,7 @@ const TextField = forwardRef<TextFieldHandle, TextFieldProps>(
                 style={{
                   color: error ? t.colors.error : t.colors.textSecondary,
                   fontSize: 12,
-                  fontWeight: "600",
+                  fontWeight: "600", fontFamily: "Manrope_600SemiBold",
                 }}
               >
                 {label}

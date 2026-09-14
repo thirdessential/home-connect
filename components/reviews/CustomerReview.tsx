@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   averageRating: {
     fontSize: 32,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: "#1F2937",
     marginBottom: 4,
   },
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   addReviewButtonText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#15803D",
   },
   reviewCard: {
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   reviewerName: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
   },
   reviewDate: {

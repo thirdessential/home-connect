@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 18,
     color: "#1F2937",
   },

@@ -108,10 +108,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   avatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 1 },
   avatarFallback: { alignItems: "center", justifyContent: "center", borderWidth: 0 },
-  initials: { fontSize: 15, fontWeight: "700" },
+  initials: { fontSize: 15, fontFamily: "Manrope_700Bold" },
   textCol: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  name: { fontSize: 16, fontWeight: "600", letterSpacing: -0.16, flexShrink: 1 },
+  name: { fontSize: 16, fontFamily: "Manrope_600SemiBold", letterSpacing: -0.16, flexShrink: 1 },
   fixed: { flexShrink: 0 },
   badge: {
     flexShrink: 0,
@@ -124,10 +124,10 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#002114",
     fontSize: 9,
-    fontWeight: "700",
+    fontFamily: "Manrope_700Bold",
     letterSpacing: 0.5,
   },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 },
-  meta: { fontSize: 11, lineHeight: 16, flexShrink: 1 },
+  meta: { fontSize: 11, lineHeight: 16, fontFamily: "Manrope_500Medium" , flexShrink: 1 },
   more: { padding: 4, flexShrink: 0 },
 });

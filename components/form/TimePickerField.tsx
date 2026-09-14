@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   trigger: {

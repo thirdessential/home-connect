@@ -133,7 +133,7 @@ function Avatar({ p, size = 44 }: { p: { name: string; profileImage: string | nu
         justifyContent: "center",
       }}
     >
-      <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontSize: size * 0.35 }}>
+      <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: size * 0.35 }}>
         {initials(p.name)}
       </Text>
     </View>
@@ -176,7 +176,7 @@ function ParticipantRow({
       <Avatar p={{ name: item.name, profileImage: item.profileImage }} size={44} />
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text
-          style={[t.typography.body, { color: t.colors.text, fontWeight: "700" }]}
+          style={[t.typography.body, { color: t.colors.text, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}
           numberOfLines={1}
         >
           {item.name}
@@ -326,7 +326,7 @@ export default function EventDashboardScreen() {
         <Ionicons name="alert-circle-outline" size={40} color={t.colors.secondaryText} />
         <Text style={{ color: t.colors.secondaryText, marginTop: 12 }}>Dashboard not available.</Text>
         <Pressable onPress={load} style={{ marginTop: 16 }}>
-          <Text style={{ color: t.colors.brandDark, fontWeight: "700" }}>Retry</Text>
+          <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>Retry</Text>
         </Pressable>
       </View>
     );
@@ -429,7 +429,7 @@ export default function EventDashboardScreen() {
 
         {isCancelled && (
           <View style={[styles.cancelledBadge, { marginBottom: 16 }]}>
-            <Text style={{ color: "#B91C1C", fontWeight: "700" }}>This event has been cancelled</Text>
+            <Text style={{ color: "#B91C1C", fontWeight: "700", fontFamily: "Manrope_700Bold" }}>This event has been cancelled</Text>
           </View>
         )}
 
@@ -450,7 +450,7 @@ export default function EventDashboardScreen() {
                 ]}
               />
             </View>
-            <Text style={[t.typography.caption, { color: t.colors.brandDark, fontWeight: "700", marginTop: 4 }]}>
+            <Text style={[t.typography.caption, { color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold", marginTop: 4 }]}>
               {statistics.percentageFilled}%
             </Text>
           </View>
@@ -550,7 +550,7 @@ export default function EventDashboardScreen() {
               style={[styles.moreParticipants, { backgroundColor: t.colors.surfaceAlt, borderColor: t.colors.border }]}
               onPress={() => setVisibleCount((c) => c + PARTICIPANTS_PAGE_SIZE)}
             >
-              <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700" }]}>
+              <Text style={[t.typography.small, { color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>
                 {remainingCount} more participant{remainingCount === 1 ? "" : "s"}
               </Text>
               <Ionicons name="chevron-down" size={18} color={t.colors.brandDark} />
@@ -566,7 +566,7 @@ export default function EventDashboardScreen() {
             >
               <Ionicons name="megaphone-outline" size={26} color={t.colors.onBrand} />
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={{ color: t.colors.onBrand, fontWeight: "700", fontSize: 15 }}>
+                <Text style={{ color: t.colors.onBrand, fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 15 }}>
                   Create a notification
                 </Text>
                 <Text style={{ color: "#DCEFE5", fontSize: 12, marginTop: 2 }}>
@@ -581,7 +581,7 @@ export default function EventDashboardScreen() {
             >
               <Ionicons name="share-social-outline" size={26} color={t.colors.brandDark} />
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontSize: 15 }}>
+                <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 15 }}>
                   Invite more participants
                 </Text>
                 <Text style={{ color: t.colors.secondaryText, fontSize: 12, marginTop: 2 }}>
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
   cancelledLink: { flexDirection: "row", alignItems: "center", gap: 4 },
   participantRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1 },
   cancelBtn: { height: 36, paddingHorizontal: 14, borderRadius: 9, borderWidth: 1.5, borderColor: "#F04438", alignItems: "center", justifyContent: "center" },
-  cancelBtnText: { color: "#D92D20", fontWeight: "700", fontSize: 13 },
+  cancelBtnText: { color: "#D92D20", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 13 },
   moreParticipants: { marginTop: 8, height: 48, borderRadius: 11, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
 
   bottomActions: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 20 },

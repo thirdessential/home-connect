@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   stepperRow: {
     flexDirection: "row",
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#6B7280",
-    fontWeight: "bold",
+    fontWeight: "bold", fontFamily: "Manrope_700Bold",
     fontSize: 15,
   },
   activeCircleText: {
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   stepLabel: {
     marginLeft: 8,
     color: "#6B7280",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   activeStepLabel: {
     color: "#F97316",
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   label: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 4,
     marginTop: 8,
     color: "#111827",

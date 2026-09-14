@@ -65,7 +65,7 @@ export default function CancelOrderConfirmModal({
     },
     title: {
       fontSize: 18,
-      fontWeight: "700",
+      fontWeight: "700", fontFamily: "Manrope_700Bold",
       color: t.colors.textPrimary,
       marginBottom: 8,
       textAlign: "center",
@@ -81,7 +81,7 @@ export default function CancelOrderConfirmModal({
       color: t.colors.textSecondary,
       textAlign: "center",
       marginBottom: 24,
-      fontWeight: "500",
+      fontWeight: "500", fontFamily: "Manrope_500Medium",
     },
     buttonContainer: {
       width: "100%",
@@ -95,7 +95,7 @@ export default function CancelOrderConfirmModal({
     },
     confirmButtonText: {
       color: "#fff",
-      fontWeight: "600",
+      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
       fontSize: 16,
     },
     cancelButton: {
@@ -107,7 +107,7 @@ export default function CancelOrderConfirmModal({
     },
     cancelButtonText: {
       color: t.colors.textPrimary,
-      fontWeight: "500",
+      fontWeight: "500", fontFamily: "Manrope_500Medium",
       fontSize: 16,
     },
   });

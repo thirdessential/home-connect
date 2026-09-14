@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   },
   societyName: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     flexShrink: 1,
   },
   warningBox: {
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   notAResidentButton: {
     flexDirection: "row",
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   notAResidentButtonText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   changeLink: {
     flexDirection: "row",
@@ -213,6 +213,6 @@ const styles = StyleSheet.create({
   },
   changeLinkText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500", fontFamily: "Manrope_500Medium",
   },
 });

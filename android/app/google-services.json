@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "236265950652",
+    "project_id": "home-connect-29dee",
+    "storage_bucket": "home-connect-29dee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:236265950652:android:4fc959448df18514352fb9",
+        "android_client_info": {
+          "package_name": "com.anonymous.homeconnect",
+          "googleServicesFile": "./google-services.json"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAseqA8r1h2sEPepQiVpWCumjzCA6RfX-k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -217,10 +217,10 @@ function HomeScreen() {
           <InfoBanner
             title="Verification Pending"
             description="Your request has been submitted. Please wait for admin approval."
-            backgroundColor="#FEF3C7"
-            borderColor="#F59E0B"
-            titleColor="#92400E"
-            descriptionColor="#92400E"
+            backgroundColor="#ffefb01a"
+            borderColor="#db8b00"
+            titleColor="#000000"
+            descriptionColor="#030303"
           />
         )}
         {hasPendingBusiness && !hasExcessPendingBusinesses && (
@@ -333,7 +333,7 @@ function HomeScreen() {
 
       {showVerificationChrome && (
         <>
-          {!pendingReview && !hasPendingBusiness && (
+          {/* {!pendingReview && !hasPendingBusiness && (
             <TouchableOpacity
               style={[styles.fab, { backgroundColor: t.colors.brand }]}
               onPress={() => router.push("/onboarding/verify-role")}
@@ -342,7 +342,7 @@ function HomeScreen() {
               <Ionicons name="shield-checkmark" size={22} color={t.colors.onBrand} />
               <Text style={[styles.fabLabel, { color: t.colors.onBrand }]}>Verify Now</Text>
             </TouchableOpacity>
-          )}
+          )} */}
 
           <View style={[styles.lockStrip, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
             <Ionicons name="lock-closed-outline" size={16} color={t.colors.brand} />
@@ -355,6 +355,16 @@ function HomeScreen() {
               <Text style={[styles.lockStripSubtitle, { color: t.colors.textSecondary }]}>
                 Your community. Your safety.
               </Text>
+              <View style={styles.fabWr}> 
+              <TouchableOpacity
+                style={[styles.fab, { backgroundColor: t.colors.brand }]}
+                onPress={() => router.push("/onboarding/verify-role")}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="shield-checkmark" size={22} color={t.colors.onBrand} />
+                <Text style={[styles.fabLabel, { color: t.colors.onBrand }]}>Verify Now</Text>
+              </TouchableOpacity>
+              </View>
             </View>
           </View>
         </>
@@ -366,25 +376,32 @@ function HomeScreen() {
 export default memo(HomeScreen);
 
 const styles = StyleSheet.create({
-  fab: {
-    position: "absolute",
-    right: 16,
-    bottom: 58,
+  fabWr:{
     flexDirection: "row",
     alignItems: "center",
+  },
+  fab: {
+    // position: "absolute",
+    // right: 16,
+    // bottom: 58,
+    flexDirection: "row",
+    // alignItems: "center",
+    marginTop: 10,
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 28,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    borderRadius: 14,
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.2,
+    // shadowRadius: 6,
+    // elevation: 6,
+    // width: 150,
+    // textAlign: 'center'
   },
   fabLabel: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
   },
   lockStrip: {
     position: "absolute",
@@ -394,13 +411,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingVertical: 10,
+    paddingVertical: 15,
     paddingHorizontal: 16,
     borderTopWidth: 1,
   },
   lockStripTitle: {
     fontSize: 12.5,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   lockStripSubtitle: {
     fontSize: 11.5,

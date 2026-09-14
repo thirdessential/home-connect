@@ -686,7 +686,7 @@ export default function BusinessWizard() {
       {step <= 6 ? (
         <View style={styles.footerBar}>
           <ActionButton
-            title={step === 6 ? "Submit" : "Continue"}
+            title={step === 6 ? "Submit" : "Continues"}
             onPress={
               step === 1 ? next1 : step === 2 ? next2 : step === 3 ? next3 : step === 4 ? next4 : step === 5 ? next5 : next6
             }
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   stepperWrap: { marginTop: getHeight(12), marginBottom: getHeight(8) },
   title: {
     fontSize: getWidth(22),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginTop: getHeight(16),
     marginBottom: getHeight(14),
@@ -726,8 +726,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: getWidth(16),
     marginBottom: getHeight(12),
   },
-  optionCardSelected: { borderColor: TERRACE_COLORS.orange, backgroundColor: "#FFFDFB" },
-  optionLabel: { flex: 1, fontSize: getWidth(16), fontWeight: "600", color: TERRACE_COLORS.textDark },
+  optionCardSelected: { borderColor: TERRACE_COLORS.orange, backgroundColor: TERRACE_COLORS.greenTint },
+  optionLabel: { flex: 1, fontSize: getWidth(16), fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: TERRACE_COLORS.textDark },
   radio: {
     width: getWidth(22),
     height: getWidth(22),
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     borderTopColor: TERRACE_COLORS.inputBorder,
     backgroundColor: TERRACE_COLORS.screenBg,
   },
-  cta: { borderRadius: getWidth(28), paddingVertical: getHeight(16), marginTop: getHeight(8) },
+  cta: { borderRadius: getWidth(14), paddingVertical: getHeight(16), marginTop: getHeight(8) },
   rejectedBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -783,7 +783,7 @@ const phoneStyles = StyleSheet.create({
   wrap: { marginBottom: getHeight(18) },
   label: {
     fontSize: getWidth(13),
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(6),
   },
@@ -791,7 +791,7 @@ const phoneStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: getWidth(12),
+    borderRadius: getWidth(8),
     borderWidth: 1.5,
     borderColor: TERRACE_COLORS.inputBorder,
     height: getHeight(50),
@@ -800,7 +800,7 @@ const phoneStyles = StyleSheet.create({
   cc: {
     paddingHorizontal: getWidth(14),
     fontSize: getWidth(16),
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     borderRightWidth: 1.5,
     borderRightColor: TERRACE_COLORS.inputBorder,

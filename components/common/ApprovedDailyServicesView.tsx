@@ -140,7 +140,7 @@ const ApprovedDailyServicesView: React.FC<ApprovedDailyServicesViewProps> = ({
             style={[styles.filterBtn, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
           >
             <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
-            <Text style={{ fontSize: 13.5, fontWeight: "600", color: theme.colors.textPrimary }}>Filter</Text>
+            <Text style={{ fontSize: 13.5, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: theme.colors.textPrimary }}>Filter</Text>
             {towerFilter !== "all" ? (
               <View style={[styles.filterBadge, { backgroundColor: theme.colors.brand }]}>
                 <Text style={styles.filterBadgeText}>1</Text>
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 4,
   },
-  filterBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  filterBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" },
   logo: {
     width: 44,
     height: 44,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   categoryChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: "#EAF0FE" },
-  categoryChipText: { fontSize: 12, fontWeight: "600", color: "#2F5FE0" },
+  categoryChipText: { fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#2F5FE0" },
   approvedBadge: {
     backgroundColor: "#E4F3EA",
     paddingHorizontal: 8,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   approvedText: {
     color: "#1B6E3C",
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     fontSize: 11,
   },
   filterContainer: {
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   nameText: {
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
   },
   categoryText: {
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     marginLeft: 4,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     fontSize: 12,
     color: "#374151",
   },

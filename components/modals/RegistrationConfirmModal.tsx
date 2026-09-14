@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     textAlign: "left",
     marginBottom: 32,
   },
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     textAlign: "center",
     marginBottom: 8,
   },
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   participantLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginBottom: 12,
     textAlign: "center",
   },
@@ -498,11 +498,11 @@ const styles = StyleSheet.create({
   },
   participantButtonText: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
   participantCount: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     marginHorizontal: 16,
     minWidth: 30,
     textAlign: "center",
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "700", fontFamily: "Manrope_700Bold",
     textAlign: "center",
   },
   successIconContainer: {

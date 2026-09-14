@@ -146,7 +146,7 @@ function VerificationSheetInner({
       description: (
         <Text>
           Complete your resident profile to continue with{" "}
-          <Text style={{ fontWeight: "700" }}>
+          <Text style={{ fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
             Resident/business registration
           </Text>
           . Please note that your residency details will be verified by the
@@ -407,7 +407,7 @@ function VerificationSheetInner({
                                 <Text
                                   style={{
                                     color: active ? "#fff" : "#6B7280",
-                                    fontWeight: "700",
+                                    fontWeight: "700", fontFamily: "Manrope_700Bold",
                                     fontSize: 12,
                                   }}
                                 >
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   feedbackMessage: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
     textAlign: "center",
     color: "#1F2937",
     lineHeight: 22,
@@ -499,6 +499,6 @@ const styles = StyleSheet.create({
   stepperLabel: {
     fontSize: 11,
     color: "#6B7280",
-    fontWeight: "600",
+    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
   },
 });

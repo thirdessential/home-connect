@@ -62,6 +62,7 @@ export default function ReviewsBlock({
           style={{
             fontSize: 24,
             fontWeight: "800",
+            fontFamily: "Manrope_800ExtraBold",
             color: t.colors.textPrimary,
           }}
         >
