@@ -2,7 +2,7 @@ import { useFonts } from "expo-font";
 import { Stack, useNavigationContainerRef, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { Platform, StyleSheet, Text, TextInput } from "react-native";
+import { AppState, Platform, StyleSheet, Text, TextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
@@ -135,6 +135,21 @@ function NavLinker() {
     }, 300);
 
     return () => clearTimeout(timer);
+  }, [_hasHydrated, token]);
+
+  // App-wide resume refresh: HomeScreen already refetches on its own focus,
+  // but that only fires while the Home tab is active. Mounting this at the
+  // root instead means an admin approval lands as soon as the app comes back
+  // to foreground no matter which tab the user is on — same existing
+  // fetchUser action, just one more trigger for it.
+  useEffect(() => {
+    if (!_hasHydrated || !token) return;
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState !== "active") return;
+      const userId = useUserStore.getState().user?._id;
+      if (userId) useUserStore.getState().fetchUser(userId).catch(() => {});
+    });
+    return () => sub.remove();
   }, [_hasHydrated, token]);
 
   return (

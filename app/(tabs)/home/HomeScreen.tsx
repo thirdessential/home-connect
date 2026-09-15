@@ -23,7 +23,7 @@ import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { AppState, BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "@/components/common/Toast";
 
 const handlePressProductItem = () => {};
@@ -41,6 +41,13 @@ function HomeScreen() {
       if (userId) fetchUser(userId).catch(() => {});
       loadCurrentBusiness().catch(() => {});
       if (selectedSocietyId) fetchFeedsBySociety(selectedSocietyId, true).catch(() => {});
+      // Home stays mounted+focused while backgrounded (e.g. admin approves
+      // while the user is away); focus alone won't re-fire, so also refetch
+      // when the app comes back to foreground.
+      const sub = AppState.addEventListener("change", (state) => {
+        if (state === "active" && userId) fetchUser(userId).catch(() => {});
+      });
+      return () => sub.remove();
     }, [userId, selectedSocietyId]),
   );
   // Android hardware back on Home: first press warns, second press (within

@@ -16,6 +16,17 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Walks into a tab's nested Stack (if any) to find the actually-focused
+// screen name, so the bottom bar can hide on inner/detail pages and only
+// show on each tab's root ("index").
+function getDeepRouteName(route: any): string {
+  if (route?.state) {
+    const idx = route.state.index ?? route.state.routes.length - 1;
+    return getDeepRouteName(route.state.routes[idx]);
+  }
+  return route?.name;
+}
+
 /** Custom tab bar with equal spacing */
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const t = useTheme();
@@ -77,7 +88,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     navigation.reset({ index: 0, routes: [{ name: "business" }] });
   }, [navigation]);
   const handleDirectoryPress = useCallback(() => {
-    navigation.navigate("directory");
+    navigation.reset({ index: 0, routes: [{ name: "directory" }] });
   }, [navigation]);
   const handleProfilePress = useCallback(() => {
     navigation.reset({ index: 0, routes: [{ name: "profile" }] });
@@ -87,7 +98,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabBarHeight = insets.bottom + 56; // 56 is a good default for both platforms
   // Route-name based (not a fixed-position array) so it stays correct now
   // that "create" is a 5th route in this same Tabs navigator.
-  const activeKey = state.routes[state.index]?.name ?? "home";
+  const activeRoute = state.routes[state.index];
+  const activeKey = activeRoute?.name ?? "home";
+  // Only the 5 root tab screens show the bottom bar — any inner/detail
+  // screen pushed within a tab's own nested Stack hides it.
+  const showBottomBar = !activeRoute?.state || getDeepRouteName(activeRoute) === "index";
   const handleCenterPress = useCallback(() => {
     // The old CreatePostModal popup is only reachable now from within the
     // new full-screen Create page (Event/Poll/Business handoff) — Plus opens
@@ -103,17 +118,19 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <>
-      <GlobalBottomNavigation
-        activeKey={activeKey}
-        centerIcon={modalOpen || activeKey === "create" ? "close" : "add"}
-        onCenterPress={handleCenterPress}
-        items={[
-          { key: "home", label: tabLabels[0], icon: tabIcons[0], onPress: handleHomePress },
-          { key: "business", label: tabLabels[1], icon: tabIcons[1], onPress: handleBusinessPress },
-          { key: "directory", label: tabLabels[2], icon: tabIcons[2], onPress: handleDirectoryPress },
-          { key: "profile", label: tabLabels[3], icon: tabIcons[3], onPress: handleProfilePress },
-        ]}
-      />
+      {showBottomBar && (
+        <GlobalBottomNavigation
+          activeKey={activeKey}
+          centerIcon={modalOpen || activeKey === "create" ? "close" : "add"}
+          onCenterPress={handleCenterPress}
+          items={[
+            { key: "home", label: tabLabels[0], icon: tabIcons[0], onPress: handleHomePress },
+            { key: "business", label: tabLabels[1], icon: tabIcons[1], onPress: handleBusinessPress },
+            { key: "directory", label: tabLabels[2], icon: tabIcons[2], onPress: handleDirectoryPress },
+            { key: "profile", label: tabLabels[3], icon: tabIcons[3], onPress: handleProfilePress },
+          ]}
+        />
+      )}
       {unverifiedModalVisible && (
         <FormSheetModal
           visible={unverifiedModalVisible}

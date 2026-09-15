@@ -6,6 +6,7 @@ import { zustandStorage } from "@/lib/storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { AddressVerificationType, User } from "./auth.type";
+import { useAuthStore } from "./useAuthStore";
 
 export interface UserStore {
     user: User | null;
@@ -114,6 +115,13 @@ export const useUserStore = create<UserStore>()(
                             loading: false,
                             isAddressVerified: userResponse?.isAddressVerified || null,
                         });
+                        // Access checks (usePermissions/hasRole) read roles from
+                        // useAuthStore, which is otherwise only set at login — sync
+                        // it here so an admin approval (which changes backend
+                        // roles) takes effect immediately, without logout/login.
+                        if (userResponse.roles?.length) {
+                            useAuthStore.getState().setRoles(userResponse.roles);
+                        }
                     }
                 } catch (err: any) {
                     set({

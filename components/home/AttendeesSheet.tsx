@@ -1,7 +1,7 @@
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedAttendee } from "@/types/homeFeed.type";
-import { FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   visible: boolean;
@@ -21,12 +21,9 @@ export default function AttendeesSheet({ visible, onClose, attendees }: Props) {
       title="Attending"
       subtitle={`${attendees.length} neighbour${attendees.length === 1 ? "" : "s"}`}
     >
-      <FlatList
-        data={attendees}
-        keyExtractor={(a) => a.id}
-        style={styles.list}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
+      <View style={styles.list}>
+        {attendees.map((item) => (
+          <View key={item.id} style={styles.row}>
             {item.avatarUrl ? (
               <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
             ) : (
@@ -38,14 +35,14 @@ export default function AttendeesSheet({ visible, onClose, attendees }: Props) {
             )}
             <Text style={[styles.name, { color: t.colors.textPrimary }]}>{item.name}</Text>
           </View>
-        )}
-      />
+        ))}
+      </View>
     </FormSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingBottom: 16, maxHeight: 400 },
+  list: { paddingHorizontal: 16, paddingBottom: 16 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   fallback: { alignItems: "center", justifyContent: "center" },

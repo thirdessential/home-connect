@@ -47,6 +47,12 @@ export default function ProfileStack() {
           title: "User Profile",
         }}
       />
+      <Stack.Screen
+        name="delete-account"
+        options={{
+          title: "Delete Account",
+        }}
+      />
       {/* Admin Dashboard */}
       <Stack.Screen
         name="admin-dashboard"

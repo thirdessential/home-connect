@@ -10,7 +10,6 @@ import { sendDevelopmentTestPushToCurrentDevice } from "@/hooks/usePushNotificat
 import { usePermissions } from "@/hooks/usePermissions";
 import { uploadToBackendKeyed } from "@/lib/backendUpload";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
@@ -119,27 +118,6 @@ const ListRow = memo(function ListRowCmp({
   );
 });
 
-const SectionTitle = memo(function SectionTitle({
-  children,
-}: {
-  children: string;
-}) {
-  const t = useTheme();
-
-  return (
-    <Text
-      style={{
-        fontSize: 16,
-      fontFamily: "Manrope_700Bold",
-        color: t.colors.textPrimary,
-        marginBottom: 10,
-      }}
-    >
-      {children}
-    </Text>
-  );
-});
-
 export default function ProfileScreen() {
   const t = useTheme();
   const router = useRouter();
@@ -149,7 +127,6 @@ export default function ProfileScreen() {
   const updateUser = useUserStore((s) => s.updateUser);
   const updateUserField = useUserStore((s) => s.updateUserField);
   const signOut = useAuthStore((s) => s.signOut);
-  const societyName = useSocietyStore((state) => state?.selectedSociety?.name);
   const { hasRole, hasAnyRole } = usePermissions();
 
   // Only the two dynamic values belong in useMemo — static keys moved to staticStyles
@@ -227,8 +204,6 @@ export default function ProfileScreen() {
 
   // Trivial derivations — useMemo overhead exceeds savings, derive directly
   const phone = user?.phone || "N/A";
-  const address =
-    user?.completeAddress || societyName || "No address available";
 
   // Single source of truth: the backend's own isAddressVerified.status — same
   // field Home reads (see HomeScreen's userVerification). Role flags come from
@@ -286,10 +261,6 @@ export default function ProfileScreen() {
   const goAdminDashboard = useCallback(() => {
     router.navigate("/profile/admin-dashboard");
   }, [router]);
-  const goBusinessCatalog = useCallback(() => {
-    router.navigate("/(shared)/businessCatalogue");
-  }, [router]);
-
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
 
   const goEventDashboard = useCallback(() => {
@@ -323,13 +294,6 @@ export default function ProfileScreen() {
         onPress: goEventDashboard,
       });
     }
-    if (hasRole(UserRole.BUSINESS)) {
-      items.push({
-        label: "My Business Account",
-        icon: "storefront-outline",
-        onPress: goBusinessCatalog,
-      });
-    }
     if (!hasRole(UserRole.GUEST)) {
       items.push({
         label: "My Reports",
@@ -358,7 +322,6 @@ export default function ProfileScreen() {
     goMyReports,
     goMyProfiles,
     goEventDashboard,
-    goBusinessCatalog,
     goAdminDashboard,
   ]);
 
@@ -413,89 +376,6 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
-
-        {/* Personal profile card */}
-        <Card style={staticStyles.cardMargin}>
-          <View style={staticStyles.cardPadding}>
-            <SectionTitle>My personal profile</SectionTitle>
-            {address.length > 0 && (
-              <>
-                <View style={staticStyles.infoRow}>
-                  <View
-                    style={[
-                      staticStyles.infoIconWrap,
-                      { backgroundColor: t.colors.brandWeak },
-                    ]}
-                  >
-                    <Ionicons
-                      name="location-outline"
-                      size={18}
-                      color={t.colors.brand}
-                    />
-                  </View>
-                  <View style={staticStyles.infoRowText}>
-                    <Text
-                      style={[
-                        staticStyles.infoLabel,
-                        { color: t.colors.textSecondary },
-                      ]}
-                    >
-                      Address
-                    </Text>
-                    <Text
-                      style={[
-                        staticStyles.infoValue,
-                        { color: t.colors.textPrimary },
-                      ]}
-                    >
-                      {address}
-                    </Text>
-                  </View>
-                </View>
-                <View
-                  style={[
-                    staticStyles.infoDivider,
-                    { backgroundColor: t.colors.border },
-                  ]}
-                />
-              </>
-            )}
-            {phone && (
-              <View style={staticStyles.infoRow}>
-                <View
-                  style={[
-                    staticStyles.infoIconWrap,
-                    { backgroundColor: t.colors.brandWeak },
-                  ]}
-                >
-                  <Ionicons
-                    name="phone-portrait-outline"
-                    size={18}
-                    color={t.colors.brand}
-                  />
-                </View>
-                <View style={staticStyles.infoRowText}>
-                  <Text
-                    style={[
-                      staticStyles.infoLabel,
-                      { color: t.colors.textSecondary },
-                    ]}
-                  >
-                    Phone
-                  </Text>
-                  <Text
-                    style={[
-                      staticStyles.infoValue,
-                      { color: t.colors.textPrimary },
-                    ]}
-                  >
-                    {phone}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </Card>
 
         {/* Quick links card */}
         {menuItems.length > 0 && (

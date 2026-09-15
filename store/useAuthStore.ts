@@ -122,6 +122,13 @@ export const useAuthStore = create<AuthStore>()(
           if (verification?.user) {
             useUserStore.getState().setUser(verification.user);
             syncSelectedSociety(verification.user);
+            // Keep the role-gate (usePermissions/root redirect) in sync with
+            // the backend on every restart — otherwise an approval that
+            // changed roles since the last session stays stale until Home
+            // happens to refetch it.
+            if (verification.user.roles?.length) {
+              set({ roles: verification.user.roles });
+            }
           }
           if (verification?.tokenExpiry) {
             set({ expiresAt: verification.tokenExpiry });

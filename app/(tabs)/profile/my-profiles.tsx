@@ -10,13 +10,14 @@ import { useToast } from "@/components/common/Toast";
 import ManageProfileForm from "@/components/form/ManageProfileForm";
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
-import DeleteAccount from "@/components/profile/DeleteAccount";
 import EditUserProfileForm, {
   EditUserProfilePayload,
 } from "@/components/profile/EditUserProfileForm";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ManageProfilePayload } from "@/store/auth.type";
+import { verificationStatus } from "@/assets/enums/common.enum";
 import { useBusinessRegistrationStore } from "@/store/useBusinessRegistrationStore";
+import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
@@ -62,6 +63,9 @@ export default function MyProfilesScreen() {
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
   const { hasRole } = usePermissions();
+  const societyName = useSocietyStore((state) => state?.selectedSociety?.name);
+  const phone = user?.phone || "N/A";
+  const address = user?.completeAddress || societyName || "No address available";
 
   const { showToast } = useToast();
   const hasResident = hasRole(UserRole.RESIDENT);
@@ -79,14 +83,12 @@ export default function MyProfilesScreen() {
   const [personalProfileVisible, setPersonalProfileVisible] = useState(false);
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [manageResidentVisible, setManageResidentVisible] = useState(false);
-  const [deleteVisible, setDeleteVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ title: "", subtitle: "" });
 
   const closeEditProfile = useCallback(() => setEditProfileVisible(false), []);
   const closeManageResident = useCallback(() => setManageResidentVisible(false), []);
-  const closeDelete = useCallback(() => setDeleteVisible(false), []);
   const closeSuccess = useCallback(() => setSuccessVisible(false), []);
 
   const onSubmitEditProfile = useCallback(
@@ -132,7 +134,14 @@ export default function MyProfilesScreen() {
             profilePhotoUrl:
               user.profilePhotoUrl || "https://randomuser.me/api/portraits/men/1.jpg",
             completeAddress: payload.completeAddress,
-            isAddressVerified: payload.isAddressVerified,
+            // Editing an already-approved resident must not bounce them back
+            // to pending — the form defaults to PENDING for the first-time
+            // verification flow it's also used for, so only trust that
+            // default when the user isn't already approved.
+            isAddressVerified:
+              user.isAddressVerified?.status === verificationStatus.APPROVED
+                ? user.isAddressVerified
+                : payload.isAddressVerified,
           },
           user._id,
         );
@@ -163,20 +172,25 @@ export default function MyProfilesScreen() {
   const openPersonalProfile = useCallback(() => setPersonalProfileVisible(true), []);
   const openEditProfile = useCallback(() => setEditProfileVisible(true), []);
   const openManageResident = useCallback(() => setManageResidentVisible(true), []);
-  const openDelete = useCallback(() => setDeleteVisible(true), []);
+  const openDelete = useCallback(() => router.push("/profile/delete-account"), []);
 
   const accountOptions = useMemo(() => {
     const items: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }[] = [
       { key: "personal-profile", label: "My Personal Profile", icon: "person-circle-outline", onPress: openPersonalProfile },
       { key: "edit-profile", label: "Edit User Profile", icon: "person-outline", onPress: openEditProfile },
     ];
-    if (hasResident && hasBusiness) {
+    // Independent per role — a Resident-only (or Business-only) user must
+    // still be able to manage the role they already have, not just be
+    // offered to create the one they don't.
+    if (hasResident) {
       items.push({ key: "manage-resident", label: "Manage Your Resident Account", icon: "home-outline", onPress: openManageResident });
-      items.push({ key: "manage-business", label: "Manage Your Business Account", icon: "storefront-outline", onPress: goManageBusiness });
-    } else if (hasResident) {
-      items.push({ key: "create-business", label: "Create Your Business Account", icon: "storefront-outline", onPress: goCreateBusiness });
-    } else if (hasBusiness) {
+    } else {
       items.push({ key: "create-resident", label: "Create Your Resident Account", icon: "home-outline", onPress: goCreateResident });
+    }
+    if (hasBusiness) {
+      items.push({ key: "manage-business", label: "Manage Your Business Account", icon: "storefront-outline", onPress: goManageBusiness });
+    } else {
+      items.push({ key: "create-business", label: "Create Your Business Account", icon: "storefront-outline", onPress: goCreateBusiness });
     }
     return items;
   }, [hasResident, hasBusiness, openPersonalProfile, openEditProfile, openManageResident, goManageBusiness, goCreateBusiness, goCreateResident]);
@@ -188,6 +202,35 @@ export default function MyProfilesScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
+        <Card style={[styles.card, styles.cardPadding]}>
+          <Text style={[styles.sectionTitle, { color: t.colors.textPrimary }]}>My personal profile</Text>
+          {address.length > 0 && (
+            <>
+              <View style={styles.infoRow}>
+                <View style={[styles.infoIconWrap, { backgroundColor: t.colors.brandWeak }]}>
+                  <Ionicons name="location-outline" size={18} color={t.colors.brand} />
+                </View>
+                <View style={styles.infoRowText}>
+                  <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>Address</Text>
+                  <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{address}</Text>
+                </View>
+              </View>
+              <View style={[styles.infoDivider, { backgroundColor: t.colors.border }]} />
+            </>
+          )}
+          {phone && (
+            <View style={styles.infoRow}>
+              <View style={[styles.infoIconWrap, { backgroundColor: t.colors.brandWeak }]}>
+                <Ionicons name="phone-portrait-outline" size={18} color={t.colors.brand} />
+              </View>
+              <View style={styles.infoRowText}>
+                <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>Phone</Text>
+                <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{phone}</Text>
+              </View>
+            </View>
+          )}
+        </Card>
+
         <Card style={styles.card}>
           {accountOptions.map((item, index) => (
             <Row
@@ -258,10 +301,6 @@ export default function MyProfilesScreen() {
         ) : null}
       </FormSheetModal>
 
-      <FormSheetModal visible={deleteVisible} onClose={closeDelete} title="Delete Account" dismissOnBackdrop>
-        {deleteVisible ? <DeleteAccount /> : null}
-      </FormSheetModal>
-
       <OrderSuccessModal
         visible={successVisible}
         onDismiss={closeSuccess}
@@ -277,6 +316,21 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: 16, paddingTop: 8 },
   card: { marginBottom: 16, padding: 0 },
+  cardPadding: { padding: 16 },
+  sectionTitle: { fontSize: 16, fontFamily: "Manrope_700Bold", marginBottom: 10 },
+  infoRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 14 },
+  infoIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  infoRowText: { flex: 1, paddingTop: 2 },
+  infoLabel: { fontFamily: "Manrope_600SemiBold" },
+  infoValue: { fontSize: 14, fontFamily: "Manrope_600SemiBold", lineHeight: 20, marginTop: 2 },
+  infoDivider: { height: 1, marginLeft: 48, marginBottom: 14 },
   row: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
   iconWrap: {
     width: 40,

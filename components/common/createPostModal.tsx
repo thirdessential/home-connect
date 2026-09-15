@@ -134,6 +134,7 @@ function CreatePostModal({
   const userPhone = useUserStore((s) => s.user?.phone);
   const createUser = useUserStore((s) => s.createUser);
   const setRoles = useAuthStore((s) => s.setRoles);
+  const refreshToken = useAuthStore((s) => s.refreshToken);
   const userCity = useSocietyStore((s) => s.selectedSociety?.city);
   const userState = useSocietyStore((s) => s.selectedSociety?.state);
   const userRoles = useUserStore((s) => s.user?.roles);
@@ -628,6 +629,10 @@ function CreatePostModal({
 
         await createProduct(newBusiness);
         setRoles(updatedRoles);
+        // Local roles update is UI-only — the backend still authorizes off the
+        // JWT's own role claim, so refresh it or role-gated calls (e.g. daily
+        // service create) keep getting "insufficient permissions" until re-login.
+        refreshToken().catch(() => {});
 
         setSubmissionState({
           type: "success",
@@ -955,6 +960,7 @@ function CreatePostModal({
             ),
           );
           setRoles(updatedRoles);
+          refreshToken().catch(() => {});
         }
         // Show success message
         setSubmissionState({

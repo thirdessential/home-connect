@@ -58,6 +58,7 @@ function VerificationSheetInner({
   const getTowerById = useSocietyStore((s) => s.getTowerById);
   const submitVerification = useSocietyStore((s) => s.submitVerification);
   const setRoles = useAuthStore((s) => s.setRoles);
+  const refreshToken = useAuthStore((s) => s.refreshToken);
   const createProduct = useProductStore((s) => s.createProduct);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
@@ -303,6 +304,10 @@ function VerificationSheetInner({
         });
         setTimeout(() => {
           setRoles(updatedRoles as string[]);
+          // Local roles update is UI-only — the backend still authorizes off the
+          // JWT's own role claim, so refresh it or role-gated calls (e.g. daily
+          // service create) keep getting "insufficient permissions" until re-login.
+          refreshToken().catch(() => {});
           handleFormSubmitRef.current("business", businessFormData);
           setSubmissionState({ type: "idle" });
         }, 1800);
