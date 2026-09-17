@@ -6,7 +6,10 @@ import { zustandStorage } from "@/lib/storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { AddressVerificationType, User } from "./auth.type";
-import { useAuthStore } from "./useAuthStore";
+// useAuthStore is required lazily (not statically imported) at the one call
+// site below — useAuthStore.ts statically imports this file, so a top-level
+// import here would create the "useAuthStore -> useUserStore -> useAuthStore"
+// require cycle. Both modules are fully evaluated by the time fetchUser runs.
 
 export interface UserStore {
     user: User | null;
@@ -120,6 +123,7 @@ export const useUserStore = create<UserStore>()(
                         // it here so an admin approval (which changes backend
                         // roles) takes effect immediately, without logout/login.
                         if (userResponse.roles?.length) {
+                            const { useAuthStore } = require("./useAuthStore") as typeof import("./useAuthStore");
                             useAuthStore.getState().setRoles(userResponse.roles);
                         }
                     }

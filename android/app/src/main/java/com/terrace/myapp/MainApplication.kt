@@ -1,4 +1,4 @@
-package com.anonymous.homeconnect
+package com.terrace.myapp
 
 import android.app.Application
 import android.content.res.Configuration

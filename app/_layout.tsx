@@ -162,7 +162,7 @@ function NavLinker() {
               backgroundColor/translucent props (edge-to-edge is controlled
               natively), so the only supported lever against "status bar not
               visible" is guaranteeing it's never toggled hidden. */}
-          <StatusBar style={Platform.OS === "ios" ? "dark" : "auto"} hidden={false} />
+              <StatusBar style={Platform.OS === "ios" ? "dark" : "dark"} hidden={false} />
           <Stack
             screenOptions={{
               headerShown: false,

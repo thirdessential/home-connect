@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "homeconnect.app"
-               BlueprintName = "homeconnect"
-               ReferencedContainer = "container:homeconnect.xcodeproj">
+               BuildableName = "MyTerraceApp.app"
+               BlueprintName = "MyTerraceApp"
+               ReferencedContainer = "container:MyTerraceApp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "homeconnectTests.xctest"
-               BlueprintName = "homeconnectTests"
-               ReferencedContainer = "container:homeconnect.xcodeproj">
+               BuildableName = "MyTerraceAppTests.xctest"
+               BlueprintName = "MyTerraceAppTests"
+               ReferencedContainer = "container:MyTerraceApp.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "homeconnect.app"
-            BlueprintName = "homeconnect"
-            ReferencedContainer = "container:homeconnect.xcodeproj">
+            BuildableName = "MyTerraceApp.app"
+            BlueprintName = "MyTerraceApp"
+            ReferencedContainer = "container:MyTerraceApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "homeconnect.app"
-            BlueprintName = "homeconnect"
-            ReferencedContainer = "container:homeconnect.xcodeproj">
+            BuildableName = "MyTerraceApp.app"
+            BlueprintName = "MyTerraceApp"
+            ReferencedContainer = "container:MyTerraceApp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

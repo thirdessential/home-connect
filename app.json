@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "home-connect",
+    "name": "My Terrace App",
     "slug": "home-connect",
     "version": "1.0.0",
     "scheme": "homeconnect",
+    "icon": "./assets/images/icon.png",
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -13,7 +14,15 @@
       "typedRoutes": true
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ]
     ],
     "extra": {
       "router": {},
@@ -23,11 +32,15 @@
     },
     "owner": "ganesh3rde",
     "android": {
-      "package": "com.anonymous.homeconnect",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.terrace.myapp",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon-foreground.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "ios": {
-      "bundleIdentifier": "com.anonymous.homeconnect"
+      "bundleIdentifier": "com.terrace.myapp"
     }
   }
 }

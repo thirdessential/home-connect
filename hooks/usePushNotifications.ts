@@ -169,10 +169,23 @@ export function usePushNotifications() {
       registrationInFlightForUserId = userId;
 
       try {
+        if (__DEV__ && Platform.OS === "android") {
+          console.log("[NOTIFICATION DEBUG] Platform: Android");
+          console.log(`[NOTIFICATION DEBUG] Physical device: ${Device.isDevice}`);
+          if (!Device.isDevice) {
+            console.log(
+              "[NOTIFICATION DEBUG] Running on an emulator — remote push tokens may be unavailable or non-functional depending on emulator Play Services setup.",
+            );
+          }
+        }
+
+        if (__DEV__) console.log("[NOTIFICATION DEBUG] Checking notification permission...");
         const { status: existing } = await Notifications.getPermissionsAsync();
+        if (__DEV__) console.log(`[NOTIFICATION DEBUG] Permission status: ${existing}`);
         let status = existing;
         if (existing !== "granted") {
           ({ status } = await Notifications.requestPermissionsAsync());
+          if (__DEV__) console.log(`[NOTIFICATION DEBUG] Permission request result: ${status}`);
         }
         if (__DEV__) console.log(`[Push] permission: ${status}`);
         if (status !== "granted") return;
@@ -198,8 +211,27 @@ export function usePushNotifications() {
           projectId ? { projectId } : undefined,
         );
         if (!token) throw new Error("Push token was empty");
-        if (__DEV__ && token) console.log(`FCM/Expo Push Token: ${token}`); // dev-only — never logged/returned in production
-        await Post("/api/notification/user/register-token", { token });
+        if (__DEV__ && token) {
+          console.log(`FCM/Expo Push Token: ${token}`); // dev-only — never logged/returned in production
+          console.log("[NOTIFICATION DEBUG] Expo push token generated successfully");
+          console.log(`[NOTIFICATION DEBUG] Token: ${token}`);
+        }
+
+        if (__DEV__) console.log("[NOTIFICATION DEBUG] Sending push token to backend...");
+        try {
+          await Post("/api/notification/user/register-token", { token });
+        } catch (postErr) {
+          if (__DEV__) {
+            console.log("[NOTIFICATION DEBUG] Push token API failed");
+            console.log(`[NOTIFICATION DEBUG] Error: ${postErr instanceof Error ? postErr.message : String(postErr)}`);
+          }
+          throw postErr;
+        }
+        if (__DEV__) {
+          // httpMethods throws on non-2xx, so reaching here means the request succeeded.
+          console.log("[NOTIFICATION DEBUG] Push token API response status: success");
+          console.log("[NOTIFICATION DEBUG] Push token saved successfully");
+        }
         // Set this only after the server confirms registration. Failed
         // requests must be retried, otherwise sends permanently report no
         // tokens for this user until the app is reinstalled.
@@ -224,7 +256,10 @@ export function usePushNotifications() {
 
     // Foreground: capture into the local store (also shown via the handler above).
     receivedSub.current = Notifications.addNotificationReceivedListener((n) => {
-      if (__DEV__) console.log("[Push] notification received");
+      if (__DEV__) {
+        console.log("[Push] notification received");
+        console.log("[NOTIFICATION DEBUG] Notification received");
+      }
       add({
         title: n.request.content.title ?? "Notification",
         body: n.request.content.body ?? "",
@@ -235,7 +270,10 @@ export function usePushNotifications() {
 
     // Tap (foreground, background, or cold start): record + deep-link.
     responseSub.current = Notifications.addNotificationResponseReceivedListener((res) => {
-      if (__DEV__) console.log("[Push] notification tapped");
+      if (__DEV__) {
+        console.log("[Push] notification tapped");
+        console.log("[NOTIFICATION DEBUG] Notification response received");
+      }
       const content = res.notification.request.content;
       add({
         title: content.title ?? "Notification",
@@ -247,7 +285,10 @@ export function usePushNotifications() {
       if (typeof path === "string") router.push(path as any);
       else router.push("/(shared)/notifications" as any);
     });
-    if (__DEV__) console.log("[Push] listener registered");
+    if (__DEV__) {
+      console.log("[Push] listener registered");
+      console.log("[NOTIFICATION DEBUG] Notification listener registered");
+    }
 
     const appStateSub = AppState.addEventListener("change", (state) => {
       if (state === "active" && registeredForUserId !== userId) {
