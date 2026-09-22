@@ -26,6 +26,25 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:236265950652:android:5383065c32bd02f6352fb9",
+        "android_client_info": {
+          "package_name": "com.myterraceapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAseqA8r1h2sEPepQiVpWCumjzCA6RfX-k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:236265950652:android:14c971a28968a41b352fb9",
         "android_client_info": {
           "package_name": "com.terrace.myapp"

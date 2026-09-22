@@ -1,4 +1,4 @@
-package com.terrace.myapp
+package com.myterraceapp
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

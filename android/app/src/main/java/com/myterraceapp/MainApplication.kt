@@ -1,4 +1,4 @@
-package com.terrace.myapp
+package com.myterraceapp
 
 import android.app.Application
 import android.content.res.Configuration

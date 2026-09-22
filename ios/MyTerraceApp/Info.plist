@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>homeconnect</string>
-          <string>com.terrace.myapp</string>
+          <string>com.myterraceapp</string>
         </array>
       </dict>
       <dict>

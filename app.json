@@ -2,7 +2,7 @@
   "expo": {
     "name": "My Terrace App",
     "slug": "home-connect",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "homeconnect",
     "icon": "./assets/images/icon.png",
     "web": {
@@ -18,7 +18,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash.png",
+          "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
         }
@@ -32,7 +32,7 @@
     },
     "owner": "ganesh3rde",
     "android": {
-      "package": "com.terrace.myapp",
+      "package": "com.myterraceapp",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-foreground.png",
@@ -40,7 +40,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.terrace.myapp"
+      "bundleIdentifier": "com.myterraceapp"
     }
   }
 }
