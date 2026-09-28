@@ -2,6 +2,7 @@ import { verificationStatus } from "@/assets/enums/common.enum";
 import ServiceProviderCarousel from "@/components/directory/ServiceProviderCarousel";
 import SocietyInfoCard from "@/components/directory/SocietyInfoCard";
 import { getVerificationStatus } from "@/lib/adminHelper";
+import { buildImageUrl } from "@/lib/imageUtils";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useSocietyStore } from "@/store/useSocietyStore";
@@ -74,10 +75,7 @@ export default function DirectoryHome() {
         name: business.title || business.name || "Business",
         rating: parseFloat(business.rating) || 4.5,
         reviewCount: business.reviewCount || 0,
-        imageUrl:
-          business.images?.[0] ||
-          business.imageUrl ||
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+        imageUrl: buildImageUrl(business.images?.[0] || business.imageUrl),
         productType: "business",
       }),
     );
@@ -103,10 +101,7 @@ export default function DirectoryHome() {
           service.serviceType === "daily-help"
             ? "daily-helper"
             : "professional-service",
-        imageUrl:
-          service.imageUrl ||
-          service.images?.[0] ||
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+        imageUrl: buildImageUrl(service.imageUrl || service.images?.[0]),
       };
       if (service.serviceType === "daily-help") {
         dailyHelpData.push(mapped);
@@ -119,21 +114,21 @@ export default function DirectoryHome() {
 
   // View all handlers for each category
   const handleViewAllBusinesses = useCallback(() => {
-    router.navigate({
+    router.push({
       pathname: "/(tabs)/directory/all-services",
       params: { type: "business" },
     });
   }, [router]);
 
   const handleViewAllProfessionalServices = useCallback(() => {
-    router.navigate({
+    router.push({
       pathname: "/(tabs)/directory/all-services",
       params: { type: "professional-services" },
     });
   }, [router]);
 
   const handleViewAllDailyHelp = useCallback(() => {
-    router.navigate({
+    router.push({
       pathname: "/(tabs)/directory/all-services",
       params: { type: "daily-help" },
     });

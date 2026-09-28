@@ -9,6 +9,7 @@ import TitleHeader from "@/components/UI/TitleHeader";
 import { useVerificationGate } from "@/hooks/useVerificationGate";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getVerificationStatus } from "@/lib/adminHelper";
+import { buildImageUrl } from "@/lib/imageUtils";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useTheme } from "@/theme/theme";
@@ -47,6 +48,7 @@ const ServiceProviderListCard = memo(
         <View style={styles.header}>
           <CircularImage
             uri={item.image}
+            name={item.name}
             size={54}
             mode="view"
             loading={false}
@@ -170,10 +172,7 @@ export default function AllServicesScreen() {
         id: item._id || item.id,
         name: item.name || item.title || "Unknown",
         category: item.categoryId || item.category || "Service",
-        image:
-          item.images?.[0] ||
-          item.imageUrl ||
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+        image: buildImageUrl(item.images?.[0] || item.imageUrl),
         rating: parseFloat(item.averageRating || item.rating) || 4.5,
         reviewCount: item.reviews?.length || item.reviewCount || 0,
         tags: item.skills || item.tags || [],
@@ -201,7 +200,7 @@ export default function AllServicesScreen() {
     (item: any) => {
       // Block navigation before it happens — no brief open + redirect.
       if (!requireVerified("page")) return;
-      router.navigate(
+      router.push(
         `/(tabs)/directory/${
           type === "business" ? "business" : "service"
         }/${item.id}`,

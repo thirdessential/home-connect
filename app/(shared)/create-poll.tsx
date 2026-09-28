@@ -41,9 +41,11 @@ export default function CreatePollScreen() {
           ? currentUser.societyId.name
           : undefined,
     };
-    await createFeed(postBody);
-    if (!useFeedsStore.getState().error) {
+    try {
+      await createFeed(postBody);
       setSuccessVisible(true);
+    } catch {
+      // createFeed already sets store `error`, which PollForm renders inline.
     }
   };
 

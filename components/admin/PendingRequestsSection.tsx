@@ -24,7 +24,6 @@ type TabCounts = {
   all: number;
   user: number;
   business: number;
-  service: number;
 };
 
 type Props = {
@@ -44,7 +43,6 @@ const TAB_LABELS: Record<string, string> = {
   all: "All Requests",
   user: "Residents",
   business: "Businesses",
-  service: "Services",
 };
 
 const EmptyRequests = (
@@ -130,7 +128,7 @@ const PendingRequestsSection = memo(function PendingRequestsSection({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsRow}
         >
-          {ENTITY_TYPE_FILTERS.map((opt) => {
+          {ENTITY_TYPE_FILTERS.filter((opt) => opt.id in TAB_LABELS).map((opt) => {
             const isActive = activeFilter === opt.id;
             const count = counts[opt.id as keyof TabCounts] ?? 0;
             return (
@@ -244,10 +242,10 @@ const PendingRequestsSection = memo(function PendingRequestsSection({
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           scrollEnabled={false}
-          removeClippedSubviews
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          initialNumToRender={10}
+          // Non-scrolling list nested in the dashboard ScrollView: it never gets
+          // its own scroll events, so virtualization/clipping left items blank
+          // (count showed N, card looked empty). Render every row up front.
+          initialNumToRender={filteredRequests.length || 1}
           ListEmptyComponent={EmptyRequests}
         />
       </View>

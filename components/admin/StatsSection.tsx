@@ -6,16 +6,17 @@ export type VerificationStats = {
   pendingRequests: number;
   approvedResidents: number;
   approvedBusinesses: number;
-  approvedServices: number;
-  reportedContents: number;
+  reportsCount: number;
+};
+
+export type StatsLoading = {
+  reportsCount?: boolean;
 };
 
 export type SelectedStatsCard =
   | "pending"
   | "approved-residents"
   | "approved-business"
-  | "approved-services"
-  | "reported-contents"
   | null;
 
 type Props = {
@@ -24,8 +25,8 @@ type Props = {
   onPendingPress: () => void;
   onApprovedResidentsPress: () => void;
   onApprovedBusinessPress: () => void;
-  onApprovedServicesPress: () => void;
   onReportedContentsPress: () => void;
+  loadingStats?: StatsLoading;
 };
 
 const StatsSection = memo(function StatsSection({
@@ -34,9 +35,12 @@ const StatsSection = memo(function StatsSection({
   onPendingPress,
   onApprovedResidentsPress,
   onApprovedBusinessPress,
-  onApprovedServicesPress,
   onReportedContentsPress,
+  loadingStats,
 }: Props) {
+  // Uniform 2×2 grid — all 4 cards are the same "item" (48%) size/structure,
+  // row 1: Pending Requests / Approved Residents, row 2: Approved Businesses
+  // / Reports. No full-width card, so no odd-one-out blank slot.
   return (
     <View style={styles.container}>
       <View style={styles.item}>
@@ -80,15 +84,15 @@ const StatsSection = memo(function StatsSection({
       </View>
       <View style={styles.item}>
         <StatsCard
-          title="Approved Services"
-          value={stats.approvedServices}
-          icon="people-circle-outline"
-          caption="Total approved"
-          color="#2F5FE0"
-          tint="#EAF0FE"
-          onPress={onApprovedServicesPress}
-          isSelected={selectedCard === "approved-services"}
-          type="approved"
+          title="Reports"
+          value={stats.reportsCount}
+          icon="flag"
+          caption="Posts, comments, deals, events & more"
+          color="#DC2626"
+          tint="#FDECEC"
+          onPress={onReportedContentsPress}
+          type="pending"
+          loading={loadingStats?.reportsCount}
         />
       </View>
     </View>
@@ -103,9 +107,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    rowGap: 12,
+    rowGap: 0,
     marginBottom: 8,
   },
   item: { width: "48%" },
-  itemFull: { width: "100%" },
 });

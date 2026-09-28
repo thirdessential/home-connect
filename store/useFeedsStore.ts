@@ -6,6 +6,33 @@ import { FeedItem, FeedsState, RsvpUser } from "@/types/feeds.type";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+const pruneExpiredFeeds = (feeds: FeedItem[]) => {
+    const cutoff = Date.now() - CACHE_TTL_MS;
+    const seen = new Set<string>();
+    return feeds.filter((feed) => {
+        const timestamp = feed.createdAt || feed.updatedAt;
+        const isRecent =
+            !timestamp ||
+            Number.isNaN(new Date(timestamp).getTime()) ||
+            new Date(timestamp).getTime() >= cutoff;
+        if (!isRecent || !feed?._id || seen.has(feed._id)) return false;
+        seen.add(feed._id);
+        return true;
+    });
+};
+
+const mergeFeeds = (cached: FeedItem[], latest: FeedItem[]) => {
+    const byId = new Map<string, FeedItem>();
+    [...latest, ...cached].forEach((feed) => {
+        if (feed?._id && !byId.has(feed._id)) byId.set(feed._id, feed);
+    });
+    return [...byId.values()].sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+    });
+};
+
 export const useFeedsStore = create<FeedsState>()(
     persist(
         (set, get) => ({
@@ -17,16 +44,22 @@ export const useFeedsStore = create<FeedsState>()(
             cachedSocietyId: null,
 
             isCacheValid: (societyId: string) => {
-                const { lastFetchedAt, cachedSocietyId, feeds } = get();
-                if (!lastFetchedAt || !cachedSocietyId || feeds.length === 0) return false;
+                const { cachedSocietyId, feeds } = get();
+                if (!cachedSocietyId || feeds.length === 0) return false;
                 if (cachedSocietyId !== societyId) return false;
-                return Date.now() - lastFetchedAt < CACHE_TTL_MS;
+                return pruneExpiredFeeds(feeds).length > 0;
             },
 
             fetchFeedsBySociety: async (societyId: string, force = false) => {
                 // Use cache if valid and not forced
                 if (!force && get().isCacheValid(societyId)) return;
 
+                const cachedFeeds = get().cachedSocietyId === societyId
+                    ? pruneExpiredFeeds(get().feeds)
+                    : [];
+                if (cachedFeeds.length !== get().feeds.length) {
+                    set({ feeds: cachedFeeds });
+                }
                 set({ loading: true, error: null });
                 try {
                     const response = await Get<{ code: number; feeds: FeedItem[] }>(
@@ -34,7 +67,13 @@ export const useFeedsStore = create<FeedsState>()(
                     );
                     if (response?.code === 200) {
                         set({
-                            feeds: response.feeds,
+                            // Keep the recent local window and let the API win
+                            // for duplicate ids. This also makes a refresh
+                            // append new content without duplicating records.
+                            feeds: mergeFeeds(
+                                cachedFeeds,
+                                pruneExpiredFeeds(Array.isArray(response.feeds) ? response.feeds : []),
+                            ),
                             loading: false,
                             lastFetchedAt: Date.now(),   // ← stamp the cache
                             cachedSocietyId: societyId,
@@ -100,10 +139,24 @@ export const useFeedsStore = create<FeedsState>()(
                             }
                         });
                     } else {
-                        set({ error: "Failed to create feed", loading: false });
+                        // Drop the optimistic temp item — leaving it in place made
+                        // a failed create look successful until the next real
+                        // fetch silently replaced the list without it.
+                        const message = (response as any)?.message || "Failed to create feed";
+                        set((state) => ({
+                            feeds: state.feeds.filter((f) => !f._id.startsWith("temp-")),
+                            error: message,
+                            loading: false,
+                        }));
+                        throw new Error(message);
                     }
-                } catch {
-                    set({ error: "Failed to create feed", loading: false });
+                } catch (err) {
+                    set((state) => ({
+                        feeds: state.feeds.filter((f) => !f._id.startsWith("temp-")),
+                        error: "Failed to create feed",
+                        loading: false,
+                    }));
+                    throw err;
                 }
             },
             addFeedOptimistically: (feed: FeedItem) => {
@@ -275,6 +328,18 @@ export const useFeedsStore = create<FeedsState>()(
                     ),
                 })),
             votePoll: async (feedId: string, optionId: string, userId: string) => {
+                // Snapshot for revert-on-failure, and guard against a duplicate
+                // tap firing a second request while the first is in flight.
+                const prevFeed = get().feeds.find((f) => f._id === feedId);
+                if (prevFeed?.votes?.some((v: any) => {
+                    const vid = typeof v.userId === "string" ? v.userId : v.userId?._id ?? v.userId?.toString();
+                    return vid === userId;
+                })) return;
+
+                // Optimistic: bump the count AND record "my vote" immediately —
+                // components (e.g. Home's PollFeedCard) derive the selected/
+                // voted state from `votes`, not just the option counts, so
+                // without this the UI visibly waited for the API round-trip.
                 set((state) => ({
                     feeds: state.feeds.map((f) => {
                         if (f._id === feedId && f.type === "poll" && f.options) {
@@ -286,6 +351,13 @@ export const useFeedsStore = create<FeedsState>()(
                                     }
                                     return option;
                                 }),
+                                votes: [
+                                    ...(f.votes || []).filter((v: any) => {
+                                        const vid = typeof v.userId === "string" ? v.userId : v.userId?._id ?? v.userId?.toString();
+                                        return vid !== userId;
+                                    }),
+                                    { userId, optionId },
+                                ],
                             };
                         }
                         return f;
@@ -348,6 +420,7 @@ export const useFeedsStore = create<FeedsState>()(
                                             }
                                             return option;
                                         }),
+                                        votes: prevFeed?.votes || [],
                                     };
                                 }
                                 return f;
@@ -562,6 +635,15 @@ export const useFeedsStore = create<FeedsState>()(
                 lastFetchedAt: state.lastFetchedAt,
                 cachedSocietyId: state.cachedSocietyId,
             }),
+            onRehydrateStorage: () => (state, err) => {
+                if (state) {
+                    const feeds = pruneExpiredFeeds(state.feeds);
+                    if (feeds.length !== state.feeds.length) {
+                        useFeedsStore.setState({ feeds });
+                    }
+                }
+                if (err) console.warn("Feeds store hydration error", err);
+            },
         }
     )
 );

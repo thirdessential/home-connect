@@ -1007,6 +1007,13 @@ function CreatePostModal({
     [userId, userRoles, setRoles],
   );
 
+  // On iOS, React Native keeps a Modal's native host mounted until the
+  // dismissal callback completes. This component is globally mounted, so
+  // returning null when closed removes that host from the native hierarchy
+  // instead of leaving an invisible touch-capturing modal above a route that
+  // was opened immediately after it.
+  if (!visible) return null;
+
   return (
     <>
       <Modal

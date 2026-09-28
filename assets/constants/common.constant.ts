@@ -41,7 +41,7 @@ export const BUSINESS_LIMITS = {
     MAX_BUSINESSES_PER_USER: 1,
 } as const;
 
-export const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+export const CACHE_TTL_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
 
 export const PHONE_COUNTRY_CODE = {
     IN: "+91",

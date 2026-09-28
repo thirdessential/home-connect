@@ -1,10 +1,7 @@
 import ActionButton from "@/components/inputs/ActionButton";
 import TextArea from "@/components/inputs/TextArea";
 import { Post } from "@/lib/httpMethods";
-import { useProductStore } from "@/store/useBusinessStore";
-import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useUserStore } from "@/store/useUserStore";
-import { useWholesaleDealStore } from "@/store/useWholesaleDealStore";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
@@ -115,9 +112,6 @@ export default function ReportModal({
 }: ReportModalProps) {
   const t = useTheme();
   const { user: currentUser } = useUserStore();
-  const { reportBusiness } = useProductStore();
-  const { reportDeal } = useWholesaleDealStore();
-  const { reportService } = useDailyHelperStore();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [customReason, setCustomReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -160,42 +154,25 @@ export default function ReportModal({
 
     setSubmitting(true);
     try {
-      // Call API based on report type.
-      // USER/POST/POLL/EVENT/COMMENT go through the centralized, unlimited
-      // POST /api/reports (JWT-identified reporter, no daily cap). Business/
-      // deal/service stay on their existing legacy per-entity endpoints —
-      // out of scope for this change.
-      if (
-        reportType === "post" ||
-        reportType === "poll" ||
-        reportType === "event" ||
-        reportType === "user" ||
-        reportType === "comment"
-      ) {
-        if (!currentUser?._id) {
-          throw new Error("User ID not found");
-        }
-        await Post("/api/reports", {
-          targetType: reportType.toUpperCase(),
-          targetId: itemId,
-          reason: reasonToSubmit,
-        });
-      } else if (reportType === "business") {
-        if (!currentUser?._id) {
-          throw new Error("User ID not found");
-        }
-        await reportBusiness(itemId, currentUser._id, reasonToSubmit);
-      } else if (reportType === "deal") {
-        if (!currentUser?._id) {
-          throw new Error("User ID not found");
-        }
-        await reportDeal(itemId, currentUser._id, reasonToSubmit);
-      } else if (reportType === "service") {
-        if (!currentUser?._id) {
-          throw new Error("User ID not found");
-        }
-        await reportService(itemId, currentUser._id, reasonToSubmit);
+      if (!currentUser?._id) {
+        throw new Error("User ID not found");
       }
+      const targetType = {
+        feed: "POST",
+        post: "POST",
+        poll: "POLL",
+        event: "EVENT",
+        user: "USER",
+        comment: "COMMENT",
+        business: "BUSINESS",
+        deal: "DEAL",
+        service: "DAILY_SERVICE",
+      }[reportType];
+      await Post("/api/reports", {
+        targetType,
+        targetId: itemId,
+        reason: reasonToSubmit,
+      });
 
       // Only show success if we reach here without throwing
       setSubmitted(true);

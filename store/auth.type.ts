@@ -29,6 +29,12 @@ export type ManageProfilePayload = {
   towerId?: string;
   flatNo?: string;
   completeAddress?: string;
+  location?: {
+    address?: string;
+    latitude: number;
+    longitude: number;
+    updatedAt?: string | null;
+  } | null;
   mobileNumber?: string;
   email?: string;
   roles?: string[];
@@ -41,6 +47,12 @@ export interface User {
   phone?: string;
   email?: string;
   completeAddress?: string;
+  location?: {
+    address?: string;
+    latitude: number;
+    longitude: number;
+    updatedAt?: string | null;
+  } | null;
   roles: string[];
   profilePhotoUrl?: string;
   isAddressVerified?: AddressVerificationType

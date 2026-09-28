@@ -6,7 +6,7 @@ import ImagePickerField from "@/components/form/ImagePickerField";
 import TerraceSelectField from "@/components/inputs/TerraceSelectField";
 import TerraceTextField from "@/components/inputs/TerraceTextField";
 import TerraceStepper from "@/components/onboarding/TerraceStepper";
-import { API_BASE } from "@/lib/httpMethods";
+import { buildImageUrl } from "@/lib/imageUtils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import {
@@ -132,9 +132,9 @@ function OptionCard({
   );
 }
 
-// Server file paths are relative ("/uploads/..."); the picker needs a full URL.
-const toDisplayUrl = (p?: string | null) =>
-  !p ? null : p.startsWith("http") ? p : `${API_BASE}${p}`;
+// Server file paths are relative (e.g. "/uploads/..." or "societies/..."
+// without a leading slash); the picker needs a full URL.
+const toDisplayUrl = (p?: string | null) => buildImageUrl(p) ?? null;
 
 const isRemote = (uri: string) => uri.startsWith("http") || uri.startsWith("/uploads");
 

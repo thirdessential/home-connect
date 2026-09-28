@@ -99,7 +99,7 @@ export interface ServiceProvider {
     category: string;
     rating: number;
     reviewCount: number;
-    imageUrl: string;
+    imageUrl?: string;
     businessPhone?: string;
     catalogue?: any[];
     city?: string;

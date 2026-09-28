@@ -2,6 +2,28 @@
  * Image URL Utilities
  * Provides functions for validating, sanitizing, and optimizing image URLs
  */
+import { API_BASE } from "@/lib/httpMethods";
+
+/**
+ * Safely joins the API base URL with a relative image path returned by the
+ * backend. Handles both "/societies/..." and "societies/..." (missing
+ * leading slash) without producing a double slash or double protocol.
+ * @param path - Relative (or already-absolute) image path from the API
+ * @returns Absolute image URL, or undefined if path is empty
+ */
+export const buildImageUrl = (path?: string | null): string | undefined => {
+    if (!path || typeof path !== "string") return undefined;
+
+    const trimmed = path.trim();
+    if (!trimmed) return undefined;
+
+    // Already absolute — don't touch it.
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+
+    const base = API_BASE.replace(/\/+$/, "");
+    const relative = trimmed.replace(/^\/+/, "");
+    return `${base}/${relative}`;
+};
 
 /**
  * Validates if a URL is a valid image URL
@@ -57,7 +79,7 @@ export const sanitizeImageUrl = (url: any): string | undefined => {
     sanitized = sanitized.replace(/\s+/g, "");
 
     // Do NOT blindly force https here: the local dev backend
-    // (EXPO_PUBLIC_USE_LOCAL_API, see lib/httpMethods.ts DEVELOPMENT_URL)
+    // (EXPO_PUBLIC_MY_TERRACE_APP_BACKEND=development, see lib/httpMethods.ts DEVELOPMENT_URL)
     // intentionally serves plain HTTP on a non-TLS port. Rewriting its
     // http:// image URLs to https:// makes RCTImageView attempt a TLS
     // handshake against a plain-HTTP port, which fails as
@@ -65,6 +87,28 @@ export const sanitizeImageUrl = (url: any): string | undefined => {
     // reflects what its host actually serves (https in production).
 
     return sanitized;
+};
+
+/**
+ * Derives 2-letter initials from a display name for avatar fallbacks.
+ * 2+ words: first letter of first word + first letter of last word.
+ * 1 word: first two letters. Missing/empty name: "?".
+ * @param name - Display name (business/service/user)
+ * @returns Uppercase 2-letter initials
+ */
+export const getInitials = (name?: string | null): string => {
+    if (!name || typeof name !== "string") return "?";
+
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return "?";
+
+    if (words.length === 1) {
+        return words[0].slice(0, 2).toUpperCase() || "?";
+    }
+
+    const first = words[0][0] || "";
+    const last = words[words.length - 1][0] || "";
+    return (first + last).toUpperCase() || "?";
 };
 
 /**

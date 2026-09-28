@@ -7,6 +7,7 @@ import { Card } from "@/components/UI/Card";
 import InfoBanner from "@/components/UI/InfoBanner";
 import TitleHeader from "@/components/UI/TitleHeader";
 import { usePermissions } from "@/hooks/usePermissions";
+import { buildImageUrl } from "@/lib/imageUtils";
 import { callUser, sendWhatsAppMessage } from "@/lib/utils";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -60,13 +61,12 @@ const ProfileHeaderCard = memo(
         ]}
       >
         <View style={styles.profileAvatarContainer}>
-          {business?.images.length > 0 ? (
-            <CircularImage uri={business.images[0]} size={96} mode="view" />
-          ) : (
-            <View style={styles.profileAvatarPlaceholder}>
-              <Ionicons name="storefront" size={48} color="#15803D" />
-            </View>
-          )}
+          <CircularImage
+            uri={business?.images?.length > 0 ? buildImageUrl(business.images[0]) : undefined}
+            name={business?.title}
+            size={96}
+            mode="view"
+          />
         </View>
         <Text style={styles.profileName}>{business?.title}</Text>
         <Text style={styles.profileSubtitle}>{business?.category}</Text>
@@ -163,7 +163,7 @@ const ProductItem = memo(
       <Pressable onPress={onPress} style={styles.productItem}>
         <View style={styles.productThumbContainer}>
           {item?.images?.[0] ? (
-            <CircularImage uri={item.images[0]} size={50} mode="view" />
+            <CircularImage uri={buildImageUrl(item.images[0])} size={50} mode="view" />
           ) : (
             <View
               style={[

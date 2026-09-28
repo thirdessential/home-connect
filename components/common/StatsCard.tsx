@@ -2,7 +2,7 @@ import { Card } from "@/components/UI/Card";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { memo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export interface StatsCardProps {
   title: string;
@@ -17,6 +17,9 @@ export interface StatsCardProps {
   tint?: string;
   /** Small caption under the value. */
   caption?: string;
+  /** While true, shows a spinner instead of `value` — so an in-flight fetch
+   * is never mistaken for a real 0. */
+  loading?: boolean;
 }
 
 const StatsCard = memo(
@@ -30,6 +33,7 @@ const StatsCard = memo(
     color,
     tint,
     caption,
+    loading = false,
   }: StatsCardProps) => {
     const theme = useTheme();
 
@@ -43,6 +47,7 @@ const StatsCard = memo(
           flex: 1,
           flexGrow: 1,
           minWidth: 140,
+          minHeight: 150,
           backgroundColor: theme.colors.surface,
           borderRadius: 18,
           padding: 16,
@@ -54,7 +59,11 @@ const StatsCard = memo(
           <View style={[styles.badge, { backgroundColor: badgeTint }]}>
             <Ionicons name={icon} size={19} color={accent} />
           </View>
-          <Text style={[styles.value, { color: theme.colors.textPrimary }]}>{value}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={accent} />
+          ) : (
+            <Text style={[styles.value, { color: theme.colors.textPrimary }]}>{value}</Text>
+          )}
         </View>
         <Text style={[styles.title, { color: theme.colors.textPrimary }]} numberOfLines={2}>
           {title}
@@ -62,7 +71,7 @@ const StatsCard = memo(
         {caption ? (
           <Text
             style={[styles.caption, { color: theme.colors.textSecondary }]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {caption}
           </Text>
@@ -93,7 +102,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 14, lineHeight: 18, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 2 },
+  // minHeight reserves space for the max 2 lines (numberOfLines={2}) so a
+  // shorter title/caption doesn't leave its card shorter than a sibling
+  // whose text actually wraps.
+  title: { fontSize: 14, lineHeight: 18, minHeight: 36, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 2 },
   value: { fontSize: 26, lineHeight: 30, fontWeight: "800", fontFamily: "Manrope_800ExtraBold", letterSpacing: -0.5 },
-  caption: { fontSize: 12, lineHeight: 16, marginTop: 2 },
+  caption: { fontSize: 12, lineHeight: 16, minHeight: 32, marginTop: 2 },
 });

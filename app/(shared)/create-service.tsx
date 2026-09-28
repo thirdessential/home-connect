@@ -1,12 +1,9 @@
 import Heading from "@/components/UI/Heading";
 import SuccessModal from "@/components/UI/SuccessModal";
 import ServiceForm from "@/components/form/ServiceForm";
-import { verificationStatus } from "@/assets/enums/common.enum";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
-import { UserRole } from "@/types/roles";
 import type { DailyHelper } from "@/types/business.type";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,9 +17,8 @@ export default function CreateServiceScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
 
   const createService = useDailyHelperStore((s) => s.createDailyHelper);
-  const userId = useUserStore((s) => s.user?._id);
   const societyId = useSocietyStore((s) => s.selectedSociety?._id);
-  const permissions = usePermissions();
+  const userId = useUserStore((s) => s.user?._id);
 
   const goBack = () => router.back();
   const [createdType, setCreatedType] = useState<string>("daily-help");
@@ -43,14 +39,6 @@ export default function CreateServiceScreen() {
       ...serviceFormData,
       createdBy: userId!,
       societyIds: societyId ? [societyId] : [],
-      verificationStatus: {
-        status:
-          permissions.hasRole(UserRole.GUEST) ||
-          permissions.hasOnly([UserRole.BUSINESS])
-            ? verificationStatus.PENDING
-            : verificationStatus.APPROVED,
-        rejectionReason: null,
-      },
     };
 
     await createService(payload);

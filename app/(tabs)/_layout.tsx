@@ -88,7 +88,15 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     navigation.reset({ index: 0, routes: [{ name: "business" }] });
   }, [navigation]);
   const handleDirectoryPress = useCallback(() => {
-    navigation.reset({ index: 0, routes: [{ name: "directory" }] });
+    // Plain `{ name: "directory" }` only switches focus — it keeps whatever
+    // nested screen the directory tab's Stack was last left on (e.g.
+    // "all-services", reached via create-service.tsx's dismissTo). Explicitly
+    // resetting the nested state back to "index" is what makes the Directory
+    // tab always reopen the main Home Directory page.
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "directory", state: { index: 0, routes: [{ name: "index" }] } }],
+    });
   }, [navigation]);
   const handleProfilePress = useCallback(() => {
     navigation.reset({ index: 0, routes: [{ name: "profile" }] });

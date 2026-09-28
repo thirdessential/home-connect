@@ -1,5 +1,6 @@
 import ActionButton from "@/components/inputs/ActionButton";
 import ImageCarousel from "@/components/UI/ImageCarousel";
+import { buildImageUrl } from "@/lib/imageUtils";
 import { sendWhatsAppMessage } from "@/lib/utils";
 import { useProductStore } from "@/store/useBusinessStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -58,6 +59,14 @@ export default function CatalogueDetail() {
     if (!catalogueList || !catalogueId) return null;
     return catalogueList.find((item) => item._id === catalogueId) || null;
   }, [catalogueList, catalogueId]);
+
+  const carouselImages = useMemo(
+    () =>
+      (catalogueItem?.images || [])
+        .map((img: string) => buildImageUrl(img))
+        .filter(Boolean) as string[],
+    [catalogueItem]
+  );
 
   const topPadding = useMemo(
     () => Math.max(insets.top, Platform.OS === "ios" ? 44 : 24),
@@ -163,7 +172,7 @@ export default function CatalogueDetail() {
         {/* Image Carousel */}
         <View style={styles.carouselContainer}>
           <ImageCarousel
-            images={catalogueItem.images || []}
+            images={carouselImages}
             height={width}
             borderRadius={0}
             showDots={true}

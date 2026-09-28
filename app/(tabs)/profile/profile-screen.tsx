@@ -266,9 +266,6 @@ export default function ProfileScreen() {
   const goEventDashboard = useCallback(() => {
     router.navigate("/profile/event-dashboard");
   }, [router]);
-  const goSocietyReports = useCallback(() => {
-    router.navigate("/profile/society-reports");
-  }, [router]);
   const goMyReports = useCallback(() => {
     router.navigate("/profile/my-reports");
   }, [router]);
@@ -308,17 +305,11 @@ export default function ProfileScreen() {
         icon: "shield-checkmark-outline",
         onPress: goAdminDashboard,
       });
-      items.push({
-        label: "Society Reports",
-        icon: "flag-outline",
-        onPress: goSocietyReports,
-      });
     }
     return items;
   }, [
     hasAnyRole,
     hasRole,
-    goSocietyReports,
     goMyReports,
     goMyProfiles,
     goEventDashboard,

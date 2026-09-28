@@ -4,7 +4,6 @@ import { BusinessCategory } from "@/types/business.type";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,6 +24,11 @@ type PollFormProps = {
 
 const MAX_OPTIONS = 5;
 const MIN_OPTIONS = 2;
+// Match the actual MySQL column sizes (feed_items.title, feed_options.name)
+// so the UI stops the user before a too-long value is silently rejected by
+// the DB (strict SQL mode) — that's what was making polls disappear.
+const MAX_QUESTION_LEN = 500;
+const MAX_OPTION_LEN = 160;
 
 /** Create Poll form — same visual language (cards, spacing, brand green) as Create Event. */
 export default function PollForm({
@@ -143,16 +147,11 @@ export default function PollForm({
     onSubmit({ question, options: validOptions });
   }, [question, options, onSubmit, loading]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color={t.colors.brand} />
-        <Text style={[t.typography.body, { color: t.colors.textSecondary, marginTop: t.spacing.m }]}>
-          Publishing your poll...
-        </Text>
-      </View>
-    );
-  }
+  // `loading` is the shared feed-store flag (also used by fetches, likes,
+  // comments, etc.), not scoped to this submission — replacing the whole
+  // form with a spinner whenever it's true (e.g. a background feed fetch
+  // still in flight on mount) made every control disappear/unclickable.
+  // The submit button below already reflects submission-in-progress state.
 
   return (
     <KeyboardAvoidingView
@@ -186,7 +185,11 @@ export default function PollForm({
           error={errors.question}
           multiline
           numberOfLines={2}
+          maxLength={MAX_QUESTION_LEN}
         />
+        <Text style={[t.typography.small, { color: t.colors.secondaryText, marginTop: -t.spacing.s, marginBottom: t.spacing.m }]}>
+          {question.length}/{MAX_QUESTION_LEN}
+        </Text>
 
         <View
           style={{
@@ -231,6 +234,7 @@ export default function PollForm({
                 placeholderTextColor={t.colors.secondaryText}
                 value={opt.name}
                 onChangeText={(text) => handleOptionChange(text, idx)}
+                maxLength={MAX_OPTION_LEN}
               />
               {options.length > MIN_OPTIONS && (
                 <TouchableOpacity onPress={() => handleRemoveOption(idx)} hitSlop={8}>

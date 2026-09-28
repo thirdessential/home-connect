@@ -8,6 +8,7 @@ import { CustomerReview } from "@/components/reviews/CustomerReview";
 import { Card } from "@/components/UI/Card";
 import InfoBanner from "@/components/UI/InfoBanner";
 import { usePermissions } from "@/hooks/usePermissions";
+import { buildImageUrl, getInitials } from "@/lib/imageUtils";
 import { calculateAvgRating, callUser } from "@/lib/utils";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useUserStore } from "@/store/useUserStore";
@@ -16,7 +17,7 @@ import { PricingRow, WorkingHour } from "@/types/business.type";
 import { Review } from "@/types/common.type";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   Image,
@@ -43,7 +44,7 @@ const RecommendationCard = memo(
         style={[styles.recommendationText, { color: theme.colors.textPrimary }]}
       >
         {isProfessionalService ? "Recomended" : "Verified"} by
-        <Text style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold" }}> {createdBy.fullName}</Text>
+        <Text style={{  fontFamily: "Manrope_700Bold" }}> {createdBy?.fullName}</Text>
       </Text>
     </Card>
   ),
@@ -78,17 +79,25 @@ const DetailsCard = memo(
             >
               Timings
             </Text>
-            {timing?.map((row: WorkingHour, index: number) => (
+            {timing && timing.length > 0 ? (
+              timing.map((row: WorkingHour, index: number) => (
+                <Text
+                  key={index}
+                  style={[
+                    styles.detailValue,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  {row.displayText}
+                </Text>
+              ))
+            ) : (
               <Text
-                key={index}
-                style={[
-                  styles.detailValue,
-                  { color: theme.colors.textPrimary },
-                ]}
+                style={[styles.detailValue, { color: theme.colors.textPrimary }]}
               >
-                {row.displayText}
+                N/A
               </Text>
-            ))}
+            )}
           </View>
         </View>
       )}
@@ -114,7 +123,7 @@ const DetailsCard = memo(
             <Text
               style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
-              {address}
+              {address || "N/A"}
             </Text>
           </View>
         </View>
@@ -141,7 +150,7 @@ const DetailsCard = memo(
             <Text
               style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
-              ₹{rate} per visit
+              {rate ? `₹${rate} per visit` : "N/A"}
             </Text>
           </View>
         </View>
@@ -160,7 +169,7 @@ const DetailsCard = memo(
               key={idx}
             >
               <Text
-                style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold", fontSize: 15, marginRight: 4 }}
+                style={{  fontFamily: "Manrope_700Bold", fontSize: 15, marginRight: 4 }}
               >
                 ₹{it?.rate}
               </Text>
@@ -210,6 +219,14 @@ export default function ServiceProfileScreen() {
       callUser(selectedService?.phone);
     }
   }, [selectedService?.phone]);
+
+  const router = useRouter();
+  // Same pattern as directory/business/[id].tsx's handleBackPress — works
+  // regardless of entry point (Directory carousel, All Services list, etc.)
+  // since it just pops this screen off whatever stack pushed it.
+  const handleBackPress = useCallback(() => {
+    router.back();
+  }, [router]);
 
   // Calculate top padding based on safe area insets and platform
   const topPadding = useMemo(() => {
@@ -306,9 +323,10 @@ export default function ServiceProfileScreen() {
       <Card style={styles.profileHeaderCard}>
         <View style={styles.profileAvatarContainer}>
           <RobustImage
-            uri={selectedService?.images?.[0]}
+            uri={buildImageUrl(selectedService?.images?.[0])}
             style={styles.profileAvatar}
             fallbackIcon="person"
+            fallbackText={getInitials(selectedService?.name)}
           />
         </View>
         <Text style={[styles.profileName, { color: theme.colors.textPrimary }]}>
@@ -392,13 +410,16 @@ export default function ServiceProfileScreen() {
             containerStyle={[
               styles.actionButton,
               styles.mapButton,
-              { backgroundColor: theme.colors.surfaceAlt },
+              {
+                backgroundColor: theme.colors.surfaceAlt,
+                paddingLeft: 8 + theme.spacing.xs,
+              },
             ]}
             leftIcon={
               <Ionicons
-                name="location"
+                name="location-sharp"
                 size={20}
-                color={theme.colors.primary}
+                color={"#15803D"}
               />
             }
           />
@@ -416,16 +437,25 @@ export default function ServiceProfileScreen() {
     >
       {/* Fixed Header (non-scrollable) */}
       <View style={styles.headerRow}>
-        <Text
-          style={{
-             fontFamily: "Manrope_700Bold",
-            fontSize: 24,
-            padding: 16,
-            paddingBottom: 0,
-          }}
-        >
-          Profile
-        </Text>
+        <View style={styles.headerLeft}>
+          <Pressable
+            onPress={handleBackPress}
+            style={styles.iconButton}
+            hitSlop={8}
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+          </Pressable>
+          <Text
+            style={{
+               fontFamily: "Manrope_700Bold",
+              fontSize: 24,
+              paddingLeft: 4,
+            }}
+          >
+            Profile
+          </Text>
+        </View>
         <View style={styles.iconColumn}>
           <Pressable
             onPress={handleOptionsPress}
@@ -461,14 +491,20 @@ export default function ServiceProfileScreen() {
           <View style={styles.section}>{ActionCta}</View>
         )}
 
-        {/* Recommendation Card */}
-        <View style={styles.section}>
-          <RecommendationCard
-            createdBy={selectedService?.createdBy}
-            isProfessionalService={isProfessionalService}
-            theme={theme}
-          />
-        </View>
+        {/* Recommendation Card — only when there's an actual referrer, not a blank row */}
+        {!!(
+          selectedService?.createdBy &&
+          typeof selectedService.createdBy === "object" &&
+          selectedService.createdBy.fullName
+        ) && (
+          <View style={styles.section}>
+            <RecommendationCard
+              createdBy={selectedService?.createdBy}
+              isProfessionalService={isProfessionalService}
+              theme={theme}
+            />
+          </View>
+        )}
 
         {/* Details Section */}
         <View style={styles.section}>
@@ -584,7 +620,7 @@ const styles = StyleSheet.create({
   },
   reviewTitle: {
     fontSize: 16,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 12,
     color: "#1F2937",
   },
@@ -593,6 +629,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 0,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 16,
   },
   iconColumn: {
     flexDirection: "column",
@@ -613,12 +654,12 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 22,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   profileSubtitle: {
     fontSize: 16,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
   },
   ratingContainer: {
@@ -632,7 +673,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+     fontFamily: "Manrope_500Medium",
   },
   actionButtonsRow: {
     flexDirection: "row",
@@ -652,12 +693,17 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     color: "white",
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
   },
   mapButton: {
     width: 50,
     height: 50,
+    // ActionButton's default paddingHorizontal (~16) left only ~18px for a
+    // 20px icon inside this fixed 50x50 box, clipping it — icon-only square
+    // buttons need their own padding reset instead.
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   recommendationCard: {
     flexDirection: "row",
@@ -665,16 +711,16 @@ const styles = StyleSheet.create({
   },
   recommendationText: {
     fontSize: 14,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+     fontFamily: "Manrope_500Medium",
     flex: 1,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 12,
   },
   detailsCard: {
-    gap: 16,
+    gap: 12,
   },
   detailRow: {
     flexDirection: "row",
@@ -682,12 +728,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+    fontFamily: "Manrope_500Medium",
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 15,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+     fontFamily: "Manrope_600SemiBold",
   },
   optionModalContent: {
     paddingBottom: 20,

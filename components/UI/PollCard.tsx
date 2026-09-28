@@ -6,6 +6,7 @@ import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Share, Text, TouchableOpacity, View } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
@@ -277,6 +278,7 @@ const PollCard = React.memo(function PollCard({
                 if (unverifiedUser) { setUnverifiedModalVisible(true); return; }
                 // Prevent voting if already in result mode
                 if (showResults) return;
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelected(option.id);
                 if (currentUser?._id && pollData?._id) {
                   votePoll(pollData._id, option.id, currentUser._id);

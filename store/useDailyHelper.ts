@@ -22,11 +22,15 @@ export const useDailyHelperStore = create<DailyHelperStore>()(
             createDailyHelper: async (service: Partial<DailyHelper>) => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await Post<{ code: number; dailyServices: DailyHelper }>(`/api/daily-service/create`, service);
+                    const response = await Post<{ success?: boolean; code: number; dailyServices: DailyHelper }>(`/api/daily-service/create`, service);
                     if (!response) {
                         throw new Error("No response received from server");
                     }
-                    if (response.code === 201) {
+                    // Backend returns 201 on a fresh insert, and 200 + success:true
+                    // when a service with this phone already exists and this
+                    // user/society is just added to it (see daily-service.controller.js
+                    // createDailyService) — both are successful creations, not failures.
+                    if (response.code === 201 || (response.success && response.dailyServices)) {
                         // Merge into the list immediately so the creator sees their own
                         // new service right away, instead of waiting on the next
                         // approved-only re-fetch (which may exclude it while pending).
@@ -38,12 +42,12 @@ export const useDailyHelperStore = create<DailyHelperStore>()(
                             loading: false,
                         }));
                     } else {
-                        set({ error: "Failed to create product", loading: false });
-                        throw new Error("Failed to create product");
+                        set({ error: "Failed to create service", loading: false });
+                        throw new Error("Failed to create service");
                     }
                 } catch (error: any) {
-                    set({ error: error?.message || "Failed to create product", loading: false });
-                    alert(error?.message || "Failed to create product");
+                    set({ error: error?.message || "Failed to create service", loading: false });
+                    alert(error?.message || "Failed to create service");
                 }
             },
             getAllApprovedDailyServices: async (societyId: string) => {
@@ -200,13 +204,27 @@ export const useDailyHelperStore = create<DailyHelperStore>()(
                     throw error;
                 }
             },
-            clear: () => set({ dailyHelper: null }),
+            clear: () => set({
+                dailyHelper: null,
+                dailyHelperList: null,
+                pendingReq: 0,
+                totalCount: 0,
+                approvedReq: 0,
+                loading: false,
+                error: null,
+            }),
             _setHasHydrated: (v) => set({ _hasHydrated: v }),
         }),
         {
             name: "daily-helper-store",
             storage: createJSONStorage(() => zustandStorage),
-            partialize: (state) => ({ dailyHelper: state.dailyHelper }),
+            partialize: (state) => ({
+                dailyHelper: state.dailyHelper,
+                dailyHelperList: state.dailyHelperList,
+                pendingReq: state.pendingReq,
+                totalCount: state.totalCount,
+                approvedReq: state.approvedReq,
+            }),
             onRehydrateStorage: () => (state, err) => {
                 state?._setHasHydrated(true);
                 if (err) console.warn("DailyHelper rehydrate error", err);

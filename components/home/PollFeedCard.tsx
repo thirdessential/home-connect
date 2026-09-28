@@ -1,8 +1,9 @@
 import { useTheme } from "@/theme/theme";
 import { HomeFeedItem } from "@/types/homeFeed.type";
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ExpandableText from "./ExpandableText";
 import FeedActions from "./FeedActions";
 import FeedCardHeader from "./FeedCardHeader";
@@ -20,6 +21,25 @@ function PollFeedCard({ item, onLike, onComment, onVote, onMore }: Props) {
   const t = useTheme();
   const total = item.totalVotes ?? 0;
   const voted = !!item.votedOptionId;
+  // Guards against a double-tap firing two votes before `voted` flips on
+  // re-render (the store update is optimistic but still one render away).
+  const votingRef = useRef(false);
+  const scalesRef = useRef<Record<string, Animated.Value>>({});
+  const getScale = (key: string) => {
+    if (!scalesRef.current[key]) scalesRef.current[key] = new Animated.Value(1);
+    return scalesRef.current[key];
+  };
+  const handleVote = (optionKey: string) => {
+    if (voted || votingRef.current) return;
+    votingRef.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.sequence([
+      Animated.timing(getScale(optionKey), { toValue: 0.96, duration: 80, useNativeDriver: true }),
+      Animated.timing(getScale(optionKey), { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
+    onVote(optionKey);
+    setTimeout(() => { votingRef.current = false; }, 400);
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: t.colors.surface }]}>
@@ -56,10 +76,13 @@ function PollFeedCard({ item, onLike, onComment, onVote, onMore }: Props) {
             const selected =
               item.votedOptionId != null && String(item.votedOptionId) === optionKey;
             return (
-              <TouchableOpacity
+              <Animated.View
                 key={optionKey}
+                style={{ transform: [{ scale: getScale(optionKey) }] }}
+              >
+              <TouchableOpacity
                 activeOpacity={voted ? 1 : 0.8}
-                onPress={() => !voted && onVote(optionKey)}
+                onPress={() => handleVote(optionKey)}
                 style={[
                   styles.option,
                   {
@@ -107,6 +130,7 @@ function PollFeedCard({ item, onLike, onComment, onVote, onMore }: Props) {
                   </Text>
                 </View>
               </TouchableOpacity>
+              </Animated.View>
             );
           })}
         </View>

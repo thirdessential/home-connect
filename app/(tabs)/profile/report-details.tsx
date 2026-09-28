@@ -28,7 +28,7 @@ export default function ReportDetailsScreen() {
   const [busy, setBusy] = useState(false);
 
   const canDeleteContent = useMemo(
-    () => ["POST", "POLL", "EVENT", "COMMENT"].includes(report.targetType) && !!entity,
+    () => ["POST", "POLL", "EVENT", "COMMENT", "BUSINESS", "DEAL", "DAILY_SERVICE"].includes(report.targetType) && !!entity,
     [report.targetType, entity],
   );
 

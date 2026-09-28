@@ -1,9 +1,10 @@
+import { buildImageUrl } from "@/lib/imageUtils";
 import { Ionicons } from "@expo/vector-icons";
-import { memo, useCallback, useState } from "react";
+import { Image } from "expo-image";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
-  Image,
-  ImageSourcePropType,
   StyleProp,
+  Text,
   View,
   ViewStyle,
 } from "react-native";
@@ -14,6 +15,8 @@ interface RobustImageProps {
   resizeMode?: "cover" | "contain" | "stretch" | "center";
   fallbackIcon?: string;
   fallbackBackgroundColor?: string;
+  /** When set, shows these initials instead of fallbackIcon (no dummy image, no retry loop). */
+  fallbackText?: string;
   onLoadStart?: () => void;
   onLoadEnd?: () => void;
   onError?: (error: any) => void;
@@ -36,15 +39,21 @@ const RobustImage = memo(
     resizeMode = "cover",
     fallbackIcon = "image-outline",
     fallbackBackgroundColor = "#e5e7eb",
+    fallbackText,
     onLoadStart,
     onLoadEnd,
     onError: onErrorProp,
   }: RobustImageProps) => {
-    const [isLoading, setIsLoading] = useState(!!uri);
+    // Normalize once here so every caller (CircularImage included) gets a
+    // correctly joined absolute URL regardless of what shape `uri` arrives
+    // in (relative path, missing/extra slash, or already-absolute).
+    const resolvedUri = useMemo(() => buildImageUrl(uri), [uri]);
+
+    const [isLoading, setIsLoading] = useState(!!resolvedUri);
     const [error, setError] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
 
-    const hasValidUri = !!uri && typeof uri === "string" && uri.trim().length > 0;
+    const hasValidUri = !!resolvedUri;
 
     const handleLoadStart = useCallback(() => {
       setIsLoading(true);
@@ -59,15 +68,17 @@ const RobustImage = memo(
     const handleError = useCallback(
       (error: any) => {
         console.warn(
-          `[RobustImage] Failed to load image from URI: ${uri}`,
+          `[RobustImage] Failed to load image from URI: ${resolvedUri}`,
           error
         );
         setError(true);
         setIsLoading(false);
         onErrorProp?.(error);
 
-        // Retry mechanism: retry up to 3 times with exponential backoff
-        if (retryCount < 2) {
+        // Retry mechanism: retry up to 3 times with exponential backoff.
+        // Skipped when fallbackText (initials) is set — that path must switch
+        // to the fallback immediately, not keep hammering a broken URI.
+        if (retryCount < 2 && !fallbackText) {
           setTimeout(() => {
             setRetryCount((prev) => prev + 1);
             setError(false);
@@ -75,7 +86,7 @@ const RobustImage = memo(
           }, Math.pow(2, retryCount) * 1000); // 1s, 2s, 4s
         }
       },
-      [uri, retryCount, onErrorProp]
+      [resolvedUri, retryCount, onErrorProp, fallbackText]
     );
 
     // If no URI provided, show fallback immediately
@@ -91,7 +102,13 @@ const RobustImage = memo(
             },
           ]}
         >
-          <Ionicons name={fallbackIcon as any} size={40} color="#999" />
+          {fallbackText ? (
+            <Text style={{ fontSize: 16, fontWeight: "600", color: "#4b5563" }}>
+              {fallbackText}
+            </Text>
+          ) : (
+            <Ionicons name={fallbackIcon as any} size={40} color="#999" />
+          )}
         </View>
       );
     }
@@ -100,9 +117,10 @@ const RobustImage = memo(
       <View style={style}>
         {/* Main Image */}
         <Image
-          source={{ uri } as ImageSourcePropType}
+          source={resolvedUri}
           style={{ flex: 1 }}
-          resizeMode={resizeMode}
+          contentFit={resizeMode === "stretch" ? "fill" : resizeMode === "center" ? "none" : resizeMode}
+          cachePolicy="disk"
           onLoadStart={handleLoadStart}
           onLoadEnd={handleLoadEnd}
           onError={handleError}
@@ -145,7 +163,13 @@ const RobustImage = memo(
               alignItems: "center",
             }}
           >
-            <Ionicons name="alert-circle-outline" size={30} color="#ef4444" />
+            {fallbackText ? (
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#4b5563" }}>
+                {fallbackText}
+              </Text>
+            ) : (
+              <Ionicons name="alert-circle-outline" size={30} color="#ef4444" />
+            )}
           </View>
         )}
       </View>

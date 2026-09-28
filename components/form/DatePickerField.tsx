@@ -52,9 +52,14 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   const onChangeDate = (_: any, selectedDate?: Date) => {
     pickerSetShow(false);
     if (selectedDate) {
-      // Format as YYYY-MM-DD
-      const iso = selectedDate.toISOString().slice(0, 10);
-      onChange(iso);
+      // Format as YYYY-MM-DD using LOCAL getters. selectedDate is local
+      // midnight of the tapped day — toISOString() converts to UTC first,
+      // which shifts the date backward a day for any timezone ahead of UTC
+      // (e.g. IST), sending the wrong date to the backend.
+      const yyyy = selectedDate.getFullYear();
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(selectedDate.getDate()).padStart(2, "0");
+      onChange(`${yyyy}-${mm}-${dd}`);
     }
   };
 

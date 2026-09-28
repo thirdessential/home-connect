@@ -39,6 +39,14 @@ export default function LocationPermissionScreen() {
   }, []);
 
   const captureAndSave = useCallback(async () => {
+    const saved = useUserStore.getState().user?.location;
+    if (saved?.latitude != null && saved?.longitude != null) {
+      await AsyncStorage.setItem(
+        LOCATION_SCREEN.STORAGE_KEY,
+        JSON.stringify(saved),
+      );
+      return;
+    }
     const pos = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });

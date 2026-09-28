@@ -2,6 +2,8 @@ import Heading from "@/components/UI/Heading";
 import SuccessModal from "@/components/UI/SuccessModal";
 import { useToast } from "@/components/common/Toast";
 import ReportModal from "@/components/modals/ReportModal";
+import FormSheetModal from "@/components/modals/FormSheetModal";
+import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import ActionButton from "@/components/inputs/ActionButton";
 import { useEventStore } from "@/store/useEventStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -87,7 +89,7 @@ export default function EventDetailsScreen() {
   const { showToast } = useToast();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const {
-    getEvent, joinEvent, getParticipants, currentEvent, participants, loading,
+    getEvent, joinEvent, cancelParticipant, getParticipants, currentEvent, participants, loading,
     toggleLike,
   } = useEventStore();
   const currentUserId = useUserStore((s) => s.user?._id);
@@ -128,6 +130,15 @@ export default function EventDetailsScreen() {
       setJoining(false);
       submittingRef.current = false;
     }
+  };
+
+  const [moreVisible, setMoreVisible] = useState(false);
+  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+
+  const confirmLeave = async () => {
+    if (!eventId || !currentUserId) return;
+    await cancelParticipant(eventId, currentUserId);
+    load();
   };
 
   const onShare = () => {
@@ -211,8 +222,8 @@ export default function EventDetailsScreen() {
           <Pressable onPress={onShare} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
             <Ionicons name="share-outline" size={20} color={t.colors.text} />
           </Pressable>
-          <Pressable onPress={() => setReportVisible(true)} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
-            <Ionicons name="flag-outline" size={20} color={t.colors.text} />
+          <Pressable onPress={() => setMoreVisible(true)} hitSlop={12} style={[styles.headerBtn, { backgroundColor: t.colors.surfaceAlt }]}>
+            <Ionicons name="ellipsis-vertical" size={20} color={t.colors.text} />
           </Pressable>
         </View>
       </View>
@@ -225,6 +236,40 @@ export default function EventDetailsScreen() {
           itemName={e?.title}
         />
       )}
+
+      <FormSheetModal visible={moreVisible} onClose={() => setMoreVisible(false)} title="Event Options">
+        <View style={{ gap: 4 }}>
+          <Pressable
+            onPress={() => { setMoreVisible(false); setReportVisible(true); }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 }}
+          >
+            <Ionicons name="flag-outline" size={20} color={t.colors.text} />
+            <Text style={[t.typography.body, { color: t.colors.text }]}>Flag</Text>
+          </Pressable>
+          {e.currentUserJoined && (
+            <Pressable
+              onPress={() => { setMoreVisible(false); setLeaveConfirmVisible(true); }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 }}
+            >
+              <Ionicons name="exit-outline" size={20} color={t.colors.error} />
+              <Text style={[t.typography.body, { color: t.colors.error }]}>Leave Event</Text>
+            </Pressable>
+          )}
+        </View>
+      </FormSheetModal>
+
+      <ConfirmationModal
+        visible={leaveConfirmVisible}
+        onClose={() => setLeaveConfirmVisible(false)}
+        onConfirm={confirmLeave}
+        title="Leave Event"
+        message="Are you sure you want to leave this event?"
+        confirmText="Leave"
+        cancelText="Cancel"
+        isDangerous
+        successTitle="Left Event"
+        successMessage="You have left this event."
+      />
 
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: FOOTER_SPACE + insets.bottom }}
@@ -271,6 +316,7 @@ export default function EventDetailsScreen() {
                 {formatEventDate(e.startDate)}
                 {e.startTime ? ` • ${e.startTime}` : ""}
                 {e.endTime ? ` – ${e.endTime}` : ""}
+                {e.endDate && e.endDate !== e.startDate ? ` (${formatEventDate(e.endDate)})` : ""}
               </Text>
             </View>
           </View>
@@ -328,6 +374,11 @@ export default function EventDetailsScreen() {
               <Text style={[t.typography.body, { color: t.colors.text, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginBottom: 8 }]}>
                 {e.joinedCount} of {e.maxParticipants} spots filled
               </Text>
+              {e.minParticipants > 1 && (
+                <Text style={[t.typography.small, { color: t.colors.secondaryText, marginBottom: 8 }]}>
+                  Minimum {e.minParticipants} participants required
+                </Text>
+              )}
               <View style={[styles.progressTrack, { backgroundColor: t.colors.surfaceAlt }]}>
                 <View style={[styles.progressFill, { width: `${visualFilledPct}%`, backgroundColor: t.colors.brandDark }]} />
               </View>
@@ -370,6 +421,20 @@ export default function EventDetailsScreen() {
             </Text>
           </View>
         </View>
+
+        {!!e.rulesToBring && (
+          <View style={[styles.card, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
+            <View style={styles.infoRow}>
+              <View style={[styles.iconCircle, { backgroundColor: t.colors.brandWeak }]}>
+                <Ionicons name="list-outline" size={18} color={t.colors.brandDark} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>Rules / Things to Bring</Text>
+                <Text style={[t.typography.body, { color: t.colors.text }]}>{e.rulesToBring}</Text>
+              </View>
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Fixed footer CTA — stays visible while scrolling; ScrollView's bottom

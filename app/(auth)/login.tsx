@@ -174,6 +174,7 @@ export default function LoginScreen() {
               value={mobile}
               onChangeText={handleMobileChange}
               maxLength={10}
+              numberOfLines={1}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               returnKeyType="done"

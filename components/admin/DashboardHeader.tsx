@@ -54,7 +54,7 @@ const DashboardHeader = memo(function DashboardHeader({
 export default DashboardHeader;
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+  header: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBtn: {
     width: 38,

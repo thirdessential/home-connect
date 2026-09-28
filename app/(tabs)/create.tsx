@@ -1,5 +1,4 @@
 import { useToast } from "@/components/common/Toast";
-import { useCreatePostModal } from "@/hooks/useCreatePostModal";
 import { useImageUploader } from "@/components/image-upload";
 import { uploadToBackend } from "@/lib/backendUpload";
 import { useFeedsStore } from "@/store/useFeedsStore";
@@ -7,11 +6,13 @@ import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -51,7 +52,6 @@ export default function CreatePostScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
-  const { openWithForm } = useCreatePostModal();
   const { openImageUploader } = useImageUploader();
 
   const currentUser = useUserStore((s) => s.user);
@@ -62,6 +62,8 @@ export default function CreatePostScreen() {
 
   const [selected, setSelected] = useState<CreateOption["key"]>("post");
   const [text, setText] = useState("");
+  const [lengthError, setLengthError] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [image, setImage] = useState<{ localUri: string; status: ImgStatus; url?: string } | null>(null);
 
@@ -108,7 +110,13 @@ export default function CreatePostScreen() {
         return;
       }
       if (key === "poll") {
-        openWithForm("poll");
+        // Direct push, like event/service — going through openWithForm()
+        // briefly opens the globally-mounted CreatePostModal only to close
+        // it again in the same tick (it redirects, no poll UI renders
+        // inside it). On iOS the Modal's native dismiss animation can still
+        // be in flight when create-poll mounts underneath, leaving a
+        // residual touch-capturing overlay that blocks the whole screen.
+        router.push("/(shared)/create-poll");
         return;
       }
       if (key === "service") {
@@ -121,12 +129,13 @@ export default function CreatePostScreen() {
       // JWT-backed role check), so it isn't skipped here.
       router.push("/onboarding/business");
     },
-    [openWithForm],
+    [],
   );
 
   const handlePost = useCallback(async () => {
+    Keyboard.dismiss();
     const content = text.trim();
-    if (!content || submitting || image?.status === "uploading") return;
+    if (!content || submitting || image?.status === "uploading" || content.length > MAX_LEN) return;
     setSubmitting(true);
     try {
       const societyIdStr =
@@ -169,7 +178,10 @@ export default function CreatePostScreen() {
       } as any);
 
       setText("");
+      setLengthError(false);
       setImage(null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      showToast("Post created successfully.", "success");
       // Land on Home with Create removed from history, not just back().
       router.dismissTo("/(tabs)/home");
     } catch (err: any) {
@@ -230,16 +242,40 @@ export default function CreatePostScreen() {
           </View>
 
           <View style={{ padding: 16 }}>
-            <View style={[styles.composer, { borderColor: t.colors.border }]}>
+            <View
+              style={[
+                styles.composer,
+                {
+                  borderColor: lengthError
+                    ? t.colors.error
+                    : composerFocused
+                      ? t.colors.primary
+                      : t.colors.border,
+                },
+              ]}
+            >
               <TextInput
                 value={text}
-                onChangeText={(v) => setText(v.slice(0, MAX_LEN))}
+                onFocus={() => setComposerFocused(true)}
+                onBlur={() => setComposerFocused(false)}
+                onChangeText={(v) => {
+                  const overLimit = v.length > MAX_LEN;
+                  if (overLimit && !lengthError) {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  setLengthError(overLimit);
+                  setText(v.slice(0, MAX_LEN));
+                }}
                 placeholder="What's on your mind, neighbours?"
                 placeholderTextColor={t.colors.textSecondary}
                 multiline
-                maxLength={MAX_LEN}
                 style={[styles.textArea, { color: t.colors.textPrimary }]}
               />
+              {lengthError && (
+                <Text style={{ color: t.colors.error, fontSize: 12, marginTop: 4 }}>
+                  You can't add more than 300 characters in a post.
+                </Text>
+              )}
 
               {image && (
                 <View style={[styles.imagePreview, { borderColor: t.colors.border }]}>

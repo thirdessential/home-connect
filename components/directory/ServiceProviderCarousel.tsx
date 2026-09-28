@@ -35,7 +35,7 @@ const ServiceProviderCard = memo(({ provider }: { provider: any }) => {
   const handleCardPress = useCallback(() => {
     // Block navigation before it happens — no Business Details render/API call.
     if (!requireVerified("page")) return;
-    router.navigate(
+    router.push(
       `/(tabs)/directory/${provider.productType === "business" ? "business" : "service"
       }/${provider.id}`
     );
@@ -53,6 +53,7 @@ const ServiceProviderCard = memo(({ provider }: { provider: any }) => {
             <View style={styles.avatarImg}>
               <CircularImage
                 uri={provider.imageUrl}
+                name={provider.name}
                 mode="view"
                 size={40}
                 loading={false}
@@ -121,9 +122,7 @@ const ServiceProviderCarousel = memo(
       []
     );
 
-    if (!data || data.length === 0) {
-      return null;
-    }
+    const isEmpty = !data || data.length === 0;
 
     return (
       <View style={styles.container}>
@@ -132,7 +131,7 @@ const ServiceProviderCarousel = memo(
           <Text style={{ ...t.typography.h3, color: t.colors.textPrimary }}>
             {title}
           </Text>
-          {onViewAll && data.length > 2 && (
+          {onViewAll && !isEmpty && (
             <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>
               <Text style={[styles.viewAllText, { color: t.colors.primary }]}>
                 View All
@@ -142,6 +141,11 @@ const ServiceProviderCarousel = memo(
         </View>
 
         {/* Carousel */}
+        {isEmpty ? (
+          <Text style={{ ...t.typography.body, color: t.colors.textSecondary }}>
+            Nothing listed yet.
+          </Text>
+        ) : (
         <FlatList
           data={data}
           renderItem={renderItem}
@@ -149,7 +153,6 @@ const ServiceProviderCarousel = memo(
           horizontal
           showsHorizontalScrollIndicator={false}
           getItemLayout={getItemLayout}
-          removeClippedSubviews={true}
           maxToRenderPerBatch={4}
           windowSize={6}
           initialNumToRender={4}
@@ -157,6 +160,7 @@ const ServiceProviderCarousel = memo(
           decelerationRate="fast"
           snapToAlignment="start"
         />
+        )}
       </View>
     );
   }

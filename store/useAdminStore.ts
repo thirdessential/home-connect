@@ -266,10 +266,17 @@ export interface AdminStore {
     approvedContentLoading: boolean;
     approvedContentError: string | null;
 
+    /** Total count from the unified report queue (GET /api/admin/reports). */
+    reportsCount: number;
+    reportsCountLoading: boolean;
+
     // ── Actions ────────────────────────────────────────────────────────────
 
     /** Fetch all reported content for a specific society */
     getAllReportedContent: (societyId: string) => Promise<void>;
+
+    /** Fetch just the total count of the unified report queue, for the dashboard stats card. */
+    getReportsCount: () => Promise<void>;
 
     /** Fetch all pending approval requests for a specific society */
     getAllPendingContent: (societyId: string) => Promise<void>;
@@ -320,7 +327,26 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     approvedContentLoading: false,
     approvedContentError: null,
 
+    reportsCount: 0,
+    reportsCountLoading: false,
+
     // ── Actions ──────────────────────────────────────────────────────────────
+
+    getReportsCount: async () => {
+        set({ reportsCountLoading: true });
+        try {
+            const response = await Get<{ success: boolean; data: { pagination: { total: number } } }>(
+                `/api/admin/reports?page=1&limit=1`,
+            );
+            if (response?.success && response.data) {
+                set({ reportsCount: response.data.pagination?.total ?? 0, reportsCountLoading: false });
+            } else {
+                set({ reportsCountLoading: false });
+            }
+        } catch {
+            set({ reportsCountLoading: false });
+        }
+    },
 
     getAllReportedContent: async (societyId: string) => {
         set({ reportedContentLoading: true, reportedContentError: null });

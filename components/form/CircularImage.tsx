@@ -1,7 +1,7 @@
 import { PROFILE_CONSTANTS } from "@/assets/constants/profile.constant";
 import RobustImage from "@/components/UI/RobustImage";
 import { useImageUploader } from "@/components/image-upload";
-import { isValidImageUrl, sanitizeImageUrl } from "@/lib/imageUtils";
+import { getInitials } from "@/lib/imageUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
@@ -27,6 +27,7 @@ export default function CircularImage({
   size = 96,
   loading = false,
   onBeforeOpen,
+  name,
 }: {
   uri?: string;
   mode?: "view" | "upload" | "edit";
@@ -35,6 +36,8 @@ export default function CircularImage({
   loading?: boolean;
   /** Optional guard checked before the picker opens; return false to block (e.g. show a verification prompt). */
   onBeforeOpen?: () => boolean;
+  /** Display name to derive initials from when there's no image (e.g. Directory cards). Omit to keep the default icon fallback. */
+  name?: string;
 }) {
   const { openImageUploader } = useImageUploader();
 
@@ -54,10 +57,6 @@ export default function CircularImage({
   };
 
   const showEditIcon = mode !== "view";
-
-  // Validate and sanitize the URI before rendering
-  const sanitized = isValidImageUrl(uri) ? sanitizeImageUrl(uri) : undefined;
-  const validatedUri = sanitized && sanitized.trim() ? sanitized : undefined;
 
   return (
     <View
@@ -90,10 +89,11 @@ export default function CircularImage({
           {loading ? (
             <ActivityIndicator size="small" color="#007bff" />
           ) : (
-            // Use RobustImage for better error handling, auto-retry, and fallback
-            // Validates and sanitizes URI using imageUtils
+            // Use RobustImage for better error handling, auto-retry, and fallback.
+            // RobustImage itself resolves `uri` via buildImageUrl (base-URL join,
+            // absolute passthrough) — CircularImage no longer duplicates that logic.
             <RobustImage
-              uri={validatedUri}
+              uri={uri}
               style={{
                 width: size,
                 height: size,
@@ -102,6 +102,7 @@ export default function CircularImage({
               resizeMode="cover"
               fallbackIcon="person-circle-outline"
               fallbackBackgroundColor="#e5e7eb"
+              fallbackText={name ? getInitials(name) : undefined}
               onError={(error) => {
                 console.warn("CircularImage load error:", error);
               }}
@@ -113,19 +114,19 @@ export default function CircularImage({
             <View
               style={{
                 position: "absolute",
-                right: 24,
+                right: 20,
                 bottom: 10,
                 backgroundColor: "#111827",
                 paddingHorizontal: 8,
                 paddingVertical: 4,
-                borderRadius: 999,
+                borderRadius: 6,
                 flexDirection: "row",
                 alignItems: "center",
                 opacity: 0.9,
               }}
             >
               <Ionicons name="camera-outline" size={14} color="#fff" />
-              <Text style={{ color: "#000", marginLeft: 4, fontSize: 12 }}>
+              <Text style={{ color: "#fffefe", marginLeft: 4, fontSize: 12, fontFamily: "Manrope_500Medium" }}>
                 {PROFILE_CONSTANTS.PROFILE_EDIT_PHOTO}
               </Text>
             </View>

@@ -255,9 +255,16 @@ export default function CreateEventScreen() {
                 <Text style={[t.typography.body, { color: t.colors.secondaryText, marginTop: 4 }]}>{description}</Text>
                 <View style={styles.metaRow}>
                   <Ionicons name="calendar-outline" size={14} color={t.colors.secondaryText} />
-                  <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>{startDate}</Text>
+                  <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>Starts {startDate}</Text>
                   {startTime ? <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 10 }]}>{startTime}</Text> : null}
                 </View>
+                {endDate ? (
+                  <View style={styles.metaRow}>
+                    <Ionicons name="calendar-outline" size={14} color={t.colors.secondaryText} />
+                    <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>Ends {endDate}</Text>
+                    {endTime ? <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 10 }]}>{endTime}</Text> : null}
+                  </View>
+                ) : null}
                 <View style={styles.metaRow}>
                   <Ionicons name="location-outline" size={14} color={t.colors.secondaryText} />
                   <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>{venue}</Text>
@@ -265,10 +272,16 @@ export default function CreateEventScreen() {
                 <View style={styles.metaRow}>
                   <Ionicons name="people-outline" size={14} color={t.colors.secondaryText} />
                   <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>
-                    {maxParticipants !== null ? `${maxParticipants} Max Participants` : "No participant limit"}
+                    {minParticipants} Min{maxParticipants !== null ? ` · ${maxParticipants} Max` : " · No max limit"}
                   </Text>
                   <Chip label={participationType === "free" ? "Free" : `₹${feeAmount}`} variant="success" style={{ marginLeft: "auto" }} />
                 </View>
+                {rules.trim() ? (
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>Rules / Things to Bring</Text>
+                    <Text style={[t.typography.small, { color: t.colors.secondaryText, marginTop: 2 }]}>{rules}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
 

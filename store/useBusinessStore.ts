@@ -432,7 +432,12 @@ export const useProductStore = create<ProductStore>()(
         {
             name: "product-store",
             storage: createJSONStorage(() => zustandStorage),
-            partialize: (state) => ({}),
+            partialize: (state) => ({
+                product: state.product,
+                productList: state.productList,
+                userProducts: state.userProducts,
+                businessReviews: state.businessReviews,
+            }),
             onRehydrateStorage: () => (state, err) => {
                 state?._setHasHydrated(true);
                 if (err) console.warn("Product rehydrate error", err);

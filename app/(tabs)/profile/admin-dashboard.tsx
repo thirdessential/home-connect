@@ -2,7 +2,6 @@ import { verificationStatus } from "@/assets/enums/common.enum";
 import BulkActionBar from "@/components/admin/BulkActionBar";
 import DashboardHeader from "@/components/admin/DashboardHeader";
 import DashboardSkeleton from "@/components/admin/DashboardSkeleton";
-import FetchingOverlay from "@/components/admin/FetchingOverlay";
 import PendingRequestsSection from "@/components/admin/PendingRequestsSection";
 import SocietySelectorModal from "@/components/admin/SocietySelectorModal";
 import StatsSection, {
@@ -10,22 +9,20 @@ import StatsSection, {
   VerificationStats,
 } from "@/components/admin/StatsSection";
 import ApprovedBusinessView from "@/components/common/ApprovedBusinessView";
-import ApprovedDailyServicesView from "@/components/common/ApprovedDailyServicesView";
 import ApprovedResidentsView from "@/components/common/ApprovedResidentsView";
 import EmptyState from "@/components/common/EmptyState";
-import ReportedContentsView from "@/components/common/ReportedContentsView";
 import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
 import RejectModal from "@/components/modals/RejectModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { transformDataForDisplay } from "@/lib/adminHelper";
 import { useAdminStore } from "@/store/useAdminStore";
 import { useProductStore } from "@/store/useBusinessStore";
-import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole, UserType } from "@/types/roles";
 import { Society } from "@/types/society.type";
+import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -45,16 +42,16 @@ type DashboardView =
   | "main"
   | "pending"
   | "approved"
-  | "business"
-  | "services"
-  | "reported-contents";
+  | "business";
 
 export default function AdminDashboard() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { hasRole } = usePermissions();
   const isSuperAdmin = hasRole(UserRole.SUPER_ADMIN);
-  const topPadding = Math.max(insets.top, Platform.OS === "ios" ? 40 : 40);
+  // Matches the app's normal header top-padding convention (e.g. service/[id].tsx,
+  // business/[id].tsx) — this screen was diverging with a flat 40 on Android too.
+  const topPadding = Math.max(insets.top, Platform.OS === "ios" ? 44 : 24);
 
   // ── UI state ─────────────────────────────────────────────────────────────────
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(
@@ -86,9 +83,6 @@ export default function AdminDashboard() {
   const updateBusinessVerificationStatus = useProductStore(
     (state) => state.updateBusinessVerificationStatus,
   );
-  const updateDailyService = useDailyHelperStore(
-    (state) => state.updateDailyService,
-  );
   const adminSocietyId = adminSociety?._id as string | undefined;
   const societies = useSocietyStore((state) => state.societies);
   const getAllSociety = useSocietyStore((state) => state.getAllSociety);
@@ -110,12 +104,17 @@ export default function AdminDashboard() {
   const getAllApprovedContent = useAdminStore(
     (state) => state.getAllApprovedContent,
   );
-  const reportedContent = useAdminStore((state) => state.reportedContent);
-  const getAllReportedContent = useAdminStore(
-    (state) => state.getAllReportedContent,
-  );
+  const reportsCount = useAdminStore((state) => state.reportsCount);
+  const reportsCountLoading = useAdminStore((state) => state.reportsCountLoading);
+  const getReportsCount = useAdminStore((state) => state.getReportsCount);
 
   // ── Effects ───────────────────────────────────────────────────────────────────
+  // Reports queue is global (not society-scoped) — fetch once on mount for the
+  // dashboard's Reports stats card.
+  useEffect(() => {
+    getReportsCount();
+  }, [getReportsCount]);
+
   // Society admins: auto-load their own society's data. Re-runs (not mount-only)
   // because `ownSociety` comes from the persisted society store, which can still
   // be hydrating when this screen mounts — a mount-only effect would miss it and
@@ -128,7 +127,6 @@ export default function AdminDashboard() {
     Promise.allSettled([
       getAllPendingContent(ownSociety._id),
       getAllApprovedContent(ownSociety._id),
-      getAllReportedContent(ownSociety._id),
     ]).finally(() => setIsInitialLoading(false));
   }, [isSuperAdmin, ownSociety, adminSociety]);
 
@@ -141,7 +139,6 @@ export default function AdminDashboard() {
     Promise.allSettled([
       getAllPendingContent(adminSocietyId),
       getAllApprovedContent(adminSocietyId),
-      getAllReportedContent(adminSocietyId),
     ]).finally(() => setIsInitialLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mount only
@@ -169,7 +166,6 @@ export default function AdminDashboard() {
     Promise.allSettled([
       getAllPendingContent(onlySociety._id),
       getAllApprovedContent(onlySociety._id),
-      getAllReportedContent(onlySociety._id),
     ]).finally(() => setIsFetchingSocietyData(false));
   }, [isSuperAdmin, adminSociety, societies]);
 
@@ -190,21 +186,14 @@ export default function AdminDashboard() {
     setSelectedStatsCard("approved-business");
   }, []);
 
-  const handleApprovedServicesClick = useCallback(() => {
-    setCurrentView("services");
-    setSelectedStatsCard("approved-services");
-  }, []);
-
   const handleReportedContentsClick = useCallback(() => {
-    setCurrentView("reported-contents");
-    setSelectedStatsCard("reported-contents");
+    router.push("/profile/society-reports");
   }, []);
 
   // ── Derived data ──────────────────────────────────────────────────────────────
   const filteredData = useMemo(() => {
     const pendingUsers = pendingContent.residents.items;
     const pendingBusinesses = pendingContent.businesses.items;
-    const pendingServices = pendingContent.dailyServices.items;
     return {
       users:
         selectedEntityType === "all" || selectedEntityType === "user"
@@ -214,10 +203,6 @@ export default function AdminDashboard() {
         selectedEntityType === "all" || selectedEntityType === "business"
           ? pendingBusinesses
           : [],
-      services:
-        selectedEntityType === "all" || selectedEntityType === "service"
-          ? pendingServices
-          : [],
     };
   }, [selectedEntityType, pendingContent]);
 
@@ -226,10 +211,9 @@ export default function AdminDashboard() {
       pendingRequests: pendingContent.totalCount,
       approvedResidents: approvedContent.residents?.total ?? 0,
       approvedBusinesses: approvedContent.businesses?.total ?? 0,
-      approvedServices: approvedContent.dailyServices?.total ?? 0,
-      reportedContents: reportedContent.totalCount || 0,
+      reportsCount,
     };
-  }, [pendingContent, approvedContent, reportedContent]);
+  }, [pendingContent, approvedContent, reportsCount]);
 
   const displayData = useMemo(() => {
     const requests = [
@@ -239,16 +223,14 @@ export default function AdminDashboard() {
       ...filteredData.businesses.map((b) =>
         transformDataForDisplay(b, "business", adminSociety),
       ),
-      ...filteredData.services.map((s) =>
-        transformDataForDisplay(s, "service", adminSociety),
-      ),
     ];
-    // Safety net: dedupe by real API id in case any source (backend or a
-    // stale re-fetch) returns the same request more than once.
+    // Keep entity namespaces separate. Resident id 12 and business id 12 are
+    // different MySQL records; a UI-only id dedupe would silently hide one.
     const seen = new Set<string>();
     const deduped = requests.filter((r) => {
-      if (!r?.id || seen.has(r.id)) return false;
-      seen.add(r.id);
+      const key = r?.id ? `${r.type}:${r.source ?? ""}:${r.id}` : null;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
     return { requests: deduped };
@@ -296,16 +278,6 @@ export default function AdminDashboard() {
       // `updateUser` PATCH only touched the legacy Mongo mirror, so approving
       // never actually changed status and the request stayed "pending".
       [UserType.RESIDENT]: (id: string) => approveResident(id),
-      [UserType.SERVICE]: (id: string) =>
-        updateDailyService(
-          {
-            verificationStatus: {
-              status: verificationStatus.APPROVED,
-              rejectionReason: null,
-            },
-          },
-          id,
-        ),
     }),
     [],
   );
@@ -314,16 +286,6 @@ export default function AdminDashboard() {
     () => ({
       [UserType.RESIDENT]: (id: string, reason: string) =>
         rejectResident(id, reason),
-      [UserType.SERVICE]: (id: string, reason: string) =>
-        updateDailyService(
-          {
-            verificationStatus: {
-              status: verificationStatus.REJECTED,
-              rejectionReason: reason,
-            },
-          },
-          id,
-        ),
     }),
     [],
   );
@@ -545,7 +507,6 @@ export default function AdminDashboard() {
     await Promise.allSettled([
       getAllPendingContent(adminSocietyId),
       getAllApprovedContent(adminSocietyId),
-      getAllReportedContent(adminSocietyId),
     ]);
     setIsRefreshing(false);
   }, [adminSocietyId]);
@@ -622,7 +583,6 @@ export default function AdminDashboard() {
     await Promise.allSettled([
       getAllPendingContent(item._id),
       getAllApprovedContent(item._id),
-      getAllReportedContent(item._id),
     ]);
     setIsFetchingSocietyData(false);
   }, []);
@@ -632,7 +592,7 @@ export default function AdminDashboard() {
     <>
       <SafeAreaProvider>
         <View style={[styles.root, { paddingTop: topPadding }]}>
-          {isInitialLoading ? (
+          {isInitialLoading || isFetchingSocietyData ? (
             <DashboardSkeleton />
           ) : !adminSociety ? (
             isSuperAdmin ? (
@@ -686,8 +646,8 @@ export default function AdminDashboard() {
                 onPendingPress={handlePendingRequestsClick}
                 onApprovedResidentsPress={handleApprovedResidentsClick}
                 onApprovedBusinessPress={handleApprovedBusinessClick}
-                onApprovedServicesPress={handleApprovedServicesClick}
                 onReportedContentsPress={handleReportedContentsClick}
+                loadingStats={{ reportsCount: reportsCountLoading }}
               />
 
               {currentView === "main" && (
@@ -700,7 +660,6 @@ export default function AdminDashboard() {
                     all: pendingContent.totalCount,
                     user: pendingContent.residents?.total ?? 0,
                     business: pendingContent.businesses?.total ?? 0,
-                    service: pendingContent.dailyServices?.total ?? 0,
                   }}
                   onFilterChange={handleFilterChange}
                   onSelectAll={handleSelectAll}
@@ -721,21 +680,6 @@ export default function AdminDashboard() {
                   approvedBusinesses={approvedContent.businesses?.items ?? []}
                 />
               )}
-              {currentView === "services" && (
-                <ApprovedDailyServicesView
-                  approvedServices={approvedContent.dailyServices?.items ?? []}
-                />
-              )}
-              {currentView === "reported-contents" && (
-                <ReportedContentsView
-                  users={reportedContent.users}
-                  businesses={reportedContent.businesses}
-                  feeds={reportedContent.feeds}
-                  deals={reportedContent.deals}
-                  dailyServices={reportedContent.dailyServices}
-                />
-              )}
-
               <View style={styles.bottomSpacer} />
             </ScrollView>
           )}
@@ -766,8 +710,6 @@ export default function AdminDashboard() {
           />
         </View>
       </SafeAreaProvider>
-
-      {isFetchingSocietyData && <FetchingOverlay />}
 
       <SocietySelectorModal
         visible={societySelectorVisible}

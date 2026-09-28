@@ -24,6 +24,8 @@ import {
 
 import { ThemeProvider as NavigationThemeProvider } from "expo-router";
 import CreatePostModal from "../components/common/createPostModal";
+import ConfigWarningBanner from "../components/common/ConfigWarningBanner";
+import InternetStatusStrip from "../components/common/InternetStatusStrip";
 import { ToastProvider } from "../components/common/Toast";
 import { ImageUploadProvider } from "../components/image-upload";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -158,11 +160,7 @@ function NavLinker() {
         <SafeAreaProvider>
           <ToastProvider>
           <ImageUploadProvider>
-          {/* hidden explicitly false: this SDK's expo-status-bar has no
-              backgroundColor/translucent props (edge-to-edge is controlled
-              natively), so the only supported lever against "status bar not
-              visible" is guaranteeing it's never toggled hidden. */}
-              <StatusBar style={Platform.OS === "ios" ? "dark" : "dark"} hidden={false} />
+              <StatusBar hideTransitionAnimation="fade" style="light" />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -176,6 +174,8 @@ function NavLinker() {
             {/* Shared screens accessible from any tab */}
             <Stack.Screen name="(shared)" />
           </Stack>
+          <InternetStatusStrip />
+          <ConfigWarningBanner />
           {/* Globally mounted CreatePostModal to avoid tab-induced re-renders */}
           <CreatePostModal
             visible={modalVisible}

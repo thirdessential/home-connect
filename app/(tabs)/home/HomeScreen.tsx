@@ -25,6 +25,7 @@ import { router, useFocusEffect } from "expo-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { AppState, BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "@/components/common/Toast";
+import { checkInternetConnection } from "@/lib/connectivity";
 
 const handlePressProductItem = () => {};
 
@@ -33,19 +34,24 @@ function HomeScreen() {
   const { showToast } = useToast();
   const userId = useUserStore((state) => state.user?._id);
   const selectedSocietyId = useSocietyStore((state) => state.selectedSociety?._id);
-  // Refresh user (verification/business status) + feed on every Home focus —
-  // force=true bypasses the 15-min feed cache so "reload" actually re-hits the
-  // API instead of silently reusing stale in-memory/persisted data.
+  // Refresh user/business status on every Home focus. Feed loading is handled
+  // once below so the focus effect cannot race it with a duplicate API call.
   useFocusEffect(
     useCallback(() => {
-      if (userId) fetchUser(userId).catch(() => {});
-      loadCurrentBusiness().catch(() => {});
-      if (selectedSocietyId) fetchFeedsBySociety(selectedSocietyId, true).catch(() => {});
+      checkInternetConnection().then((online) => {
+        if (!online) return;
+        if (userId) fetchUser(userId).catch(() => {});
+        loadCurrentBusiness().catch(() => {});
+      });
       // Home stays mounted+focused while backgrounded (e.g. admin approves
       // while the user is away); focus alone won't re-fire, so also refetch
       // when the app comes back to foreground.
       const sub = AppState.addEventListener("change", (state) => {
-        if (state === "active" && userId) fetchUser(userId).catch(() => {});
+        if (state === "active" && userId) {
+          checkInternetConnection().then((online) => {
+            if (online) fetchUser(userId).catch(() => {});
+          });
+        }
       });
       return () => sub.remove();
     }, [userId, selectedSocietyId]),
@@ -136,9 +142,14 @@ function HomeScreen() {
   const showVerificationChrome =
     isGuest || (!isAdmin && userVerification?.status !== verificationStatus.APPROVED);
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Start in loading state to avoid a one-render "No Posts Yet" flash before
+  // the persisted feed store or the first network result is available.
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [feedFilter, setFeedFilter] = useState<HomeFeedFilter>("all");
+  const hasCachedFeeds = useFeedsStore((state) =>
+    !!selectedSocietyId && state.isCacheValid(selectedSocietyId),
+  );
 
   // Single consolidated fetch — Promise.allSettled waits for all, uses successes, ignores failures
   const fetchAllData = useCallback(async (sid: string, force = false) => {
@@ -164,6 +175,11 @@ function HomeScreen() {
   const onRefresh = useCallback(async () => {
     if (!userId || !selectedSocietyId) return;
     setRefreshing(true);
+    if (!(await checkInternetConnection())) {
+      setRefreshing(false);
+      showToast("No Internet Connection", "warning");
+      return;
+    }
     await Promise.allSettled([
       fetchAllData(selectedSocietyId, true),
       ...(isAdmin ? [getAllPendingContent(selectedSocietyId)] : []),
@@ -179,20 +195,16 @@ function HomeScreen() {
     const feedsCacheValid = useFeedsStore
       .getState()
       .isCacheValid(selectedSocietyId);
-    const dealsCacheValid = (() => {
-      const { lastFetchedAt } = useWholesaleDealStore.getState();
-      return !!lastFetchedAt && Date.now() - lastFetchedAt < 15 * 60 * 1000;
-    })();
-
-    // If both caches are valid, skip the loading spinner entirely
-    if (feedsCacheValid && dealsCacheValid) {
-      fetchAllData(selectedSocietyId); // still refetch silently in background
-      return;
-    }
-
-    // Cache is stale or empty — show spinner and fetch
-    setIsLoading(true);
-    fetchAllData(selectedSocietyId).finally(() => setIsLoading(false));
+    // Cached content renders immediately. The network check and refresh happen
+    // in the background, so an offline start never replaces it with No Data.
+    setIsLoading(!feedsCacheValid);
+    checkInternetConnection().then((online) => {
+      if (!online) {
+        setIsLoading(false);
+        return;
+      }
+      fetchAllData(selectedSocietyId, true).finally(() => setIsLoading(false));
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSocietyId]);
 
@@ -276,7 +288,7 @@ function HomeScreen() {
   );
 
   // Show skeleton loading until all data is loaded — skip during pull-to-refresh
-  if (!refreshing && isLoading) {
+  if (!refreshing && isLoading && !hasCachedFeeds) {
     return (
       <ScrollView style={{ flex: 1, backgroundColor: t.colors.white }}>
         <View style={{ paddingHorizontal: t.spacing.l }}>

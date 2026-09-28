@@ -191,7 +191,7 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
               : Math.max(0, insets.bottom - 8),
           paddingVertical: 8,
           paddingBottom:
-            Platform.OS === "ios" ? 30 : 15,
+            Platform.OS === "ios" ? 40 : 15,
           width: "100%",
           shadowColor: "#000",
           shadowOffset: {
