@@ -1,5 +1,6 @@
 import FormSheetModal from "@/components/modals/FormSheetModal";
 import ReportModal from "@/components/modals/ReportModal";
+import UserAvatar from "@/components/UI/UserAvatar";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedComment } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
@@ -105,15 +106,7 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
         }
         renderItem={({ item }) => (
           <View style={styles.comment}>
-            {item.avatarUrl ? (
-              <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.fallback, { backgroundColor: t.colors.brand }]}>
-                <Text style={[styles.initial, { color: t.colors.onBrand }]}>
-                  {item.author.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <UserAvatar uri={item.avatarUrl} name={item.author} userId={item.authorId} size={32} />
             <View style={styles.commentBody}>
               <Text style={[styles.author, { color: t.colors.textPrimary }]}>
                 {item.author}
@@ -149,9 +142,9 @@ const styles = StyleSheet.create({
   commentMenu: { padding: 4, alignSelf: "flex-start" },
   avatar: { width: 32, height: 32, borderRadius: 16 },
   fallback: { alignItems: "center", justifyContent: "center" },
-  initial: { fontSize: 12, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+  initial: { fontSize: 12, fontFamily: "Manrope_700Bold" },
   commentBody: { flex: 1 },
-  author: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
+  author: { fontSize: 13, fontFamily: "Manrope_600SemiBold" },
   time: { fontSize: 11, fontWeight: "400", fontFamily: "Manrope_400Regular" },
   text: { fontSize: 13, lineHeight: 19, marginTop: 2 },
   // FormSheetModal's footer slot already supplies the top border + spacing

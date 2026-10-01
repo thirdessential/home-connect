@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
   },
   scrollView: {
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     color: "white",
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
   messageButton: {
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   messageButtonText: {
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
   sectionContainer: {
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 14,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     marginBottom: 4,
     color: "#1F2937",
   },
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
   },
   viewFullMenuText: {
     fontSize: 14,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#15803D",
   },
   detailsCard: {
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 14,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
   },
   detailDivider: {
@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+    fontFamily: "Manrope_500Medium",
     color: "#6B7280",
   },
   headerRow: {

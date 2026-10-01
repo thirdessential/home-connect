@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     flex: 1,
     fontSize: getWidth(16),
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
   },
   radio: {

@@ -39,7 +39,7 @@ const InfoItem = memo(
         <Text
           style={{
             fontSize: 16,
-            fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+            fontFamily: "Manrope_600SemiBold",
             color: t.colors.textPrimary,
           }}
         >
@@ -185,7 +185,7 @@ const SocietyInfoCard = memo(function SocietyInfoCard() {
               borderLeftColor: "#48BB78", // Green
             }}
           >
-            <Text style={{ fontSize: 14, color: "#2F855A", fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>
+            <Text style={{ fontSize: 14, color: "#2F855A", fontFamily: "Manrope_600SemiBold" }}>
               Monthly Maintenance
             </Text>
             <Text

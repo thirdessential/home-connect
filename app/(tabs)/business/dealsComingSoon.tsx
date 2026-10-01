@@ -12,7 +12,7 @@ export default function DealsComingSoon() {
     <View
       style={[
         styles.root,
-        { backgroundColor: t.colors.white, paddingTop: insets.top },
+        { backgroundColor: t.colors.white},
       ]}
     >
       <View style={[styles.iconCircle, { backgroundColor: t.colors.brandWeak }]}>
@@ -22,7 +22,7 @@ export default function DealsComingSoon() {
         Coming Soon
       </Text>
       <Text style={[t.typography.body, styles.line, { color: t.colors.textSecondary }]}>
-        Deals are coming soon to Home Connect.
+        Deals are coming soon to My Terrace App.
       </Text>
       <Text style={[t.typography.body, styles.line, { color: t.colors.textSecondary }]}>
         We&apos;re working on something exciting. Stay tuned!

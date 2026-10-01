@@ -19,6 +19,8 @@ export default function ReviewItem({
         {/* Avatar placeholder */}
         <CircularImage
           uri={review.profilePhotoUrl ?? undefined}
+          name={review.userName}
+          avatarUserId={review.userId || review.userName || "anonymous"}
           mode="view"
           size={40}
           loading={false}
@@ -31,7 +33,7 @@ export default function ReviewItem({
               justifyContent: "space-between",
             }}
           >
-            <Text style={{ color: t.colors.textPrimary, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
+            <Text style={{ color: t.colors.textPrimary, fontFamily: "Manrope_700Bold" }}>
               {review.userName || "Anonymous"}
             </Text>
             <Stars value={review.rating ?? 0} />

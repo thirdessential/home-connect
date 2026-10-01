@@ -1,3 +1,4 @@
+import UserAvatar from "@/components/UI/UserAvatar";
 import { PROFILE_CONSTANTS } from "@/assets/constants/profile.constant";
 import RobustImage from "@/components/UI/RobustImage";
 import { useImageUploader } from "@/components/image-upload";
@@ -28,6 +29,7 @@ export default function CircularImage({
   loading = false,
   onBeforeOpen,
   name,
+  avatarUserId,
 }: {
   uri?: string;
   mode?: "view" | "upload" | "edit";
@@ -38,6 +40,8 @@ export default function CircularImage({
   onBeforeOpen?: () => boolean;
   /** Display name to derive initials from when there's no image (e.g. Directory cards). Omit to keep the default icon fallback. */
   name?: string;
+  /** When set (a user's id), no-photo state shows initials on that user's gradient instead of the icon. */
+  avatarUserId?: string;
 }) {
   const { openImageUploader } = useImageUploader();
 
@@ -92,6 +96,9 @@ export default function CircularImage({
             // Use RobustImage for better error handling, auto-retry, and fallback.
             // RobustImage itself resolves `uri` via buildImageUrl (base-URL join,
             // absolute passthrough) — CircularImage no longer duplicates that logic.
+            avatarUserId ? (
+              <UserAvatar uri={uri} name={name} userId={avatarUserId} size={size} />
+            ) : (
             <RobustImage
               uri={uri}
               style={{
@@ -103,10 +110,8 @@ export default function CircularImage({
               fallbackIcon="person-circle-outline"
               fallbackBackgroundColor="#e5e7eb"
               fallbackText={name ? getInitials(name) : undefined}
-              onError={(error) => {
-                console.warn("CircularImage load error:", error);
-              }}
             />
+            )
           )}
 
           {/* Edit icon overlay - only show when not loading */}

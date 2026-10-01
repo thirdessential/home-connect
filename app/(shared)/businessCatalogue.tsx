@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   businessHeading: {
     fontSize: 16,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     marginBottom: 6,
     color: "#22223B",
   },
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   },
   manageButtonText: {
     color: "#22223B",
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
   },
   ctaButton: {
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   },
   ctaButtonText: {
     color: "#FFF",
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
   },
   pageHeading: {
@@ -344,12 +344,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#22223B",
     marginBottom: 8,
   },
   bold: {
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   desc: {
     color: "#475467",

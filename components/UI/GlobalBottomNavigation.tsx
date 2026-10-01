@@ -3,12 +3,12 @@ import { memo, useEffect, useRef } from "react";
 import {
   AccessibilityInfo,
   Animated,
-  Platform,
   Pressable,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { OFFLINE_STRIP_HEIGHT, bottomNavFootprint, offlineStripInset, useBannerState } from "@/lib/offlineStripInset";
 import { useUiTheme } from "./useUiTheme";
 
 export type NavItem = {
@@ -68,13 +68,21 @@ function TabItem({
     outputRange: [0, -2],
   });
 
-  const color = active
-    ? t.colors.textPrimary
-    : t.colors.textMuted;
+  const color = active ? t.colors.primary : t.colors.textMuted;
+
+  // Light press feedback (scale) on top of the active-tab lift.
+  const press = useRef(new Animated.Value(1)).current;
+  const pressTo = (v: number) =>
+    Animated.spring(press, { toValue: v, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
 
   return (
     <Pressable
       onPress={item.onPress}
+      onPressIn={() => pressTo(0.92)}
+      onPressOut={() => pressTo(1)}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={item.label}
       style={{
         flex: 1,
         alignItems: "center",
@@ -82,7 +90,7 @@ function TabItem({
     >
       <Animated.View
         style={{
-          transform: [{ scale }, { translateY }],
+          transform: [{ scale: Animated.multiply(scale, press) }, { translateY }],
         }}
       >
         <Ionicons
@@ -95,8 +103,8 @@ function TabItem({
       <Text
         style={{
           ...t.typography.caption,
-          // fontWeight: active ? "700" : "400",
           color,
+          fontFamily: active ? "Manrope_700Bold" : undefined,
           marginTop: 2,
         }}
       >
@@ -168,39 +176,40 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
     }).start();
   };
 
+  // Clear the footprint when the nav goes away so the offline strip drops to
+  // the system inset on screens without a bottom bar.
+  useEffect(() => () => bottomNavFootprint.setValue(0), []);
+  const banner = useBannerState();
+  const bottomGap = Math.max(insets.bottom, 10);
+
   return (
-    <View
-      style={{
-        alignItems: "center",
-        backgroundColor: "transparent",
-      }}
-    >
+    <View style={{ backgroundColor: "transparent" }}>
+      <View
+        onLayout={(e) => bottomNavFootprint.setValue(e.nativeEvent.layout.height)}
+        style={{
+          backgroundColor: t.colors.surface,
+          borderTopWidth: 1,
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          borderColor: t.colors.border,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          width: "100%",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 12,
+        }}
+      >
+      {/* Tab items */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-around",
-          backgroundColor: t.colors.surface,
-          borderWidth: 1,
-          borderColor: t.colors.border,
-          borderRadius: 20,
-          marginHorizontal: 14,
-          marginBottom:
-            Platform.OS === "ios"
-              ? 0
-              : Math.max(0, insets.bottom - 8),
-          paddingVertical: 8,
-          paddingBottom:
-            Platform.OS === "ios" ? 40 : 15,
-          width: "100%",
-          shadowColor: "#000",
-          shadowOffset: {
-            width: 0,
-            height: 6,
-          },
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
-          elevation: 8,
+          paddingTop: 16,
+          minHeight: 64,
         }}
       >
         {[left, right].map((item) => (
@@ -272,7 +281,7 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
             style={{
               ...t.typography.caption,
               color: t.colors.primary,
-              fontWeight: "700", fontFamily: "Manrope_700Bold",
+              fontFamily: "Manrope_700Bold",
               marginTop: CENTER_SIZE * 0.55 + 4,
             }}
           >
@@ -287,6 +296,35 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
             active={activeKey === item.key}
           />
         ))}
+      </View>
+
+      {/* Offline banner: BELOW the tab items, above the system area. Height is
+          0 when online (no reserved space) and animates with the strip. */}
+      <Animated.View
+        style={{
+          height: offlineStripInset,
+          overflow: "hidden",
+          backgroundColor: banner.online ? "#15803D" : "#B91C1C",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {banner.rendered && banner.online !== null ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, height: OFFLINE_STRIP_HEIGHT }}>
+            <Ionicons
+              name={banner.online ? "checkmark-circle" : "cloud-offline-outline"}
+              size={18}
+              color="#fff"
+            />
+            <Text style={{ color: "#fff", fontSize: 12, fontFamily: "Manrope_700Bold" }}>
+              {banner.online ? "Internet Connected" : "No Internet Connection"}
+            </Text>
+          </View>
+        ) : null}
+      </Animated.View>
+
+      {/* System area (gesture bar / 3-button bar / home indicator): the real inset, nothing else. */}
+      <View style={{ height: bottomGap }} />
       </View>
     </View>
   );

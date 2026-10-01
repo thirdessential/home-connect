@@ -16,8 +16,23 @@ type ToastType = "error" | "success" | "info" | "warning";
 
 type ToastState = { message: string; type: ToastType } | null;
 
+type StatusToast = {
+  title: string;
+  message: string;
+  /** "success" = green, "neutral" = soft red/neutral (e.g. a rejection that succeeded). */
+  tone: "success" | "neutral" | "error";
+};
+
 type ToastContextValue = {
   showToast: (message: string, type?: ToastType) => void;
+  /** Modern top toast with title + message; duplicates of the visible one are ignored. */
+  showStatusToast: (t: StatusToast) => void;
+};
+
+const STATUS_TONES: Record<StatusToast["tone"], { bg: string; border: string; icon: string; title: string; text: string; name: keyof typeof Ionicons.glyphMap }> = {
+  success: { bg: "#E8F5E9", border: "#C8E6C9", icon: "#16803C", title: "#14532D", text: "#166534", name: "checkmark-circle" },
+  neutral: { bg: "#FDECEC", border: "#F8CFCF", icon: "#C62828", title: "#7F1D1D", text: "#991B1B", name: "checkmark-circle" },
+  error: { bg: "#FDECEC", border: "#F8CFCF", icon: "#C62828", title: "#7F1D1D", text: "#991B1B", name: "close-circle" },
 };
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -87,11 +102,79 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
-  const value = useMemo(() => ({ showToast }), [showToast]);
+  // ---- status toast (top) ----
+  const [status, setStatus] = useState<StatusToast | null>(null);
+  const statusY = useRef(new Animated.Value(-140)).current;
+  const statusOpacity = useRef(new Animated.Value(0)).current;
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusKey = useRef<string | null>(null);
+
+  const hideStatus = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(statusY, { toValue: -140, duration: 240, useNativeDriver: true }),
+      Animated.timing(statusOpacity, { toValue: 0, duration: 240, useNativeDriver: true }),
+    ]).start(() => {
+      statusKey.current = null;
+      setStatus(null);
+    });
+  }, [statusOpacity, statusY]);
+
+  const showStatusToast = useCallback(
+    (t: StatusToast) => {
+      const key = `${t.tone}|${t.title}|${t.message}`;
+      if (statusKey.current === key) return; // same toast already on screen
+      statusKey.current = key;
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+      setStatus(t);
+      statusY.setValue(-140);
+      statusOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(statusY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 70 }),
+        Animated.timing(statusOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+      statusTimer.current = setTimeout(hideStatus, 2800);
+    },
+    [hideStatus, statusOpacity, statusY],
+  );
+
+  useEffect(
+    () => () => {
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+    },
+    [],
+  );
+
+  const value = useMemo(() => ({ showToast, showStatusToast }), [showToast, showStatusToast]);
 
   return (
     <ToastContext.Provider value={value}>
       {children}
+      {status ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.statusWrap,
+            { top: insets.top + getHeight(8), transform: [{ translateY: statusY }], opacity: statusOpacity },
+          ]}
+        >
+          <View
+            style={[
+              styles.statusToast,
+              { backgroundColor: STATUS_TONES[status.tone].bg, borderColor: STATUS_TONES[status.tone].border },
+            ]}
+          >
+            <Ionicons name={STATUS_TONES[status.tone].name} size={getWidth(26)} color={STATUS_TONES[status.tone].icon} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: "Manrope_700Bold", fontSize: getWidth(15), color: STATUS_TONES[status.tone].title }}>
+                {status.title}
+              </Text>
+              <Text style={{ fontFamily: "Manrope_500Medium", fontSize: getWidth(13), color: STATUS_TONES[status.tone].text, marginTop: 2 }} numberOfLines={2}>
+                {status.message}
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      ) : null}
       {toast ? (
         <Animated.View
           pointerEvents="none"
@@ -123,6 +206,27 @@ export const useToast = (): ToastContextValue => {
 };
 
 const styles = StyleSheet.create({
+  statusWrap: {
+    position: "absolute",
+    left: getWidth(16),
+    right: getWidth(16),
+    zIndex: 10000,
+    elevation: 10000,
+  },
+  statusToast: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: getWidth(12),
+    paddingVertical: getHeight(12),
+    paddingHorizontal: getWidth(14),
+    borderRadius: getWidth(16),
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
   wrap: {
     position: "absolute",
     left: getWidth(16),
@@ -146,7 +250,7 @@ const styles = StyleSheet.create({
   text: {
     color: "#fff",
     fontSize: getWidth(14),
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     marginLeft: getWidth(10),
     flex: 1,
     flexShrink: 1,

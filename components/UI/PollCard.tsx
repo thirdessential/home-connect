@@ -241,7 +241,7 @@ const PollCard = React.memo(function PollCard({
       {/* Poll Question */}
       <Text
         style={{
-          fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+          fontFamily: "Manrope_600SemiBold",
           paddingTop: 10,
           fontSize: 15.5,
           color: t.colors.textPrimary,
@@ -312,7 +312,7 @@ const PollCard = React.memo(function PollCard({
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+                      fontFamily: "Manrope_600SemiBold",
                       fontSize: 15,
                       color: t.colors.textPrimary,
                     }}
@@ -336,7 +336,7 @@ const PollCard = React.memo(function PollCard({
                 {showResults && (
                   <Text
                     style={{
-                      fontWeight: "700", fontFamily: "Manrope_700Bold",
+                      fontFamily: "Manrope_700Bold",
                       fontSize: 14,
                       color: t.colors.brand,
                       minWidth: 38,

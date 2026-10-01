@@ -27,6 +27,94 @@ const getInitials = (name?: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+const REG_TYPE_LABELS: Record<string, string> = {
+  not_registered: "Not Registered",
+  gst: "GST",
+  fssai: "FSSAI",
+  shop_establishment: "Shop & Establishment",
+  udyam: "Udyam",
+  other: "Other",
+};
+const OPERATING_LABELS: Record<string, string> = {
+  SHOP_OR_OFFICE: "From a shop or office",
+  HOME: "From home",
+};
+const pretty = (v?: string | null) =>
+  v ? v.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : undefined;
+
+// Everything the request actually carries -> the Details sheet. Nothing is invented:
+// missing values stay undefined (hidden) or render "Not provided" for core fields.
+function buildDetailData(request: any, attachments: string[]) {
+  const isBusiness = request.type === "business";
+  const common = {
+    id: request.id,
+    status: request.status,
+    // Raw timestamp (ms) — `appliedDate` is a locale string and re-parsing it showed "Invalid Date".
+    requestDate: request.appliedAtMs ?? request.appliedDate,
+    type: isBusiness ? "business" : "resident",
+  };
+
+  if (isBusiness) {
+    const docs = [
+      request.registrationProof && { label: "Registration Proof", url: request.registrationProof },
+      ...((request.photos ?? []).map((p: any, i: number) => {
+        const url = p.url || p.photo_url;
+        return url ? { label: `Photo ${i + 1}`, url } : null;
+      })),
+    ].filter(Boolean) as { label: string; url: string }[];
+    return {
+      ...common,
+      businessTitle: request.name,
+      profileImage: request.logoUrl,
+      documents: docs,
+      fields: [
+        { label: "Business Title", value: request.name, always: true },
+        { label: "Business Name", value: request.businessName && request.businessName !== request.name ? request.businessName : undefined },
+        { label: "Business Category", value: request.category, always: true },
+        { label: "Owner / Contact Person", value: request.ownerName, always: true },
+        { label: "Description", value: request.description },
+        { label: "Phone Number", value: request.phone, phone: true, always: true },
+        { label: "Business Number", value: request.businessPhone, phone: true },
+        { label: "Alternative Mobile", value: request.alternativeMobile, phone: true },
+        { label: "Email Address", value: request.email, always: true },
+        { label: "Business Address", value: request.address, always: true },
+        { label: "Operating From", value: OPERATING_LABELS[request.operatingLocation] },
+        { label: "Society", value: request.societyName },
+        { label: "Google Maps", value: request.googleMapsLocation },
+        { label: "Website / Social", value: request.socialMediaUrl },
+        { label: "Verification Details", value: REG_TYPE_LABELS[request.registrationType] ?? pretty(request.registrationType) },
+      ],
+    };
+  }
+
+  const photo =
+    typeof request.profileImage === "string" && request.profileImage.startsWith("http")
+      ? request.profileImage
+      : typeof request.avatar === "string" && request.avatar.startsWith("http")
+        ? request.avatar
+        : undefined;
+  return {
+    ...common,
+    name: request.name,
+    profileImage: photo,
+    documents: [
+      request.residenceProof && { label: pretty(request.residenceProofType) ?? "Residence Proof", url: request.residenceProof },
+      request.selfie && { label: "Selfie", url: request.selfie },
+    ].filter(Boolean) as { label: string; url: string }[],
+    fields: [
+      { label: "Full Name", value: request.name, always: true },
+      { label: "Email Address", value: request.email, always: true },
+      { label: "Phone Number", value: request.phone, phone: true, always: true },
+      { label: "Society", value: request.society },
+      { label: "Resident Address", value: request.fullAddress ?? request.address ?? request.from, always: true },
+      { label: "Flat / Unit Number", value: request.unitFlat, always: true },
+      { label: "Block / Tower", value: request.buildingBlock, always: true },
+      { label: "Resident Type", value: pretty(request.ownerOrTenant) },
+      { label: "Proof Submitted", value: pretty(request.residenceProofType) },
+    ],
+  };
+}
+
 const DetailCard = memo(
   ({
     request,
@@ -95,7 +183,7 @@ const DetailCard = memo(
               ]}
               textStyle={[
                 t.typography.small,
-                { color: request.type === "business" ? "#6E4FE8" : "#2F5FE0", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 11 },
+                { color: request.type === "business" ? "#6E4FE8" : "#2F5FE0", fontFamily: "Manrope_700Bold", fontSize: 11 },
               ]}
             />
           </View>
@@ -222,7 +310,7 @@ const DetailCard = memo(
                 )
               }
             >
-              <Text style={[t.typography.small, { color: "#1B6E3C", fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>
+              <Text style={[t.typography.small, { color: "#1B6E3C", fontFamily: "Manrope_700Bold" }]}>
                 View on map
               </Text>
             </Pressable>
@@ -280,23 +368,9 @@ const DetailCard = memo(
       <ViewModal
         visible={detailsVisible}
         onClose={() => setDetailsVisible(false)}
-        onApprove={async () => onApprove(request.id, request.type)}
+        onApprove={async () => (await (onApprove(request.id, request.type) as unknown as Promise<boolean | void>))}
         onReject={async () => onReject(request.id, request.type)}
-        data={{
-          id: request.id,
-          name: request.type !== "business" ? request.name : undefined,
-          businessTitle: request.type === "business" ? request.name : undefined,
-          email: request.email,
-          phone: request.phone,
-          flatNo: request.unitFlat,
-          building: request.buildingBlock,
-          status: request.status,
-          requestDate: request.appliedDate,
-          description: request.description,
-          completeAddress: request.address || request.location || request.from,
-          category: request.category,
-          images: attachments.length ? attachments : undefined,
-        }}
+        data={buildDetailData(request, attachments)}
       />
       </>
     );
@@ -368,7 +442,7 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     color: "#166534",
     fontSize: 11,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   statusBadgeRejected: { backgroundColor: "#FEE2E2" },
   statusBadgeTextRejected: { color: "#DC2626" },
@@ -394,7 +468,7 @@ const styles = StyleSheet.create({
   avatarLetters: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   profileInfo: {
     flex: 1,
@@ -417,7 +491,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
   },
-  attachmentsLabel: { color: "#9A9C90", fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginRight: 2 },
+  attachmentsLabel: { color: "#9A9C90", fontFamily: "Manrope_600SemiBold", marginRight: 2 },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -439,7 +513,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  attachmentMoreText: { color: "#fff", fontSize: 11, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+  attachmentMoreText: { color: "#fff", fontSize: 11, fontFamily: "Manrope_700Bold" },
   requestActions: {
     flexDirection: "row",
     gap: 8,

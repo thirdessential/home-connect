@@ -80,6 +80,9 @@ export type FeedItem = {
     registeredParticipants?: number;
     location?: string;
     regDeadline?: string;
+    /** Live ISO instants from the events row (server-computed). */
+    registrationClosesAt?: string | null;
+    eventStartsAt?: string | null;
     eventDetails?: {
         freeChildren?: boolean;
         guests?: boolean;

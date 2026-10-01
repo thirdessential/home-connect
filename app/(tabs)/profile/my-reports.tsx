@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   listEmpty: { flexGrow: 1, justifyContent: "center" },
   row: { padding: 12, marginBottom: 12, borderRadius: 12, borderWidth: 1, gap: 4 },
   rowTitleLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8},
-  rowTitle: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold", flexShrink: 1 },
-  rowContent: { fontSize: 14, fontWeight: "500", fontFamily: "Manrope_500Medium" },
+  rowTitle: { fontSize: 13, fontFamily: "Manrope_600SemiBold", flexShrink: 1 },
+  rowContent: { fontSize: 14, fontFamily: "Manrope_500Medium" },
   rowMeta: { fontSize: 12, marginTop: 1 },
 });

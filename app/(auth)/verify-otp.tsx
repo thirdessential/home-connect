@@ -6,6 +6,7 @@ import ActionButton from "@/components/inputs/ActionButton";
 import BoxedOTP from "@/components/inputs/BoxedOTP";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUserStore } from "@/store/useUserStore";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -37,6 +38,7 @@ function formatTimer(seconds: number) {
 
 export default function VerifyOtpScreen() {
   const { showToast } = useToast();
+  const keyboardHeight = useKeyboardHeight();
   const params = useLocalSearchParams<{ phone?: string }>();
   const phone = typeof params.phone === "string" ? params.phone : "";
 
@@ -136,7 +138,7 @@ export default function VerifyOtpScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: getHeight(24) + keyboardHeight }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: getWidth(26),
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
     marginTop: getHeight(24),
@@ -244,7 +246,7 @@ const styles = StyleSheet.create({
   },
   phoneText: {
     fontSize: getWidth(18),
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
   },
   otpWrap: {
@@ -271,12 +273,12 @@ const styles = StyleSheet.create({
   resendMuted: {
     fontSize: getWidth(14),
     color: TERRACE_COLORS.textDark,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
   },
   resendCta: {
     fontSize: getWidth(14),
     color: TERRACE_COLORS.orange,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   footer: {
     flexDirection: "row",

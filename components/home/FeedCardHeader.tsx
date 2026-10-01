@@ -1,6 +1,7 @@
 import { useTheme } from "@/theme/theme";
 import { HomeFeedAuthor } from "@/types/homeFeed.type";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import UserAvatar from "@/components/UI/UserAvatar";
 import { memo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -36,26 +37,19 @@ function FeedCardHeader({
 
   return (
     <View style={styles.row}>
-      {author.avatarUrl ? (
+      {author.isAnonymous ? (
         <Image
           source={{ uri: author.avatarUrl }}
-          style={[
-            styles.avatar,
-            { borderColor: onImage ? "rgba(255,255,255,0.25)" : t.colors.border },
-          ]}
+          style={[styles.avatar, { borderColor: onImage ? "rgba(255,255,255,0.25)" : t.colors.border }]}
         />
       ) : (
-        <View
-          style={[
-            styles.avatar,
-            styles.avatarFallback,
-            { backgroundColor: t.colors.brand, borderColor: t.colors.border },
-          ]}
-        >
-          <Text style={[styles.initials, { color: t.colors.onBrand }]}>
-            {author.initials}
-          </Text>
-        </View>
+        <UserAvatar
+          uri={author.avatarUrl}
+          name={author.name}
+          userId={author.authorId}
+          size={40}
+          style={{ borderWidth: 1, borderColor: onImage ? "rgba(255,255,255,0.25)" : t.colors.border }}
+        />
       )}
 
       <View style={styles.textCol}>

@@ -1,3 +1,4 @@
+import UserAvatar from "@/components/UI/UserAvatar";
 import CircularImage from "@/components/form/CircularImage";
 import TitleHeader from "@/components/UI/TitleHeader";
 import { User } from "@/store/auth.type";
@@ -65,17 +66,7 @@ const UserProfileHeader = memo(function UserProfileHeader({
         />
 
         <View style={styles.avatarContainer}>
-          {user?.profilePhotoUrl ? (
-            <CircularImage
-              uri={user.profilePhotoUrl}
-              size={AVATAR_SIZE}
-              mode="view"
-            />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
-            </View>
-          )}
+          <UserAvatar uri={user?.profilePhotoUrl} name={user?.fullName} userId={userId} size={AVATAR_SIZE} />
 
           <View style={styles.actionButtonsRow}>
             <Pressable
@@ -183,7 +174,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 36,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: "#FFFFFF",
   },
   actionButtonsRow: {
@@ -203,7 +194,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 22,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 20,
   },
   infoSection: {

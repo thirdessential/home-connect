@@ -52,12 +52,12 @@ export type ColorRoles = {
 };
 
 export type Typography = {
-    h1: { fontSize: number; lineHeight: number; fontWeight: '800' | '700' | '600' };
-    h2: { fontSize: number; lineHeight: number; fontWeight: '800' | '700' | '600' };
-    h3: { fontSize: number; lineHeight: number; fontWeight: '700' | '600' };
-    h4: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
-    h5: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
-    h6: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
+    h1: { fontSize: number; lineHeight: number; fontFamily?: string };
+    h2: { fontSize: number; lineHeight: number; fontFamily?: string };
+    h3: { fontSize: number; lineHeight: number; fontFamily?: string };
+    h4: { fontSize: number; lineHeight: number; fontFamily?: string };
+    h5: { fontSize: number; lineHeight: number; fontFamily?: string };
+    h6: { fontSize: number; lineHeight: number; fontFamily?: string };
     button1: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
     buttonText: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
     body: { fontSize: number; lineHeight: number; fontWeight: '400' | '500', color?: string };
@@ -141,12 +141,12 @@ const iconSizes: IconSizes = {
 // fontWeight (custom fonts don't reliably synthesize bold, so each weight
 // needs its own font file/family rather than relying on `fontWeight` alone).
 const typography: Typography = {
-    h1: { fontSize: getWidth(24), lineHeight: getHeight(30), fontFamily: manropeFamily('700') } as any,
-    h2: { fontSize: getWidth(22), lineHeight: getHeight(28),  fontFamily: manropeFamily('800') } as any,
-    h3: { fontSize: getWidth(18), lineHeight: getHeight(24), fontFamily: manropeFamily('700') } as any,
-    h4: { fontSize: getWidth(16), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,
-    h5: { fontSize: getWidth(15), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,
-    h6: { fontSize: getWidth(13), lineHeight: getHeight(18), fontFamily: manropeFamily('600') } as any,
+    h1: { fontSize: getWidth(24), lineHeight: getWidth(31), fontFamily: manropeFamily('700') } as any,
+    h2: { fontSize: getWidth(22), lineHeight: getWidth(29), fontFamily: manropeFamily('800') } as any,
+    h3: { fontSize: getWidth(18), lineHeight: getWidth(24), fontFamily: manropeFamily('700') } as any,
+    h4: { fontSize: getWidth(16), lineHeight: getWidth(22), fontFamily: manropeFamily('600') } as any,
+    h5: { fontSize: getWidth(15), lineHeight: getWidth(21), fontFamily: manropeFamily('600') } as any,
+    h6: { fontSize: getWidth(13), lineHeight: getWidth(18), fontFamily: manropeFamily('600') } as any,
     body: { fontSize: getWidth(16), lineHeight: getHeight(22),  color: '#1F2937', fontFamily: manropeFamily('400') } as any, // color: var(--text)
     bodySmall: { fontSize: getWidth(13), lineHeight: getHeight(19),  fontFamily: manropeFamily('400') } as any,
     button1: { fontSize: getWidth(14), lineHeight: getHeight(20), fontFamily: manropeFamily('600') } as any,

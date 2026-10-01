@@ -12,8 +12,8 @@ import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, router } from "expo-router";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Keyboard, Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Walks into a tab's nested Stack (if any) to find the actually-focused
@@ -38,6 +38,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const userStatus = useUserStore(
     (state) => state.user?.isAddressVerified?.status,
   );
+  // Hide the bar while the keyboard is open so it never floats above it.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboardOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
   const [unverifiedModalVisible, setUnverifiedModalVisible] = useState(false);
   const [guestGateVisible, setGuestGateVisible] = useState(false);
   const { isUserAllowed, hasRole } = usePermissions();
@@ -126,7 +133,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <>
-      {showBottomBar && (
+      {showBottomBar && !keyboardOpen && (
         <GlobalBottomNavigation
           activeKey={activeKey}
           centerIcon={modalOpen || activeKey === "create" ? "close" : "add"}

@@ -88,7 +88,7 @@ export default function SelectField({
             numberOfLines={1}
             style={{
               fontSize: 12,
-              fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+              fontFamily: "Manrope_600SemiBold",
               color: textSecondary,
             }}
           >
@@ -200,7 +200,7 @@ export default function SelectField({
               onPress={() => setOpen(false)}
               style={{ alignSelf: "center", marginTop: 12, padding: 8 }}
             >
-              <Text style={{ color: textSecondary, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>
+              <Text style={{ color: textSecondary, fontFamily: "Manrope_600SemiBold" }}>
                 Close
               </Text>
             </TouchableOpacity>

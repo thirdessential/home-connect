@@ -171,7 +171,10 @@ export default function MyProfilesScreen() {
   const goManageBusiness = useCallback(() => router.push("/(shared)/businessCatalogue"), []);
   const openPersonalProfile = useCallback(() => setPersonalProfileVisible(true), []);
   const openEditProfile = useCallback(() => setEditProfileVisible(true), []);
-  const openManageResident = useCallback(() => setManageResidentVisible(true), []);
+  const openManageResident = useCallback(
+    () => router.push({ pathname: "/onboarding/verify-step1", params: { role: "resident", mode: "edit" } }),
+    [],
+  );
   const openDelete = useCallback(() => router.push("/profile/delete-account"), []);
 
   const accountOptions = useMemo(() => {

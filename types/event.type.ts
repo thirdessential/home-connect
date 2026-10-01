@@ -10,6 +10,7 @@ export type EventRecord = {
   eventType: string;
   description: string;
   image: string | null;
+  images?: string[];
   startDate: string;
   startTime: string | null;
   endDate: string | null;
@@ -20,12 +21,17 @@ export type EventRecord = {
   minParticipants: number;
   maxParticipants: number;
   registrationClosesBeforeHours: number;
+  registrationClosesAt?: string | null;
   registrationDeadline: string | null;
   rulesToBring: string | null;
   status: string;
+  registrationClosed?: boolean;
   joinedCount: number;
   cancelledCount: number;
   societyId: number | null;
+  commentCount?: number;
+  /** Present on the Joined Events list only. */
+  organizer?: { name: string; profileImage: string | null };
   createdAt: string;
 };
 
@@ -93,5 +99,7 @@ export type CreateEventPayload = {
   minimumparticipants: number;
   maximumparticipants?: number;
   registrationclosesbefore: number;
+  registrationclosesdate?: string;
+  registrationclosestime?: string;
   rulesthingstobring?: string;
 };

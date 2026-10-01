@@ -3,6 +3,8 @@ import BulkActionBar from "@/components/admin/BulkActionBar";
 import DashboardHeader from "@/components/admin/DashboardHeader";
 import DashboardSkeleton from "@/components/admin/DashboardSkeleton";
 import PendingRequestsSection from "@/components/admin/PendingRequestsSection";
+import { useToast } from "@/components/common/Toast";
+import * as Haptics from "expo-haptics";
 import SocietySelectorModal from "@/components/admin/SocietySelectorModal";
 import StatsSection, {
   SelectedStatsCard,
@@ -61,6 +63,7 @@ export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState<DashboardView>("main");
   const [selectedStatsCard, setSelectedStatsCard] =
     useState<SelectedStatsCard>("pending");
+  const { showStatusToast } = useToast();
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectingType, setRejectingType] = useState<string | null>(null);
@@ -344,24 +347,35 @@ export default function AdminDashboard() {
   );
 
   const handleApprove = useCallback(
-    async (id: string, type: string) => {
-      if (processingRef.current.has(id)) return;
+    async (id: string, type: string): Promise<boolean> => {
+      if (processingRef.current.has(id)) return false;
       processingRef.current.add(id);
       try {
         await approveOne(id, type);
+        // Success only now — the backend call above resolved without throwing.
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        showStatusToast({
+          tone: "success",
+          title: "Request Approved!",
+          message: "The request has been approved successfully.",
+        });
         const sid = resolveSid();
-        if (sid) await refetchBySid(type, sid);
-        await new Promise((res) => setTimeout(res, 100));
-        setShowSuccessModal(true);
-        setTimeout(() => setShowSuccessModal(false), 1500);
-      } catch (error) {
+        // Pending list + approved lists/counts stay in sync with the backend.
+        if (sid) await Promise.allSettled([refetchBySid(type, sid), getAllApprovedContent(sid)]);
+        return true;
+      } catch (error: any) {
         console.error("Failed to approve:", error);
-        Alert.alert("Approval Failed", "Could not approve this request. Please try again.");
+        showStatusToast({
+          tone: "error",
+          title: "Approval Failed",
+          message: error?.message && !/^HTTP \d+/.test(error.message) ? error.message : "Could not approve this request. Please try again.",
+        });
+        return false;
       } finally {
         processingRef.current.delete(id);
       }
     },
-    [approveOne, resolveSid, refetchBySid],
+    [approveOne, resolveSid, refetchBySid, getAllApprovedContent, showStatusToast],
   );
 
   const handleReject = useCallback((id: string, type: string) => {
@@ -466,11 +480,20 @@ export default function AdminDashboard() {
         setShowRejectModal(false);
         setRejectingId(null);
         setRejectingType(null);
-        setShowSuccessModal(true);
-        setTimeout(() => setShowSuccessModal(false), 1500);
-      } catch (error) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        showStatusToast({
+          tone: "neutral",
+          title: "Request Rejected",
+          message: "The request has been rejected successfully.",
+        });
+      } catch (error: any) {
         console.error("Failed to reject:", error);
-        Alert.alert("Rejection Failed", "Could not reject this request. Please try again.");
+        // Reason popup stays open so the admin can retry.
+        showStatusToast({
+          tone: "error",
+          title: "Rejection Failed",
+          message: error?.message && !/^HTTP \d+/.test(error.message) ? error.message : "Could not reject this request. Please try again.",
+        });
       } finally {
         processingRef.current.delete(rejectingId);
         setIsRejecting(false);
@@ -486,6 +509,7 @@ export default function AdminDashboard() {
       resolveSid,
       refetchBySid,
       getAllPendingContent,
+      showStatusToast,
     ],
   );
 

@@ -1,4 +1,5 @@
 import { useNotificationStore } from "@/store/useNotificationStore";
+import { notificationRoute } from "@/lib/notificationRoute";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
@@ -40,9 +41,9 @@ export default function NotificationsScreen() {
         <Pressable onPress={goBack} hitSlop={12}>
           <Ionicons name="arrow-back" size={22} color={t.colors.textPrimary} />
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: "700", fontFamily: "Manrope_700Bold", color: t.colors.textPrimary }}>Notifications</Text>
+        <Text style={{ fontSize: 17, fontFamily: "Manrope_700Bold", color: t.colors.textPrimary }}>Notifications</Text>
         <Pressable onPress={markAllRead} hitSlop={12} disabled={!items.length}>
-          <Text style={{ fontSize: 14, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: items.length ? t.colors.brand : t.colors.textSecondary }}>
+          <Text style={{ fontSize: 14, fontFamily: "Manrope_600SemiBold", color: items.length ? t.colors.brand : t.colors.textSecondary }}>
             Mark all
           </Text>
         </Pressable>
@@ -64,7 +65,7 @@ export default function NotificationsScreen() {
               <Ionicons name="alert-circle-outline" size={32} color={t.colors.textSecondary} />
               <Text style={{ marginTop: 10, color: t.colors.textSecondary }}>{error}</Text>
               <Pressable onPress={fetchAll} hitSlop={12} style={{ marginTop: 12 }}>
-                <Text style={{ color: t.colors.brand, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>Retry</Text>
+                <Text style={{ color: t.colors.brand, fontFamily: "Manrope_600SemiBold" }}>Retry</Text>
               </Pressable>
             </View>
           ) : (
@@ -78,8 +79,7 @@ export default function NotificationsScreen() {
           <Pressable
             onPress={() => {
               markRead(item.id);
-              const path = item.data?.path;
-              if (typeof path === "string") router.push(path as any);
+              router.push(notificationRoute(item.data));
             }}
             style={{
               paddingVertical: 12,

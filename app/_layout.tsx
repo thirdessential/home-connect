@@ -1,10 +1,10 @@
 import { useFonts } from "expo-font";
-import { Stack, useNavigationContainerRef, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { AppState, Platform, StyleSheet, Text, TextInput } from "react-native";
+import { Stack, router, useNavigationContainerRef, useRouter } from "expo-router";
+import { StatusBar } from "react-native";
+import { useEffect, useRef } from "react";
+import { AppState, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 import { manropeAssets } from "../theme/fonts";
 
@@ -26,7 +26,7 @@ import { ThemeProvider as NavigationThemeProvider } from "expo-router";
 import CreatePostModal from "../components/common/createPostModal";
 import ConfigWarningBanner from "../components/common/ConfigWarningBanner";
 import InternetStatusStrip from "../components/common/InternetStatusStrip";
-import { ToastProvider } from "../components/common/Toast";
+import { ToastProvider, useToast } from "../components/common/Toast";
 import { ImageUploadProvider } from "../components/image-upload";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useAuthStore } from "../store/useAuthStore";
@@ -111,21 +111,8 @@ function NavLinker() {
       )
         return;
 
-      if (authState.expiresAt) {
-        const expiry = new Date(authState.expiresAt).getTime();
-        const now = Date.now();
-        const daysUntilExpiry = (expiry - now) / (1000 * 60 * 60 * 24);
-
-        if (daysUntilExpiry <= 0) {
-          authState.signOut();
-          return;
-        }
-
-        // Token is fresh enough — skip server verification
-        if (daysUntilExpiry > 7) return;
-      }
-
-      // Only hits server if token expires within 7 days or has no expiry info
+      // Validates the stored session: refreshes an expired/near-expiry access
+      // token (or migrates a legacy one) and syncs the user. Offline = no logout.
       try {
         await authState.initSession();
       } catch (error) {
@@ -148,6 +135,9 @@ function NavLinker() {
     if (!_hasHydrated || !token) return;
     const sub = AppState.addEventListener("change", (nextState) => {
       if (nextState !== "active") return;
+      // Back from background: renew the access token if it is near expiry and
+      // rotate the refresh token if it is in its final 5 days.
+      useAuthStore.getState().ensureFreshToken().catch(() => {});
       const userId = useUserStore.getState().user?._id;
       if (userId) useUserStore.getState().fetchUser(userId).catch(() => {});
     });
@@ -157,10 +147,12 @@ function NavLinker() {
   return (
     <NavigationThemeProvider value={navFromTheme(t)}>
       <GestureHandlerRootView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <SafeAreaProvider>
           <ToastProvider>
+          <SessionWatcher />
           <ImageUploadProvider>
-              <StatusBar hideTransitionAnimation="fade" style="light" />
+              {/* <StatusBarBackdrop /> */}
           <Stack
             screenOptions={{
               headerShown: false,
@@ -174,9 +166,9 @@ function NavLinker() {
             {/* Shared screens accessible from any tab */}
             <Stack.Screen name="(shared)" />
           </Stack>
-          <InternetStatusStrip />
           <ConfigWarningBanner />
           {/* Globally mounted CreatePostModal to avoid tab-induced re-renders */}
+          <InternetStatusStrip />
           <CreatePostModal
             visible={modalVisible}
             initialForm={modalInitialForm}
@@ -188,6 +180,37 @@ function NavLinker() {
       </GestureHandlerRootView>
     </NavigationThemeProvider>
   );
+}
+
+// Sends the user to Login whenever a signed-in session ends (token goes from
+// set -> null), and explains why when the cause was an unrecoverable session.
+function SessionWatcher() {
+  const { showToast } = useToast();
+  const token = useAuthStore((s) => s.token);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+  const prevToken = useRef<string | null>(null);
+  const seeded = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!seeded.current) {
+      // First hydrated value is the restored session, not a logout.
+      seeded.current = true;
+      prevToken.current = token;
+      return;
+    }
+    if (prevToken.current && !token) {
+      const st = useAuthStore.getState();
+      if (st.sessionExpired) {
+        showToast("Your session has expired. Please log in again.", "error");
+        st.clearSessionExpired();
+      }
+      router.replace("/(auth)/login");
+    }
+    prevToken.current = token;
+  }, [token, hydrated, showToast]);
+
+  return null;
 }
 
 const styles = StyleSheet.create({

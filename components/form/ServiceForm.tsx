@@ -530,7 +530,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                     style={{
                       fontSize: 14,
                       color: "#1F2937",
-                      fontWeight: "500", fontFamily: "Manrope_500Medium",
+                      fontFamily: "Manrope_500Medium",
                     }}
                   >
                     {slot.displayText}
@@ -614,7 +614,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                     style={{
                       fontSize: 13,
                       color: "#1F2937",
-                      fontWeight: "500", fontFamily: "Manrope_500Medium",
+                      fontFamily: "Manrope_500Medium",
                       marginBottom: 8,
                     }}
                   >
@@ -664,7 +664,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                     style={{
                       fontSize: 13,
                       color: "#1F2937",
-                      fontWeight: "500", fontFamily: "Manrope_500Medium",
+                      fontFamily: "Manrope_500Medium",
                       marginBottom: 8,
                     }}
                   >
@@ -757,7 +757,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>
+                <Text style={{ color: "#fff", fontFamily: "Manrope_600SemiBold" }}>
                   Add Working Hours
                 </Text>
               </Pressable>
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#6B7280",
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     fontSize: 15,
   },
   activeCircleText: {
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 8,
     color: "#6B7280",
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
   activeStepLabel: {
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontSize: 16,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#1F2937",
     marginBottom: 8,
   },
@@ -905,7 +905,7 @@ const styles = StyleSheet.create({
   },
   addRowButtonText: {
     color: TERRACE_COLORS.green,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 14,
   },
 });

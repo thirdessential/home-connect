@@ -84,7 +84,12 @@ export interface User {
 export interface AuthState {
   token: string | null;
   roles: string[] | null;
-  expiresAt: string | null; // ISO string from backend
+  expiresAt: string | null; // access-token expiry, ISO string from backend
+  /** Long-lived (30d) refresh token; kept in SecureStore with the rest of this slice. */
+  refreshToken: string | null;
+  refreshExpiresAt: string | null;
+  /** Set when the session ended because it could not be recovered (not persisted). */
+  sessionExpired: boolean;
   _hasHydrated: boolean;
 
   // Loading states
@@ -104,8 +109,14 @@ export interface AuthActions {
 
   // Session helpers
   initSession: () => Promise<void>;
-  refreshToken: () => Promise<void>;
   refreshIfNeeded: () => Promise<void>;
+  /** Single-flight refresh. "invalid" => session ended (logged out); "network" => keep session. */
+  refreshSession: () => Promise<"ok" | "invalid" | "network">;
+  /** Refresh proactively when the access token is near expiry or the refresh token is in its final 5 days. */
+  ensureFreshToken: () => Promise<void>;
+  /** Unrecoverable session: clear everything and flag the "session expired" message. */
+  expireSession: () => void;
+  clearSessionExpired: () => void;
 
 
 }

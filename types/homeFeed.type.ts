@@ -18,6 +18,8 @@ export type HomeFeedAuthor = {
 export type HomeFeedComment = {
   id: string;
   author: string;
+  /** Commenter's user id — seeds the avatar gradient. */
+  authorId?: string;
   avatarUrl?: string;
   text: string;
   createdAt: string;
@@ -25,7 +27,7 @@ export type HomeFeedComment = {
 
 export type HomeFeedOption = { id: string; name: string; votes: number };
 
-export type HomeFeedAttendee = { id: string; name: string; avatarUrl?: string };
+export type HomeFeedAttendee = { id: string; name: string; avatarUrl?: string; userId?: string };
 
 export type HomeFeedItem = {
   id: string;

@@ -30,12 +30,19 @@ function syncSelectedSociety(user?: User | null) {
   }
 }
 
+// Shared across the module so concurrent 401s trigger exactly one refresh call.
+let refreshInFlight: Promise<"ok" | "invalid" | "network"> | null = null;
+let lastProactiveAttempt = 0;
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       token: null,
       roles: ["guest"],
       expiresAt: null,
+      refreshToken: null,
+      refreshExpiresAt: null,
+      sessionExpired: false,
       _hasHydrated: false,
       isSendingOtp: false,
       isVerifyingOtp: false,
@@ -44,7 +51,17 @@ export const useAuthStore = create<AuthStore>()(
       setExpiresAt: (expiresAt: string | null) => set({ expiresAt }),
       setRoles: (roles) => set({ roles: Array.isArray(roles) && roles.length > 0 ? roles : ["guest"] }),
       signOut: () => {
-        set({ token: null, roles: ["guest"], expiresAt: null });
+        // Revoke this session's refresh-token family server-side (best effort,
+        // never blocks or throws — local sign-out must always succeed).
+        const rt = get().refreshToken;
+        if (rt) {
+          void fetch(`${API_BASE}/api/auth/logout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken: rt }),
+          }).catch(() => {});
+        }
+        set({ token: null, roles: ["guest"], expiresAt: null, refreshToken: null, refreshExpiresAt: null });
         useUserStore.getState().clear();
         useSocietyStore.getState().clear();
         useFeedsStore.getState().clear();
@@ -70,6 +87,81 @@ export const useAuthStore = create<AuthStore>()(
       },
       _setHasHydrated: (v) => set({ _hasHydrated: v }),
 
+      expireSession: () => {
+        if (!get().token && !get().refreshToken) return; // already logged out
+        set({ sessionExpired: true });
+        get().signOut();
+      },
+      clearSessionExpired: () => set({ sessionExpired: false }),
+
+      refreshSession: () => {
+        if (refreshInFlight) return refreshInFlight;
+        refreshInFlight = (async (): Promise<"ok" | "invalid" | "network"> => {
+          const { token, refreshToken } = get();
+          // Nothing to refresh with: only the legacy bearer-migration path remains.
+          if (!refreshToken && !token) return "invalid";
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          try {
+            const r = await fetch(`${API_BASE}/api/auth/refresh-token`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(!refreshToken && token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+              signal: controller.signal,
+            });
+            let json: any = {};
+            try { json = await r.json(); } catch { /* non-JSON */ }
+            if (r.ok && json?.token) {
+              set({
+                token: json.token,
+                expiresAt: json.expiresAt ?? null,
+                // Present only when the server rotated it (final 5 days / legacy migration).
+                ...(json.refreshToken ? { refreshToken: json.refreshToken } : {}),
+                refreshExpiresAt: json.refreshExpiresAt ?? get().refreshExpiresAt,
+              });
+              if (json.user) {
+                useUserStore.getState().setUser(json.user);
+                if (json.user.roles?.length) set({ roles: json.user.roles });
+              }
+              return "ok";
+            }
+            // Definitive rejection of the refresh credential => end the session.
+            if (r.status === 401 || r.status === 403) {
+              get().expireSession();
+              return "invalid";
+            }
+            return "network"; // 5xx etc.: temporary, keep the session
+          } catch {
+            return "network"; // offline / timeout: never log out for this
+          } finally {
+            clearTimeout(timeoutId);
+            refreshInFlight = null;
+          }
+        })();
+        return refreshInFlight;
+      },
+
+      ensureFreshToken: async () => {
+        const { token, refreshToken, expiresAt, refreshExpiresAt } = get();
+        if (!token) return;
+        const now = Date.now();
+        const accessLeft = expiresAt ? new Date(expiresAt).getTime() - now : Infinity;
+        const refreshLeftDays = refreshExpiresAt
+          ? (new Date(refreshExpiresAt).getTime() - now) / 86400000
+          : Infinity;
+        const accessDue = accessLeft < 2 * 60 * 1000;
+        const windowDue = !!refreshToken && refreshLeftDays <= 5;
+        const legacy = !refreshToken; // pre-refresh-token session: migrate once
+        if (!accessDue && !windowDue && !legacy) return;
+        // Failed proactive attempts back off (offline resume shouldn't spam).
+        if (!accessDue && now - lastProactiveAttempt < 10 * 60 * 1000) return;
+        lastProactiveAttempt = now;
+        await get().refreshSession();
+      },
+
       sendOtp: async (phone: string) => {
         set({ isSendingOtp: true });
         try {
@@ -85,12 +177,15 @@ export const useAuthStore = create<AuthStore>()(
       verifyOtp: async (phone: string, code: string) => {
         set({ isVerifyingOtp: true });
         try {
-          const res = await PostPublic<{ user: User; token: string; expiresAt?: string }>("/api/auth/verify-otp", { phone, code });
+          const res = await PostPublic<{ user: User; token: string; expiresAt?: string; refreshToken?: string; refreshExpiresAt?: string }>("/api/auth/verify-otp", { phone, code });
           const userRoles = res?.user?.roles?.length ? res.user.roles : ["guest"];
           set({
             token: res.token,
             roles: userRoles,
             expiresAt: res?.expiresAt || null,
+            refreshToken: res?.refreshToken ?? null,
+            refreshExpiresAt: res?.refreshExpiresAt ?? null,
+            sessionExpired: false,
           });
           useUserStore.getState().setUser(res.user); // set user in user store
           syncSelectedSociety(res.user);
@@ -102,82 +197,34 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      // Verify token + proactive refresh (call after hydration)
+      // Validate + sync the stored session (call after hydration). Recovers an
+      // expired access token via the refresh token instead of signing out.
       initSession: async () => {
-        const { expiresAt } = get();
-
-        // Check if token is obviously expired before making network call
-        if (expiresAt) {
-          const expiry = new Date(expiresAt).getTime();
-          const now = Date.now();
-          if (now > expiry) {
-            console.log("Token is expired based on local time, signing out");
-            get().signOut();
-            return;
-          }
-        }
+        if (!get().token) return;
+        await get().ensureFreshToken();
+        if (!get().token) return; // refresh said the session is gone
 
         try {
           const verification = await verifyCurrentToken();
           if (verification?.user) {
             useUserStore.getState().setUser(verification.user);
             syncSelectedSociety(verification.user);
-            // Keep the role-gate (usePermissions/root redirect) in sync with
-            // the backend on every restart — otherwise an approval that
-            // changed roles since the last session stays stale until Home
-            // happens to refetch it.
             if (verification.user.roles?.length) {
               set({ roles: verification.user.roles });
             }
           }
-          if (verification?.tokenExpiry) {
-            set({ expiresAt: verification.tokenExpiry });
-          }
-
-          // Check if refresh needed
-          if (shouldRefresh(get().expiresAt, 5)) {
-            await get().refreshToken();
-          } else {
-          }
         } catch (err) {
-          console.warn("Token verify failed during initSession", err);
-
-          // Check if this is a network error (common on Android with local dev server)
-          const errorMessage = err instanceof Error ? err.message : String(err);
-          // Only attempt sign-out if the error indicates token is truly invalid/expired from server
-          if (errorMessage.includes("Invalid") || errorMessage.includes("expired") || errorMessage.includes("401")) {
-            // Try to silently refresh first — the access token may have expired but
-            // the refresh cookie could still be valid (common on Android after background kill)
-            try {
-              await get().refreshToken();
-              // If refresh gave us a new token, we're good — stay logged in
-              if (!get().token) {
-                console.log("Refresh returned no token, signing out");
-                get().signOut();
-              }
-            } catch {
-              console.log("Refresh also failed, signing out");
-              get().signOut();
-            }
+          const msg = err instanceof Error ? err.message : String(err);
+          if (/expired|invalid|401/i.test(msg) && !/network/i.test(msg)) {
+            // Access token rejected: one refresh attempt; "invalid" logs out inside.
+            await get().refreshSession();
           }
-          // Network / timeout errors: silently ignore, keep the user logged in
-        }
-      }, refreshToken: async () => {
-        const { token } = get();
-        if (!token) return;
-        try {
-          const res = await Post<{ token: string; expiresAt: string; user?: User }>("/api/auth/refresh-token", {});
-          set({ token: res.token, expiresAt: res.expiresAt });
-          if (res?.user) useUserStore.getState().setUser(res.user);
-        } catch (err) {
-          console.warn("Refresh token failed", err);
+          // Network / timeout errors: keep the user logged in.
         }
       },
 
       refreshIfNeeded: async () => {
-        if (shouldRefresh(get().expiresAt, 1)) {
-          await get().refreshToken();
-        }
+        await get().ensureFreshToken();
       },
     }),
     {
@@ -189,6 +236,8 @@ export const useAuthStore = create<AuthStore>()(
         token: state.token,
         roles: state.roles,
         expiresAt: state.expiresAt,
+        refreshToken: state.refreshToken,
+        refreshExpiresAt: state.refreshExpiresAt,
       }),
       onRehydrateStorage: () => async (state, err) => {
         if (err) {

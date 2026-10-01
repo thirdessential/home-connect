@@ -10,11 +10,12 @@ import { useToast } from "@/components/common/Toast";
 import ActionButton from "@/components/inputs/ActionButton";
 import { useAuthStore } from "@/store/useAuthStore";
 import { manropeFamily } from "@/theme/fonts";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   Pressable,
@@ -51,6 +52,15 @@ function FeatureColumn({ item }: { item: (typeof TERRACE_FEATURES)[number] }) {
 export default function LoginScreen() {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
+  const scrollRef = useRef<any>(null);
+  // Window isn't resized on Android edge-to-edge, so bring the phone field
+  // (near the bottom of the page) above the keyboard once it's open.
+  useEffect(() => {
+    if (keyboardHeight > 0 && inputRef.current?.isFocused()) {
+      scrollRef.current?.scrollToEnd?.(true);
+    }
+  }, [keyboardHeight]);
   const sendOtp = useAuthStore((s) => s.sendOtp);
   const isSendingOtp = useAuthStore((s) => s.isSendingOtp);
 
@@ -109,7 +119,8 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <KeyboardAwareScrollView
-        contentContainerStyle={styles.scroll}
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingBottom: keyboardHeight }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         enableOnAndroid
@@ -174,6 +185,7 @@ export default function LoginScreen() {
               value={mobile}
               onChangeText={handleMobileChange}
               maxLength={10}
+              multiline={false}
               numberOfLines={1}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
@@ -359,7 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: "100%",
-    paddingHorizontal: getWidth(12),
+    paddingHorizontal: getWidth(10),
     borderRightWidth: 1.5,
     borderRightColor: TERRACE_COLORS.inputBorder,
   },
@@ -378,7 +390,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: getWidth(16),
     color: TERRACE_COLORS.textDark,
-    paddingHorizontal: getWidth(14),
+    // Tight horizontal padding + minWidth:0 so the text area keeps enough
+    // width for the one-line placeholder; vertical padding 0 + centered
+    // text keeps it aligned in the fixed-height row.
+    minWidth: 0,
+    paddingHorizontal: getWidth(8),
+    paddingVertical: 0,
+    textAlignVertical: "center",
     height: "100%",
   },
   errorText: {

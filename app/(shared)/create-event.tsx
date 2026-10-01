@@ -11,6 +11,7 @@ import ActionButton from "@/components/inputs/ActionButton";
 import GlobalInput from "@/components/UI/GlobalInput";
 import { useEventStore } from "@/store/useEventStore";
 import { useTheme } from "@/theme/theme";
+import { formatTime12h } from "@/lib/dateTime";
 import { CreateEventPayload, ParticipationType } from "@/types/event.type";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -30,8 +31,57 @@ const EVENT_TYPES = [
   { id: "Other", name: "Other", icon: "ellipsis-horizontal" as const },
 ];
 
+
+const DAY_OPTIONS = [1, 2, 3, 7, 14].map((n) => ({ id: String(n), name: n === 1 ? "1 day" : `${n} days` }));
+const HOUR_OPTIONS = [1, 2, 3, 6, 12].map((n) => ({ id: String(n), name: n === 1 ? "1 hour" : `${n} hours` }));
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+// End = start (device-local, same as the other date maths on this screen) + duration.
+function computeEnd(startDate: string, startTime: string, unit: "days" | "hours", value: number) {
+  if (!startDate) return null;
+  const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
+  const [h, mi] = (startTime || "00:00").split(":").map(Number);
+  const end = new Date(y, mo - 1, d, h, mi);
+  if (unit === "days") end.setDate(end.getDate() + value);
+  else end.setTime(end.getTime() + value * 3600 * 1000);
+  return {
+    date: `${end.getFullYear()}-${pad2(end.getMonth() + 1)}-${pad2(end.getDate())}`,
+    time: `${pad2(end.getHours())}:${pad2(end.getMinutes())}`,
+  };
+}
+
+const fmtDateTime = (date: string, time: string) => {
+  if (!date) return "";
+  const [y, mo, d] = date.slice(0, 10).split("-").map(Number);
+  const day = new Date(y, mo - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return time ? `${day} · ${formatTime12h(time)}` : day;
+};
+
+function ReviewSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const t = useTheme();
+  return (
+    <View style={[styles.reviewSection, { borderColor: t.colors.border, backgroundColor: t.colors.cardBackground }]}>
+      <Text style={[t.typography.small, { color: t.colors.brandDark, fontFamily: "Manrope_700Bold", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }]}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+// Skips rows with no value so optional/empty fields never render as blank/undefined.
+function ReviewRow({ label, value }: { label?: string; value?: string | null }) {
+  const t = useTheme();
+  if (!value) return null;
+  return (
+    <View style={{ marginBottom: 8 }}>
+      {label ? <Text style={[t.typography.small, { color: t.colors.secondaryText }]}>{label}</Text> : null}
+      <Text style={[t.typography.body, { color: t.colors.text }]}>{value}</Text>
+    </View>
+  );
+}
+
 const CLOSES_OPTIONS = [
-  { id: "1", name: "1 hour before event" },
+  { id: "0", name: "Registration closes at event start" },
   { id: "3", name: "3 hours before event" },
   { id: "6", name: "6 hours before event" },
   { id: "12", name: "12 hours before event" },
@@ -55,8 +105,9 @@ export default function CreateEventScreen() {
   // Step 2
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [durationType, setDurationType] = useState<"days" | "hours">("days");
+  const [daysDuration, setDaysDuration] = useState(1);
+  const [hoursDuration, setHoursDuration] = useState(1);
   const [venue, setVenue] = useState("");
   const [openPicker, setOpenPicker] = useState<string | null>(null);
 
@@ -77,6 +128,9 @@ export default function CreateEventScreen() {
   const handleClose = () => router.back();
 
   const next1 = () => {
+    if (title.trim().length > 70) return showToast("Title must be 70 characters or fewer", "error");
+    if (description.trim().length > 300) return showToast("Description must be 300 characters or fewer", "error");
+    if (image.length > 5) return showToast("You can add at most 5 images", "error");
     if (title.trim().length < 3) return showToast("Enter an event title", "error");
     if (!eventType) return showToast("Select an event type", "error");
     if (description.trim().length < 5) return showToast("Add a short description", "error");
@@ -85,6 +139,11 @@ export default function CreateEventScreen() {
 
   const next2 = () => {
     if (!startDate) return showToast("Start date is required", "error");
+    const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
+    const [hh, mi] = (startTime || "00:00").split(":").map(Number);
+    if (new Date(y, mo - 1, d, hh, mi).getTime() < Date.now() + 2 * 3600 * 1000) {
+      return showToast("Event must start at least 2 hours from now", "error");
+    }
     if (!venue.trim()) return showToast("Venue is required", "error");
     setStep(3);
   };
@@ -92,6 +151,12 @@ export default function CreateEventScreen() {
   const next3 = () => {
     if (participationType === "paid" && (!feeAmount || Number(feeAmount) <= 0)) {
       return showToast("Enter a valid participation fee", "error");
+    }
+    {
+      const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
+      const [h, mi] = (startTime || "00:00").split(":").map(Number);
+      if (new Date(y, mo - 1, d, h, mi).getTime() - Number(closesHours) * 3600 * 1000 <= Date.now())
+        return showToast("Registration would already be closed — pick a shorter option or a later start", "error");
     }
     if (minParticipants < 1) {
       return showToast("Minimum participants must be at least 1", "error");
@@ -101,6 +166,24 @@ export default function CreateEventScreen() {
     }
     setStep(4);
   };
+
+  // Calculated cutoff for the Review screen (device-local, display only).
+  const closesAtLabel = (() => {
+    if (!startDate) return "";
+    const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
+    const [h, mi] = (startTime || "00:00").split(":").map(Number);
+    const c = new Date(new Date(y, mo - 1, d, h, mi).getTime() - Number(closesHours) * 3600 * 1000);
+    return `${c.toLocaleDateString("en-US", { day: "numeric", month: "short" })}, ${c.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  })();
+
+  const durationLabel =
+    durationType === "days"
+      ? DAY_OPTIONS.find((o) => o.id === String(daysDuration))?.name ?? `${daysDuration} days`
+      : HOUR_OPTIONS.find((o) => o.id === String(hoursDuration))?.name ?? `${hoursDuration} hours`;
+
+  const calculatedEnd = computeEnd(startDate, startTime, durationType, durationType === "days" ? daysDuration : hoursDuration);
+  const endDate = calculatedEnd?.date ?? "";
+  const endTime = calculatedEnd?.time ?? "";
 
   const handlePublish = async () => {
     if (!agree) return showToast("Please confirm the details are correct", "error");
@@ -121,10 +204,10 @@ export default function CreateEventScreen() {
       ...(rules.trim() ? { rulesthingstobring: rules.trim() } : {}),
     };
     try {
-      const img = image[0] && !image[0].startsWith("http")
-        ? { uri: image[0], name: "event.jpg", type: "image/jpeg" }
-        : null;
-      const created = await createEvent(payload, img);
+      const imgs = image
+        .filter((u) => !u.startsWith("http"))
+        .map((uri, i) => ({ uri, name: `event-${i}.jpg`, type: "image/jpeg" }));
+      const created = await createEvent(payload, imgs);
       setPublished({ id: created.id });
     } catch (e: any) {
       showToast(e?.message ?? "Failed to publish event", "error");
@@ -143,22 +226,24 @@ export default function CreateEventScreen() {
 
       {/* Stepper */}
       
-      <Text style={[t.typography.h4, { color: t.colors.brandDark, textAlign: "center", fontWeight: "700", fontFamily: "Manrope_700Bold", marginBottom: 8, marginTop: 15 }]}>
+      <Text style={[t.typography.h4, { color: t.colors.brandDark, textAlign: "center", fontFamily: "Manrope_700Bold", marginBottom: 8, marginTop: 15 }]}>
         {STEP_LABELS[step - 1]}
       </Text>
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {step === 1 && (
           <View>
-            <GlobalInput label="Event Title *" placeholder="e.g. Weekend Cricket Match" value={title} onChangeText={setTitle} maxLength={80} />
+            <GlobalInput label="Event Title *" placeholder="e.g. Weekend Cricket Match" value={title} onChangeText={setTitle} maxLength={70} />
+            <Text style={{ alignSelf: "flex-end", fontSize: 12, color: t.colors.secondaryText, marginTop: -8, marginBottom: 8 }}>{title.length}/70</Text>
             <Select label="Event Type *" options={EVENT_TYPES} selectedId={eventType} onChange={setEventType} placeholder="Select event type" leftIcon="pricetag-outline" />
             <GlobalInput label="Description *" placeholder="Tell your neighbours what this event is about…" value={description} onChangeText={setDescription} maxLength={300} multiline numberOfLines={4} />
+            <Text style={{ alignSelf: "flex-end", fontSize: 12, color: t.colors.secondaryText, marginTop: -8, marginBottom: 8 }}>{description.length}/300</Text>
             <ImagePickerField
-              label="Event Image (Optional)"
-              mode="single"
+              label="Event Images (Optional, max 5)"
+              mode="multiple"
               value={image}
               onChange={setImage}
-              max={1}
+              max={5}
               aspectRatios={["16:9", "4:5", "1:1", "9:16"]}
               defaultAspectRatio="16:9"
             />
@@ -178,14 +263,23 @@ export default function CreateEventScreen() {
             </View>
 
             <Heading level={5} style={{ marginTop: 8, marginBottom: 4 }}>End Date & Time (Optional)</Heading>
-            <View style={styles.row2}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <DatePickerField label="End Date" value={endDate} onChange={(d) => { setEndDate(d); setOpenPicker(null); }} minimumDate={startDate ? new Date(startDate) : new Date()} show={openPicker === "end"} setShow={(v) => setOpenPicker(v ? "end" : null)} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TimePickerField label="End Time" value={endTime} onChange={(v) => { setEndTime(v); setOpenPicker(null); }} show={openPicker === "endTime"} setShow={(v) => setOpenPicker(v ? "endTime" : null)} />
-              </View>
+            <View style={[styles.durationTabs, { backgroundColor: t.colors.surfaceAlt }]}>
+              {(["days", "hours"] as const).map((k) => {
+                const active = durationType === k;
+                return (
+                  <Pressable key={k} onPress={() => setDurationType(k)} style={[styles.durationTab, active && { backgroundColor: t.colors.brand }]}>
+                    <Text style={[t.typography.body, { color: active ? "#FFFFFF" : t.colors.text, fontFamily: active ? "Manrope_700Bold" : "Manrope_400Regular" }]}>
+                      {k === "days" ? "Days" : "Time"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
+            {durationType === "days" ? (
+              <Select label="End after (days)" options={DAY_OPTIONS} selectedId={String(daysDuration)} onChange={(id) => setDaysDuration(Number(id))} />
+            ) : (
+              <Select label="End after (hours)" options={HOUR_OPTIONS} selectedId={String(hoursDuration)} onChange={(id) => setHoursDuration(Number(id))} />
+            )}
 
             <GlobalInput label="Venue *" placeholder="e.g. Central Ground, Life Republic" value={venue} onChangeText={setVenue} leftIcon="location-outline" />
           </View>
@@ -238,52 +332,61 @@ export default function CreateEventScreen() {
               </View>
             )}
 
-            <Select label="Registration Closes *" options={CLOSES_OPTIONS} selectedId={closesHours} onChange={setClosesHours} leftIcon="time-outline" />
+            <Select label="Registration closes*" options={CLOSES_OPTIONS} selectedId={closesHours} onChange={setClosesHours} leftIcon="time-outline" />
             <GlobalInput label="Rules / Things to Bring (Optional)" placeholder="Add any rules, guidelines or things participants should bring…" value={rules} onChangeText={setRules} maxLength={250} multiline numberOfLines={3} />
           </View>
         )}
 
         {step === 4 && (
           <View>
-            <View style={[styles.previewCard, { borderColor: t.colors.border, backgroundColor: t.colors.cardBackground }]}>
-              {image[0] ? (
-                <Image source={{ uri: image[0] }} style={styles.previewImage} contentFit="cover" />
-              ) : null}
-              <View style={{ padding: 12 }}>
-                {eventType ? <Chip label={eventType} variant="selected" style={{ marginBottom: 6 }} /> : null}
-                <Heading level={4}>{title}</Heading>
-                <Text style={[t.typography.body, { color: t.colors.secondaryText, marginTop: 4 }]}>{description}</Text>
-                <View style={styles.metaRow}>
-                  <Ionicons name="calendar-outline" size={14} color={t.colors.secondaryText} />
-                  <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>Starts {startDate}</Text>
-                  {startTime ? <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 10 }]}>{startTime}</Text> : null}
-                </View>
-                {endDate ? (
-                  <View style={styles.metaRow}>
-                    <Ionicons name="calendar-outline" size={14} color={t.colors.secondaryText} />
-                    <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>Ends {endDate}</Text>
-                    {endTime ? <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 10 }]}>{endTime}</Text> : null}
-                  </View>
-                ) : null}
-                <View style={styles.metaRow}>
-                  <Ionicons name="location-outline" size={14} color={t.colors.secondaryText} />
-                  <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>{venue}</Text>
-                </View>
-                <View style={styles.metaRow}>
-                  <Ionicons name="people-outline" size={14} color={t.colors.secondaryText} />
-                  <Text style={[t.typography.small, { color: t.colors.secondaryText, marginLeft: 4 }]}>
-                    {minParticipants} Min{maxParticipants !== null ? ` · ${maxParticipants} Max` : " · No max limit"}
-                  </Text>
-                  <Chip label={participationType === "free" ? "Free" : `₹${feeAmount}`} variant="success" style={{ marginLeft: "auto" }} />
-                </View>
-                {rules.trim() ? (
-                  <View style={{ marginTop: 8 }}>
-                    <Text style={[t.typography.small, { color: t.colors.text, fontWeight: "700", fontFamily: "Manrope_700Bold" }]}>Rules / Things to Bring</Text>
-                    <Text style={[t.typography.small, { color: t.colors.secondaryText, marginTop: 2 }]}>{rules}</Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
+            {image[0] ? (
+              <Image source={{ uri: image[0] }} style={[styles.previewImage, { borderRadius: 12, marginBottom: 12 }]} contentFit="cover" />
+            ) : null}
+
+            <ReviewSection title="Event Details">
+              <ReviewRow label="Category" value={eventType} />
+              <ReviewRow label="Title" value={title.trim()} />
+              <ReviewRow label="Description" value={description.trim()} />
+            </ReviewSection>
+
+            <ReviewSection title="Schedule">
+              <ReviewRow label="Start" value={fmtDateTime(startDate, startTime)} />
+              <ReviewRow label="Duration" value={durationLabel} />
+              <ReviewRow label="Ends" value={fmtDateTime(endDate, endTime)} />
+              <ReviewRow
+                label="Registration closes"
+                value={`${CLOSES_OPTIONS.find((o) => o.id === closesHours)?.name ?? ""}${closesAtLabel ? `\n${closesAtLabel}` : ""}`}
+              />
+            </ReviewSection>
+
+            <ReviewSection title="Location">
+              <ReviewRow label="Venue" value={venue.trim()} />
+            </ReviewSection>
+
+            <ReviewSection title="Participants">
+              <ReviewRow label="Minimum" value={String(minParticipants)} />
+              <ReviewRow label="Maximum" value={maxParticipants !== null ? String(maxParticipants) : "No limit"} />
+            </ReviewSection>
+
+            <ReviewSection title="Pricing">
+              <ReviewRow label="Participation fee" value={participationType === "free" ? "Free" : `₹${feeAmount}`} />
+            </ReviewSection>
+
+            {rules.trim() ? (
+              <ReviewSection title="Rules / Things to Bring">
+                <ReviewRow value={rules.trim()} />
+              </ReviewSection>
+            ) : null}
+
+            {image.length > 0 ? (
+              <ReviewSection title={`Images (${image.length})`}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {image.map((uri, idx) => (
+                    <Image key={`${uri}-${idx}`} source={{ uri }} style={styles.reviewThumb} contentFit="cover" />
+                  ))}
+                </ScrollView>
+              </ReviewSection>
+            ) : null}
 
             <Pressable style={styles.agreeRow} onPress={() => setAgree((a) => !a)}>
               <Ionicons name={agree ? "checkbox" : "square-outline"} size={20} color={t.colors.brandDark} />
@@ -318,6 +421,7 @@ export default function CreateEventScreen() {
           if (published) router.replace({ pathname: "/(shared)/event-dashboard", params: { eventId: String(published.id) } });
         }}
         secondaryActionLabel="Back to Home"
+        secondaryCountdownMs={3000}
         onSecondaryAction={() => router.dismissTo("/(tabs)/home")}
       />
     </SafeAreaView>
@@ -332,12 +436,16 @@ const styles = StyleSheet.create({
   stepCircle: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   stepLine: { flex: 1, height: 2, marginHorizontal: 4 },
   scroll: { paddingHorizontal: 20, paddingBottom: 24 },
+  durationTabs: { flexDirection: "row", borderRadius: 10, padding: 3, marginBottom: 12 },
+  durationTab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 8 },
+  reviewSection: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 },
+  reviewThumb: { width: 96, height: 96, borderRadius: 10, marginRight: 8 },
   row2: { flexDirection: "row" },
   feeRow: { flexDirection: "row", gap: 24, marginBottom: 16 },
   feeOption: { flexDirection: "row", alignItems: "center" },
   stepperControlRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   stepperBtn: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB", alignItems: "center", justifyContent: "center" },
-  stepperBtnText: { fontSize: 20, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+  stepperBtnText: { fontSize: 20, fontFamily: "Manrope_700Bold" },
   previewCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden", marginBottom: 16 },
   previewImage: { width: "100%", height: 160 },
   metaRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },

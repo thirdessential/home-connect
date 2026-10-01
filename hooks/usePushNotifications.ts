@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 // after confirming we're not in Expo Go, so Expo Go never evaluates it.
 import type * as NotificationsType from "expo-notifications";
 import { router } from "expo-router";
+import { notificationRoute } from "@/lib/notificationRoute";
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
@@ -266,6 +267,8 @@ export function usePushNotifications() {
         data: n.request.content.data as Record<string, any>,
         receivedAt: new Date().toISOString(),
       });
+      // Reconcile with MySQL (source of truth) so the persisted row replaces the live one.
+      void useNotificationStore.getState().fetchAll();
     });
 
     // Tap (foreground, background, or cold start): record + deep-link.
@@ -281,9 +284,8 @@ export function usePushNotifications() {
         data: content.data as Record<string, any>,
         receivedAt: new Date().toISOString(),
       });
-      const path = (content.data as any)?.path;
-      if (typeof path === "string") router.push(path as any);
-      else router.push("/(shared)/notifications" as any);
+      void useNotificationStore.getState().fetchAll();
+      router.push(notificationRoute(content.data as any));
     });
     if (__DEV__) {
       console.log("[Push] listener registered");

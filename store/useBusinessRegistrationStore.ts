@@ -9,6 +9,7 @@ import {
   BusinessRegistration,
   BusinessTypeOption,
   BusinessTypeValue,
+  OperatingLocation,
   Step2Payload,
   Step3Payload,
   Step4Payload,
@@ -81,8 +82,8 @@ type Actions = {
   getBusinessTypes: () => Promise<BusinessTypeOption[]>;
   getCategories: (businessType: BusinessTypeValue) => Promise<BusinessCategory[]>;
   loadCurrent: () => Promise<BusinessRegistration | null>;
-  startRegistration: (businessType?: BusinessTypeValue) => Promise<BusinessRegistration>;
-  saveStep1: (businessType: BusinessTypeValue) => Promise<BusinessRegistration>;
+  startRegistration: (businessType?: BusinessTypeValue, operatingLocation?: OperatingLocation) => Promise<BusinessRegistration>;
+  saveStep1: (businessType: BusinessTypeValue, operatingLocation?: OperatingLocation) => Promise<BusinessRegistration>;
   saveStep2: (payload: Step2Payload) => Promise<BusinessRegistration>;
   saveStep3: (payload: Step3Payload) => Promise<BusinessRegistration>;
   saveStep4: (payload: Step4Payload) => Promise<BusinessRegistration>;
@@ -166,12 +167,14 @@ export const useBusinessRegistrationStore = create<State & Actions>((set, get) =
       }
     },
 
-    startRegistration: async (businessType) => {
+    startRegistration: async (businessType, operatingLocation) => {
       set({ saving: true, error: null });
       try {
         const res = await Post<BusinessResponse>(
           REG,
-          businessType ? { business_type: businessType } : {},
+          operatingLocation
+            ? { operating_location: operatingLocation }
+            : businessType ? { business_type: businessType } : {},
         );
         return applyBusiness(res.business);
       } catch (e: any) {
@@ -182,11 +185,13 @@ export const useBusinessRegistrationStore = create<State & Actions>((set, get) =
       }
     },
 
-    saveStep1: async (businessType) => {
+    saveStep1: async (businessType, operatingLocation) => {
       set({ saving: true, error: null });
       try {
         const res = await Put<BusinessResponse>(`${REG}/${requireId()}/step-1`, {
-          business_type: businessType,
+          ...(operatingLocation
+            ? { operating_location: operatingLocation }
+            : { business_type: businessType }),
         });
         return applyBusiness(res.business);
       } finally {

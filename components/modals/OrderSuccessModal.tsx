@@ -165,7 +165,7 @@ export default function OrderSuccessModal({
               borderRadius: 6,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>{subtitle}</Text>
+            <Text style={{ color: "#fff", fontFamily: "Manrope_600SemiBold" }}>{subtitle}</Text>
           </View>
         </Animated.View>
       </Animated.View>

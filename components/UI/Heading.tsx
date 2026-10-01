@@ -1,7 +1,7 @@
 import { manropeFamily } from "@/theme/fonts";
 import { useTheme } from "@/theme/theme";
 import { memo } from "react";
-import { Text, type StyleProp, type TextStyle } from "react-native";
+import { StyleSheet, Text, type StyleProp, type TextStyle } from "react-native";
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -32,15 +32,20 @@ const Heading = memo(function Heading({
     | "heading4"
     | "heading5"
     | "heading6";
+  // Family comes from the typography token (weight-specific Manrope file); a
+  // per-usage fontWeight override is mapped to its file. fontWeight is dropped: with a custom family, Android/iOS look up
+  // a "bold" variant of that family and fall back to the system font when only
+  // the weight-specific file (Manrope_700Bold / _800ExtraBold) is registered.
+  const { fontWeight, fontFamily, ...flat } = StyleSheet.flatten([
+    t.typography[typographyKey],
+    { color: color ?? t.colors[colorKey] },
+    style,
+  ]) as TextStyle;
 
   return (
     <Text
       numberOfLines={numberOfLines}
-      style={[
-        t.typography[typographyKey],
-        { color: color ?? t.colors[colorKey], fontFamily: manropeFamily(t.typography[typographyKey].fontWeight) },
-        style,
-      ]}
+      style={[flat, { fontFamily: fontWeight ? manropeFamily(fontWeight) : (fontFamily ?? manropeFamily("400")) }]}
     >
       {children}
     </Text>

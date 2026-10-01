@@ -44,6 +44,7 @@ export interface UserStore {
     getPendingUsersBySocietyId: (societyId: string) => Promise<void>;
     getAllUserBySocietyId: (_id: string) => Promise<void>;
     updateUser: (user: Partial<User>, userId: string) => Promise<void>;
+    updateResidentProfile: (data: { full_name?: string; email?: string; document_url?: string; resident_proof_type?: string }) => Promise<void>;
     getUserOrders: (userId: string) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>;
     checkBusinessCreationAuthorization: (userId: string) => Promise<{
@@ -222,6 +223,18 @@ export const useUserStore = create<UserStore>()(
                         });
                     }
                 }
+            },
+            // Restricted self-edit: backend only touches name/email/document and
+            // never tower/flat/verification status (no new admin request).
+            updateResidentProfile: async (data) => {
+                const response = await Patch<{ success: boolean; user: User }>(
+                    "/api/user/resident-profile",
+                    data,
+                );
+                if (!response?.success || !response.user) {
+                    throw new Error("Failed to update resident profile");
+                }
+                set({ user: response.user, isAddressVerified: response.user?.isAddressVerified || null });
             },
             updateUser: async (userUpdate: Partial<User>, userId: string) => {
                 set({ loading: true, error: null });

@@ -78,8 +78,9 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
   }, [openImageUploader]);
 
   // Required: a real backend URL, not just a local file selection/in-flight upload.
-  const canContinue =
-    docStatus === "success" && !!documentUrl && selfieStatus !== "uploading" && !submitting;
+  const hasDoc = docStatus === "success" && !!documentUrl;
+  const [tried, setTried] = useState(false);
+  const busy = docStatus === "uploading" || selfieStatus === "uploading" || !!submitting;
 
   return (
     <View style={styles.container}>
@@ -140,7 +141,7 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
           disabled={docStatus === "uploading"}
           style={[
             styles.uploadBox,
-            { borderColor: docStatus === "failed" ? "#DC2626" : t.colors.border },
+            { borderColor: docStatus === "failed" || (tried && !hasDoc) ? "#DC2626" : t.colors.border },
           ]}
         >
           {docStatus === "uploading" ? (
@@ -229,14 +230,16 @@ function ResidentProofStep({ onContinue, submitting }: Props) {
 
       <ActionButton
         title="Continue"
-        onPress={() =>
-          onContinue({ resident_proof_type: proofType, document_url: documentUrl, selfie_url: selfieUrl })
-        }
+        onPress={() => {
+          // Required document: flag it (red border + message) instead of a dead button.
+          if (!hasDoc) { setTried(true); return; }
+          onContinue({ resident_proof_type: proofType, document_url: documentUrl, selfie_url: selfieUrl });
+        }}
         variant="primary"
         size="lg"
         fullWidth
         loading={submitting}
-        disabled={!canContinue}
+        disabled={busy}
         containerStyle={{ marginTop: 4 }}
       />
     </View>
@@ -271,7 +274,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -283,7 +286,7 @@ const styles = StyleSheet.create({
   },
   requiredBadgeText: {
     fontSize: 11,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#166534",
   },
   chipRow: {
@@ -317,7 +320,7 @@ const styles = StyleSheet.create({
   },
   uploadText: {
     fontSize: 14,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
   },
   removeRow: {
     flexDirection: "row",
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
   },
   removeText: {
     fontSize: 12,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     color: "#DC2626",
   },
   locationRow: {
@@ -341,6 +344,6 @@ const styles = StyleSheet.create({
   locationText: {
     flex: 1,
     fontSize: 13,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+    fontFamily: "Manrope_500Medium",
   },
 });

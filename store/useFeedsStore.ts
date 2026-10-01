@@ -67,13 +67,9 @@ export const useFeedsStore = create<FeedsState>()(
                     );
                     if (response?.code === 200) {
                         set({
-                            // Keep the recent local window and let the API win
-                            // for duplicate ids. This also makes a refresh
-                            // append new content without duplicating records.
-                            feeds: mergeFeeds(
-                                cachedFeeds,
-                                pruneExpiredFeeds(Array.isArray(response.feeds) ? response.feeds : []),
-                            ),
+                            // Cache = last successful API response (closed/past
+                            // events are filtered at Home render, not here).
+                            feeds: pruneExpiredFeeds(Array.isArray(response.feeds) ? response.feeds : []),
                             loading: false,
                             lastFetchedAt: Date.now(),   // ← stamp the cache
                             cachedSocietyId: societyId,

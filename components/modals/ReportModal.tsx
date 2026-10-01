@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
   },
   content: {
     flex: 1,
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     marginBottom: 12,
   },
   itemInfo: {
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   },
   reasonLabel: {
     fontSize: 14,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+    fontFamily: "Manrope_500Medium",
     flex: 1,
   },
   infoBanner: {
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     marginBottom: 8,
     textAlign: "center",
   },

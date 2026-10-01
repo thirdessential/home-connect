@@ -26,12 +26,12 @@ export default function DealsScreen() {
   }, [productList, selectedCat]);
 
   // Calculate top padding based on safe area insets and platform
-  const topPadding = Math.max(insets.top, Platform.OS === "ios" ? 40 : 40);
+  // const topPadding = Math.max(insets.top, Platform.OS === "ios" ? 40 : 40);
 
   return (
     <View
       style={{
-        paddingTop: topPadding,
+        // paddingTop: topPadding,
         flex: 1,
         backgroundColor: t.colors.white,
       }}
@@ -47,7 +47,7 @@ export default function DealsScreen() {
           Coming Soon
         </Text>
         <Text style={{ fontSize: 14, color: t.colors.textSecondary, textAlign: "center", fontFamily: "Manrope_500Medium", }}>
-          Deals are coming soon to Home Connect.
+          Deals are coming soon to My Terrace.
         </Text>
       </View>
     </View>

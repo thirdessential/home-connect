@@ -4,6 +4,8 @@
     "slug": "home-connect",
     "version": "1.0.1",
     "scheme": "homeconnect",
+    "backgroundColor": "#FFFFFF",
+    "userInterfaceStyle": "light",
     "icon": "./assets/images/icon.png",
     "web": {
       "bundler": "metro",

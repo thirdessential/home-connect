@@ -27,7 +27,7 @@ const MIN_OPTIONS = 2;
 // Match the actual MySQL column sizes (feed_items.title, feed_options.name)
 // so the UI stops the user before a too-long value is silently rejected by
 // the DB (strict SQL mode) — that's what was making polls disappear.
-const MAX_QUESTION_LEN = 500;
+const MAX_QUESTION_LEN = 300;
 const MAX_OPTION_LEN = 160;
 
 /** Create Poll form — same visual language (cards, spacing, brand green) as Create Event. */

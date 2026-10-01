@@ -17,8 +17,9 @@ export const buildImageUrl = (path?: string | null): string | undefined => {
     const trimmed = path.trim();
     if (!trimmed) return undefined;
 
-    // Already absolute — don't touch it.
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    // Already absolute, or a local/on-device URI (image picker result, data
+    // URI, bundled asset) — never prepend the API base to these.
+    if (/^(https?:\/\/|file:\/\/|content:\/\/|data:|blob:|asset:|ph:\/\/|assets-library:\/\/)/i.test(trimmed)) return trimmed;
 
     const base = API_BASE.replace(/\/+$/, "");
     const relative = trimmed.replace(/^\/+/, "");

@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 22,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: GALLERY_THEME.text,
     opacity: 0.9,
   },
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   specLabel: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: GALLERY_THEME.text,
     opacity: 0.6,
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 14,
     color: GALLERY_THEME.accent,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
   },
   footer: {
     position: "absolute",
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   ctaButtonText: {
     color: GALLERY_THEME.bg,
     fontSize: 18,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   emptyContainer: {
     flex: 1,

@@ -6,6 +6,9 @@ export type BusinessTypeValue =
   | "services"
   | "home_services";
 
+// Step 1 answer: where the business is run (NOT a category).
+export type OperatingLocation = "SHOP_OR_OFFICE" | "HOME";
+
 export type LocationType = "within_society" | "outside_society";
 
 export type RegistrationType =
@@ -43,6 +46,7 @@ export type BusinessRegistration = {
   id: number;
   user_id?: number;
   business_type: BusinessTypeValue | null;
+  operating_location?: OperatingLocation | null;
   business_type_label?: string | null;
 
   business_name: string | null;
@@ -105,7 +109,8 @@ export type Step3Payload =
 
 export type Step4WithinPayload = {
   location_type: "within_society";
-  society_id: number | string;
+  // Server uses the authenticated user's registered society; not sent by the app.
+  society_id?: number | string;
   unit_shop_no: string;
   building_block?: string;
   google_maps_location?: string;
@@ -139,8 +144,8 @@ export type Step5Payload = {
 
 export type Step6Payload = {
   business_description?: string;
-  delivery_availability: DeliveryAvailability;
-  delivery_category: string;
+  delivery_availability?: DeliveryAvailability;
+  delivery_category?: string;
   business_phone: string;
   alternative_mobile?: string;
   business_email?: string;

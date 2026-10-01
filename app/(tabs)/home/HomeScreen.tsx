@@ -22,7 +22,7 @@ import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, BackHandler, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "@/components/common/Toast";
 import { checkInternetConnection } from "@/lib/connectivity";
@@ -203,10 +203,32 @@ function HomeScreen() {
         setIsLoading(false);
         return;
       }
+      lastRefreshRef.current = Date.now();
       fetchAllData(selectedSocietyId, true).finally(() => setIsLoading(false));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSocietyId]);
+
+  // Background refresh when returning to Home or foregrounding the app while
+  // Home is focused. Cached feed stays on screen; throttled to avoid duplicate calls.
+  const lastRefreshRef = useRef(Date.now());
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedSocietyId) return;
+      const refresh = async () => {
+        if (Date.now() - lastRefreshRef.current < 30000) return;
+        lastRefreshRef.current = Date.now();
+        if (await checkInternetConnection()) {
+          useFeedsStore.getState().fetchFeedsBySociety(selectedSocietyId, true);
+        }
+      };
+      refresh();
+      const sub = AppState.addEventListener("change", (st) => {
+        if (st === "active") refresh();
+      });
+      return () => sub.remove();
+    }, [selectedSocietyId]),
+  );
 
   // Real API when it has data, isolated dummy layer when it doesn't.
   const { items: homeItems, actions: homeActions } = useHomeFeed();
@@ -254,10 +276,11 @@ function HomeScreen() {
           <InfoBanner
             title="Business Verification Pending"
             description={`You have ${pendingBusinessCount} businesses pending verification. Please wait for admin approval before adding more.`}
-            backgroundColor="#FEE2E2" // red-100
-            borderColor="#EF4444" // red-500
-            titleColor="#991B1B" // red-800
-            descriptionColor="#991B1B" // red-800
+            icon="time-outline"
+            backgroundColor="#FFF8E7" // soft amber (informational, not an error)
+            borderColor="#F5D98A"
+            titleColor="#7A4A00" // dark amber/brown
+            descriptionColor="#7A4A00"
           />
         )}
 
@@ -420,7 +443,7 @@ const styles = StyleSheet.create({
   },
   fabLabel: {
     fontSize: 13,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
   },
   lockStrip: {
     position: "absolute",
@@ -436,7 +459,7 @@ const styles = StyleSheet.create({
   },
   lockStripTitle: {
     fontSize: 12.5,
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
   },
   lockStripSubtitle: {
     fontSize: 11.5,

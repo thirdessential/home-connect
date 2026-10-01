@@ -118,6 +118,19 @@ export default function InfoBanner({
     );
   }
 
+  // Optional leading icon (default variant only when `icon` is passed, so
+  // existing call sites are unchanged).
+  const textBlock = (
+    <View style={icon ? { flex: 1 } : undefined}>
+      {title && (
+        <Text style={{ fontFamily: "Manrope_700Bold", color: tColor }}>{title}</Text>
+      )}
+      {description && (
+        <Text style={{ marginTop: 4, color: dColor }}>{description}</Text>
+      )}
+    </View>
+  );
+
   return (
     <View
       style={{
@@ -127,15 +140,12 @@ export default function InfoBanner({
         marginBottom: 12,
         backgroundColor: bg,
         borderColor: border,
+        ...(icon ? { flexDirection: "row", alignItems: "flex-start", gap: 10 } : {}),
         ...containerStyle,
       }}
     >
-      {title && (
-        <Text style={{ fontWeight: "700", fontFamily: "Manrope_700Bold", color: tColor }}>{title}</Text>
-      )}
-      {description && (
-        <Text style={{ marginTop: 4, color: dColor }}>{description}</Text>
-      )}
+      {icon ? <Ionicons name={icon} size={20} color={tColor} style={{ marginTop: 1 }} /> : null}
+      {textBlock}
     </View>
   );
 }

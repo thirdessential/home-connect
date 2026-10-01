@@ -196,3 +196,22 @@ export const formatDateComment = (dateString: string) => {
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
     return `${Math.floor(diffInDays / 30)} months ago`;
 };
+
+// "17:45" -> "5:45 PM". Display only; API/state values stay 24-hour "HH:MM".
+export const formatTime12h = (raw?: string | null): string => {
+  if (!raw) return "";
+  const [h, m] = raw.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return raw;
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+};
+
+/** True once an event's registration cutoff or start instant has passed. */
+export const isEventUnjoinable = (
+  closesAt?: string | null,
+  startsAt?: string | null,
+  now: number = Date.now(),
+): boolean =>
+  [closesAt, startsAt].some((v) => {
+    const ms = v ? new Date(v).getTime() : NaN;
+    return !Number.isNaN(ms) && ms <= now;
+  });

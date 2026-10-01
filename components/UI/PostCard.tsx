@@ -256,6 +256,7 @@ const PostCard = React.memo(function PostCard({
       <View style={{ padding: 16, paddingBottom: 0 }}>
         <ImageTitleHeader
           imageUri={displayAvatar}
+          avatarUserId={locked ? undefined : postData?.user?._id}
           title={displayName}
           subtitle={subtitle}
           verified={locked}
@@ -302,7 +303,7 @@ const PostCard = React.memo(function PostCard({
                 paddingVertical: 3,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}>
+              <Text style={{ color: "#fff", fontSize: 12, fontFamily: "Manrope_600SemiBold" }}>
                 {imageIndex + 1}/{images.length}
               </Text>
             </View>
@@ -319,7 +320,7 @@ const PostCard = React.memo(function PostCard({
             {!expanded && isLongContent && (
               <Text
                 onPress={() => setExpanded(true)}
-                style={{ color: t.colors.primary, fontWeight: "600", fontFamily: "Manrope_600SemiBold" }}
+                style={{ color: t.colors.primary, fontFamily: "Manrope_600SemiBold" }}
               >
                 See more
               </Text>
@@ -343,7 +344,7 @@ const PostCard = React.memo(function PostCard({
             }}
           >
             <Ionicons name="lock-closed" size={14} color="#B45309" />
-            <Text style={{ flex: 1, fontSize: 13, color: "#92400E", fontWeight: "500", fontFamily: "Manrope_500Medium" }}>
+            <Text style={{ flex: 1, fontSize: 13, color: "#92400E", fontFamily: "Manrope_500Medium" }}>
               Verify to see who posted this and join the conversation.
             </Text>
           </TouchableOpacity>

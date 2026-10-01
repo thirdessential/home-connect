@@ -67,7 +67,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
     <View style={{ marginBottom: 12 }}>
       <Text
         style={{
-          fontWeight: "700", fontFamily: "Manrope_700Bold",
+          fontFamily: "Manrope_700Bold",
           marginBottom: 4,
           color: theme.colors.textPrimary,
         }}
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   doneText: {
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     fontSize: 16,
   },
 });

@@ -1,16 +1,20 @@
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Keyboard,
   Modal,
+  Platform,
+  useWindowDimensions,
+  TextInput,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Option = { id: string; name: string };
 
@@ -24,6 +28,8 @@ type Props = {
   modalTitle?: string;
   error?: boolean;
   disabled?: boolean;
+  /** Adds a search box above the list (opt-in; other selects unchanged). */
+  searchable?: boolean;
 };
 
 /**
@@ -43,8 +49,32 @@ function TerraceSelectField({
   modalTitle = "Select an option",
   error = false,
   disabled = false,
+  searchable = false,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [kbHeight, setKbHeight] = useState(0);
+  const { height: winH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  // Track the keyboard so the sheet lifts above it and its list height shrinks
+  // to what is actually visible (Modal windows don't resize on Android).
+  useEffect(() => {
+    if (!open) { setKbHeight(0); return; }
+    const showEv = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEv = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const a = Keyboard.addListener(showEv, (e) => setKbHeight(e.endCoordinates?.height ?? 0));
+    const b = Keyboard.addListener(hideEv, () => setKbHeight(0));
+    return () => { a.remove(); b.remove(); };
+  }, [open]);
+
+  // Bottom gap = keyboard (which already covers the nav bar) or the safe-area inset.
+  const bottomGap = Math.max(kbHeight, insets.bottom);
+  const sheetMaxH = Math.min(winH * 0.75, winH - insets.top - bottomGap - 16);
+  const visibleOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? options.filter((o) => o.name.toLowerCase().includes(q)) : options;
+  }, [options, query]);
 
   const selected = useMemo(
     () => options.find((o) => o.id === selectedId)?.name,
@@ -56,7 +86,7 @@ function TerraceSelectField({
       <Text style={styles.label}>{label}</Text>
 
       <TouchableOpacity
-        onPress={() => !disabled && setOpen(true)}
+        onPress={() => { if (disabled) return; setQuery(""); setOpen(true); }}
         activeOpacity={0.8}
         style={[styles.inputRow, error && { borderColor: "#DC2626" }]}
         disabled={disabled}
@@ -89,6 +119,8 @@ function TerraceSelectField({
         transparent
         visible={open}
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setOpen(false)}
       >
         <TouchableOpacity
@@ -96,10 +128,23 @@ function TerraceSelectField({
           onPress={() => setOpen(false)}
           style={styles.overlay}
         >
-          <SafeAreaView style={styles.sheet} edges={["bottom"]}>
+          <View
+            style={[styles.sheet, { maxHeight: sheetMaxH, paddingBottom: bottomGap + getHeight(8) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <Text style={styles.sheetTitle}>{modalTitle}</Text>
+            {searchable ? (
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search"
+                placeholderTextColor="#9CA3AF"
+                autoCorrect={false}
+                style={styles.searchInput}
+              />
+            ) : null}
             <FlatList
-              data={options}
+              data={visibleOptions}
               keyExtractor={(o) => o.id}
               ItemSeparatorComponent={() => <View style={{ height: getHeight(8) }} />}
               renderItem={({ item }) => {
@@ -118,7 +163,7 @@ function TerraceSelectField({
                     <Text
                       style={[
                         styles.optionText,
-                        isSelected && { color: TERRACE_COLORS.orange, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+                        isSelected && { color: TERRACE_COLORS.orange, fontFamily: "Manrope_700Bold" },
                       ]}
                     >
                       {item.name}
@@ -130,10 +175,10 @@ function TerraceSelectField({
                 );
               }}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: getHeight(28) }}
-              style={{ maxHeight: getHeight(360) }}
+              contentContainerStyle={{ paddingBottom: getHeight(12) }}
+              style={{ flexShrink: 1 }}
             />
-          </SafeAreaView>
+          </View>
         </TouchableOpacity>
       </Modal>
     </View>
@@ -148,7 +193,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: getWidth(14),
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(8),
   },
@@ -181,13 +226,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: getWidth(20),
     paddingHorizontal: getWidth(20),
     paddingTop: getHeight(18),
-    maxHeight: "70%",
   },
   sheetTitle: {
     fontSize: getWidth(17),
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_500Medium",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(14),
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: TERRACE_COLORS.inputBorder,
+    borderRadius: getWidth(12),
+    paddingHorizontal: getWidth(14),
+    paddingVertical: getHeight(10),
+    marginBottom: getHeight(12),
+    fontSize: getWidth(15),
+    fontFamily: "Manrope_500Medium",
+    color: TERRACE_COLORS.textDark,
   },
   optionRow: {
     flexDirection: "row",
@@ -202,6 +257,6 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: getWidth(15),
     color: TERRACE_COLORS.textDark,
-    fontWeight: "500", fontFamily: "Manrope_500Medium",
+    fontFamily: "Manrope_500Medium",
   },
 });

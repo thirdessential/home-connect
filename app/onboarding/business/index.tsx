@@ -1,14 +1,15 @@
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import { useToast } from "@/components/common/Toast";
+import CountdownFillButton from "@/components/UI/CountdownFillButton";
 import ActionButton from "@/components/inputs/ActionButton";
 import ImagePickerField from "@/components/form/ImagePickerField";
 import TerraceSelectField from "@/components/inputs/TerraceSelectField";
 import TerraceTextField from "@/components/inputs/TerraceTextField";
 import TerraceStepper from "@/components/onboarding/TerraceStepper";
+import INDIA_STATES_CITIES from "@/lib/data/indiaStatesCities.json";
 import { buildImageUrl } from "@/lib/imageUtils";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useSocietyStore } from "@/store/useSocietyStore";
 import {
   toFile,
   useBusinessRegistrationStore,
@@ -18,7 +19,7 @@ import { getHeight, getWidth } from "@/theme/theme";
 import * as Location from "expo-location";
 import {
   BusinessTypeValue,
-  DeliveryAvailability,
+  OperatingLocation,
   LocationType,
   RegistrationType,
   Step4Payload,
@@ -26,7 +27,7 @@ import {
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -50,15 +51,17 @@ function PhoneField({
   label,
   value,
   onChange,
+  invalid = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  invalid?: boolean;
 }) {
   return (
     <View style={phoneStyles.wrap}>
       <Text style={phoneStyles.label}>{label}</Text>
-      <View style={phoneStyles.row}>
+      <View style={[phoneStyles.row, invalid && { borderColor: "#DC2626" }]}>
         <Text style={phoneStyles.cc}>+91</Text>
         <TextInput
           style={phoneStyles.input}
@@ -78,12 +81,34 @@ function PhoneField({
   );
 }
 
+const INDIA_CITIES = INDIA_STATES_CITIES as Record<string, string[]>;
+const OTHER_ID = "other";
+const OTHER_CATEGORY_MAX = 20;
 const STEP_LABELS = ["Type", "Basic", "Category", "Location", "Verify", "Details"];
 
-const BUSINESS_TYPES: { value: BusinessTypeValue; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { value: "shops_businesses", label: "Shops & Businesses", icon: "storefront-outline" },
-  { value: "services", label: "Services", icon: "briefcase-outline" },
-  { value: "home_services", label: "Home Services", icon: "home-outline" },
+// Step 1 asks WHERE the business runs (not its category). The backend derives
+// business_type (and so the category list) from this value.
+const OPERATING_LOCATIONS: {
+  value: OperatingLocation;
+  businessType: BusinessTypeValue;
+  label: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    value: "SHOP_OR_OFFICE",
+    businessType: "shops_businesses",
+    label: "From a shop or office",
+    subtitle: "I run my business from a shop, office, or other commercial location.",
+    icon: "business-outline",
+  },
+  {
+    value: "HOME",
+    businessType: "home_services",
+    label: "From home",
+    subtitle: "I run my business from my home.",
+    icon: "home-outline",
+  },
 ];
 
 const REG_TYPES: { value: RegistrationType; label: string }[] = [
@@ -95,18 +120,16 @@ const REG_TYPES: { value: RegistrationType; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-const DELIVERY: { value: DeliveryAvailability; label: string }[] = [
-  { value: "within_life_republic", label: "Within Life Republic" },
-  { value: "outside_life_republic", label: "Outside Life Republic" },
-];
 
 function OptionCard({
   label,
+  subtitle,
   icon,
   selected,
   onPress,
 }: {
   label: string;
+  subtitle?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   selected: boolean;
   onPress: () => void;
@@ -124,7 +147,10 @@ function OptionCard({
           style={{ marginRight: getWidth(12) }}
         />
       ) : null}
-      <Text style={styles.optionLabel}>{label}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.optionLabel}>{label}</Text>
+        {subtitle ? <Text style={styles.optionSubtitle}>{subtitle}</Text> : null}
+      </View>
       <View style={[styles.radio, selected && styles.radioSelected]}>
         {selected ? <View style={styles.radioDot} /> : null}
       </View>
@@ -141,8 +167,6 @@ const isRemote = (uri: string) => uri.startsWith("http") || uri.startsWith("/upl
 export default function BusinessWizard() {
   const { showToast } = useToast();
   const s = useBusinessRegistrationStore();
-  const societies = useSocietyStore((st) => st.societies);
-  const getAllSociety = useSocietyStore((st) => st.getAllSociety);
   const user = useUserStore((st) => st.user);
 
   // This screen is for a non-Business account to become one — an existing
@@ -163,7 +187,7 @@ export default function BusinessWizard() {
   const [hydrating, setHydrating] = useState(true);
 
   // form state
-  const [businessType, setBusinessType] = useState<BusinessTypeValue | null>(null);
+  const [operatingLocation, setOperatingLocation] = useState<OperatingLocation | null>(null);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
@@ -171,7 +195,6 @@ export default function BusinessWizard() {
   const [otherCategory, setOtherCategory] = useState("");
   const [isOther, setIsOther] = useState(false);
   const [locationType, setLocationType] = useState<LocationType | null>(null);
-  const [societyId, setSocietyId] = useState<string | null>(null);
   const [unitShop, setUnitShop] = useState("");
   const [building, setBuilding] = useState("");
   const [mapUrl, setMapUrl] = useState("");
@@ -181,11 +204,10 @@ export default function BusinessWizard() {
   const [locality, setLocality] = useState("");
   const [city, setCity] = useState("");
   const [state, setStateVal] = useState("");
+
   const [regType, setRegType] = useState<RegistrationType | null>(null);
   const [proofUri, setProofUri] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  const [delivery, setDelivery] = useState<DeliveryAvailability | null>(null);
-  const [deliveryCategory, setDeliveryCategory] = useState("");
   const [bizPhone, setBizPhone] = useState("");
   const [altMobile, setAltMobile] = useState("");
   const [bizEmail, setBizEmail] = useState("");
@@ -200,12 +222,14 @@ export default function BusinessWizard() {
   useEffect(() => {
     (async () => {
       try {
-        if (societies.length === 0) getAllSociety().catch(() => {});
         if (user?.phone) setMobile((m) => m || strip91(user.phone));
         const biz = await s.loadCurrent();
         if (!biz || biz.business_status === "approved") return;
         // hydrate local state from the returned draft
-        if (biz.business_type) setBusinessType(biz.business_type);
+        // Draft resume: prefer the stored answer; older drafts only have a type.
+        if (biz.operating_location) setOperatingLocation(biz.operating_location);
+        else if (biz.business_type)
+          setOperatingLocation(biz.business_type === "home_services" ? "HOME" : "SHOP_OR_OFFICE");
         setName(biz.business_name ?? "");
         // Pre-fill from the logged-in user's number when the draft has none.
         setMobile(strip91(biz.mobile_number) || strip91(user?.phone));
@@ -214,7 +238,6 @@ export default function BusinessWizard() {
         setIsOther(!!biz.other_category);
         setOtherCategory(biz.other_category ?? "");
         setLocationType(biz.location_type ?? null);
-        setSocietyId(biz.society_id != null ? String(biz.society_id) : null);
         setUnitShop(biz.unit_shop_no ?? "");
         setBuilding(biz.building_block ?? "");
         setMapUrl(biz.google_maps_location ?? "");
@@ -226,8 +249,6 @@ export default function BusinessWizard() {
         setStateVal(biz.state ?? "");
         setRegType(biz.registration_type ?? null);
         setDescription(biz.business_description ?? "");
-        setDelivery(biz.delivery_availability ?? null);
-        setDeliveryCategory(biz.delivery_category ?? "");
         setBizPhone(strip91(biz.business_phone));
         setAltMobile(biz.alternative_mobile ?? "");
         setBizEmail(biz.business_email ?? "");
@@ -255,13 +276,27 @@ export default function BusinessWizard() {
   }, []);
 
   const categoryOptions = useMemo(
-    () => s.categories.map((c) => ({ id: String(c.id), name: c.name })),
+    () => [
+      ...s.categories.map((c) => ({ id: String(c.id), name: c.name })),
+      // "Other" lives inside the dropdown; backend still gets category_slug "other".
+      { id: OTHER_ID, name: "Other" },
+    ],
     [s.categories],
   );
-  const societyOptions = useMemo(
-    () => societies.map((x: any) => ({ id: String(x.id ?? x._id), name: x.name })),
-    [societies],
+  // Registered society comes from the logged-in user's profile — never asked again.
+  const mySocietyName: string | undefined = (user?.societyId as any)?.name;
+
+  // Offline India State/UT → cities dataset (generated from country-state-city).
+  const stateOptions = useMemo(
+    () => Object.keys(INDIA_CITIES).sort().map((n) => ({ id: n, name: n })),
+    [],
   );
+  const cityOptions = useMemo(() => {
+    const list = INDIA_CITIES[state] ?? [];
+    // A saved city missing from the dataset must still show/remain selectable.
+    const withSaved = city && !list.includes(city) ? [city, ...list] : list;
+    return withSaved.map((n) => ({ id: n, name: n }));
+  }, [state, city]);
 
   const err = useCallback(
     (e: any) => {
@@ -274,44 +309,85 @@ export default function BusinessWizard() {
     [showToast],
   );
 
+  // Per-field validation errors for the location step (key -> message).
+  const [fe, setFe] = useState<Record<string, string>>({});
+  const clearErr = useCallback((k: string) => setFe((e) => (e[k] ? { ...e, [k]: "" } : e)), []);
+  const scrollRef = useRef<any>(null);
+  const fieldY = useRef<Record<string, number>>({});
+  const containerY = useRef(0);
+  const fieldWrap = (k: string, node: React.ReactNode, ownMsg = false) => (
+    <View key={k} onLayout={(e) => { fieldY.current[k] = e.nativeEvent.layout.y; }}>
+      {node}
+      {fe[k] && !ownMsg ? <Text style={styles.fieldError}>{fe[k]}</Text> : null}
+    </View>
+  );
+
+  // Shared: show all errors, scroll to the first (in the given visual order).
+  const flagErrors = (errs: Record<string, string>, order: string[]) => {
+    setFe(errs);
+    const first = order.find((k) => errs[k]);
+    if (!first) return false;
+    const y = containerY.current + (fieldY.current[first] ?? 0) - getHeight(16);
+    scrollRef.current?.scrollToPosition?.(0, Math.max(0, y), true);
+    return true;
+  };
+  useEffect(() => { setFe({}); }, [step]);
+
   // Outside-society requires real coordinates. Try the device GPS, and fall
   // back to the location the user already saved during onboarding.
   const captureLocation = useCallback(async () => {
     setLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") throw new Error("Location permission denied");
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setLat(pos.coords.latitude);
-      setLng(pos.coords.longitude);
-      const [place] = await Location.reverseGeocodeAsync({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      });
-      if (place) {
-        if (!addr1.trim()) setAddr1([place.name, place.street].filter(Boolean).join(", "));
-        if (!pin.trim() && place.postalCode) setPin(place.postalCode);
-        if (!locality.trim() && (place.district || place.subregion)) {
-          setLocality(place.district || place.subregion || "");
-        }
-        if (!city.trim() && place.city) setCity(place.city);
-        if (!state.trim() && place.region) setStateVal(place.region);
+      // Ask only if not already granted (avoids repeat prompts).
+      let perm = await Location.getForegroundPermissionsAsync();
+      if (perm.status !== "granted") perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== "granted") throw new Error("Location permission denied. Enable it in Settings to continue.");
+      if (!(await Location.hasServicesEnabledAsync())) throw new Error("Turn on GPS / location services and try again.");
+
+      // Fast path: a fix from the last 2 minutes is instant. Otherwise a
+      // low-accuracy fix (network/cell, ~1s) with a hard 6s timeout.
+      let pos = await Location.getLastKnownPositionAsync({ maxAge: 120000, requiredAccuracy: 500 });
+      if (!pos) {
+        pos = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error("Couldn't get your location in time. Move to an open area and retry.")), 6000)),
+        ]);
       }
+      const { latitude, longitude } = pos.coords;
+      setLat(latitude);
+      setLng(longitude);
+      clearErr("loc");
       if (!mapUrl.trim()) {
-        setMapUrl(
-          `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`,
-        );
+        setMapUrl(`https://maps.google.com/?q=${latitude},${longitude}`);
+        clearErr("map");
       }
       showToast("Location captured", "success");
+      setLocating(false);
+
+      // Address prefill is best-effort and runs after the pin is already set.
+      Location.reverseGeocodeAsync({ latitude, longitude })
+        .then(([place]) => {
+          if (!place) return;
+          if (!addr1.trim()) setAddr1([place.name, place.street].filter(Boolean).join(", "));
+          if (!pin.trim() && place.postalCode) setPin(place.postalCode);
+          if (!locality.trim() && (place.district || place.subregion)) {
+            setLocality(place.district || place.subregion || "");
+          }
+          if (!state.trim() && place.region && INDIA_CITIES[place.region]) {
+            setStateVal(place.region);
+            if (!city.trim() && place.city && INDIA_CITIES[place.region].includes(place.city)) setCity(place.city);
+          }
+        })
+        .catch(() => {});
     } catch (e: any) {
       const saved = (user as any)?.location;
       if (saved?.latitude != null && saved?.longitude != null) {
         setLat(Number(saved.latitude));
         setLng(Number(saved.longitude));
+        clearErr("loc");
         if (!mapUrl.trim()) {
           setMapUrl(`https://maps.google.com/?q=${saved.latitude},${saved.longitude}`);
+          clearErr("map");
         }
         showToast("Using your saved location", "info");
       } else {
@@ -330,20 +406,24 @@ export default function BusinessWizard() {
 
   // ---- per-step submit handlers (save to backend, then advance) ----
   const next1 = async () => {
-    if (!businessType) return showToast("Select a business type", "error");
+    const choice = OPERATING_LOCATIONS.find((o) => o.value === operatingLocation);
+    if (!choice) return showToast("Select where you run your business", "error");
+    const businessType = choice.businessType;
     try {
       // The registration row is created here (or reused if a draft exists),
       // so opening the screen never needs the network.
-      if (!s.business) await s.startRegistration(businessType);
-      else await s.saveStep1(businessType);
+      if (!s.business) await s.startRegistration(businessType, choice.value);
+      else await s.saveStep1(businessType, choice.value);
       await s.getCategories(businessType);
       setStep(2);
     } catch (e) { err(e); }
   };
 
   const next2 = async () => {
-    if (name.trim().length < 2) return showToast("Business name is required", "error");
-    if (mobile.replace(/\D/g, "").length < 10) return showToast("Valid mobile is required", "error");
+    const errs: Record<string, string> = {};
+    if (name.trim().length < 2) errs.name = "Business name is required";
+    if (mobile.replace(/\D/g, "").length < 10) errs.mobile = "Enter a valid 10-digit mobile number";
+    if (flagErrors(errs, ["name", "mobile"])) return;
     try {
       await s.saveStep2({
         business_name: name.trim(),
@@ -356,12 +436,14 @@ export default function BusinessWizard() {
 
   const next3 = async () => {
     try {
+      const errs: Record<string, string> = {};
+      if (!isOther && !categoryId) errs.cat = "Select a category";
+      if (isOther && otherCategory.trim().length < 2) errs.other = "Enter your category";
+      if (flagErrors(errs, ["cat", "other"])) return;
       if (isOther) {
-        if (otherCategory.trim().length < 2) return showToast("Enter your category", "error");
         await s.saveStep3({ category_slug: "other", other_category: otherCategory.trim() });
       } else {
-        if (!categoryId) return showToast("Select a category", "error");
-        await s.saveStep3({ category_id: categoryId });
+        await s.saveStep3({ category_id: categoryId as number });
       }
       setStep(4);
     } catch (e) { err(e); }
@@ -369,31 +451,46 @@ export default function BusinessWizard() {
 
   const next4 = async () => {
     if (!locationType) return showToast("Select where your business is located", "error");
+    // Validate everything at once, flag every invalid field, scroll to the first.
+    const errs: Record<string, string> = {};
+    if (locationType === "within_society") {
+      if (!user?.societyId) return showToast("Your account has no registered society", "error");
+      if (!unitShop.trim()) errs.unit = "Unit / Shop no. is required";
+    } else {
+      if (lat == null || lng == null) errs.loc = "Tap 'Use my current location' to set the map pin";
+      if (!mapUrl.trim()) errs.map = "Google Maps location is required";
+      if (!unitShop.trim()) errs.unit = "Unit / Shop no. is required";
+      if (!addr1.trim()) errs.addr1 = "Address line 1 is required";
+      if (!pin.trim()) errs.pin = "PIN code is required";
+      else if (!/^[1-9][0-9]{5}$/.test(pin.trim())) errs.pin = "Enter a valid 6-digit PIN code";
+      if (!locality.trim()) errs.locality = "Area / locality is required";
+      if (!state.trim()) errs.state = "Select a state";
+      if (!city.trim()) errs.city = "Select a city";
+    }
+    setFe(errs);
+    const order = ["loc", "map", "unit", "addr1", "pin", "locality", "state", "city"];
+    const first = order.find((k) => errs[k]);
+    if (first) {
+      const y = containerY.current + (fieldY.current[first] ?? 0) - getHeight(16);
+      scrollRef.current?.scrollToPosition?.(0, Math.max(0, y), true);
+      return;
+    }
     try {
       let payload: Step4Payload;
       if (locationType === "within_society") {
-        if (!societyId) return showToast("Select your society", "error");
-        if (!unitShop.trim()) return showToast("Unit / Shop no. is required", "error");
         payload = {
           location_type: "within_society",
-          society_id: societyId,
           unit_shop_no: unitShop.trim(),
           ...(building.trim() ? { building_block: building.trim() } : {}),
           ...(mapUrl.trim() ? { google_maps_location: mapUrl.trim() } : {}),
           ...(lat != null && lng != null ? { latitude: lat, longitude: lng } : {}),
         };
       } else {
-        if (!mapUrl.trim() || !unitShop.trim() || !addr1.trim() || !pin.trim() || !locality.trim() || !city.trim() || !state.trim()) {
-          return showToast("Please fill all required location fields", "error");
-        }
-        if (lat == null || lng == null) {
-          return showToast("Tap 'Use my current location' to set the map pin", "error");
-        }
         payload = {
           location_type: "outside_society",
           google_maps_location: mapUrl.trim(),
-          latitude: lat,
-          longitude: lng,
+          latitude: lat as number, // validated non-null above
+          longitude: lng as number,
           unit_shop_no: unitShop.trim(),
           ...(building.trim() ? { building_block: building.trim() } : {}),
           address_line1: addr1.trim(),
@@ -442,9 +539,9 @@ export default function BusinessWizard() {
   };
 
   const next6 = async () => {
-    if (!delivery) return showToast("Select delivery availability", "error");
-    if (!deliveryCategory.trim()) return showToast("Delivery category is required", "error");
-    if (!bizPhone.trim()) return showToast("Business phone is required", "error");
+    const errs: Record<string, string> = {};
+    if (bizPhone.replace(/\D/g, "").length < 10) errs.bizphone = "Enter a valid 10-digit business phone";
+    if (flagErrors(errs, ["bizphone"])) return;
     try {
       if (logoUri[0] && !isRemote(logoUri[0])) {
         await s.uploadLogo(toFile(logoUri[0], "logo.jpg"));
@@ -462,8 +559,6 @@ export default function BusinessWizard() {
       }
       await s.saveStep6({
         ...(description.trim() ? { business_description: description.trim() } : {}),
-        delivery_availability: delivery,
-        delivery_category: deliveryCategory.trim(),
         business_phone: bizPhone.trim(),
         ...(altMobile.trim() ? { alternative_mobile: altMobile.trim() } : {}),
         ...(bizEmail.trim() ? { business_email: bizEmail.trim() } : {}),
@@ -495,7 +590,8 @@ export default function BusinessWizard() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <KeyboardAwareScrollView
-        contentContainerStyle={styles.scroll}
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, step === 7 && styles.scrollDone]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         enableOnAndroid
@@ -521,64 +617,84 @@ export default function BusinessWizard() {
 
         {step === 1 && (
           <View>
-            <Text style={styles.title}>What type of business?</Text>
-            {BUSINESS_TYPES.map((b) => (
+            <Text style={styles.title}>Where do you run your business?</Text>
+            {OPERATING_LOCATIONS.map((o) => (
               <OptionCard
-                key={b.value}
-                label={b.label}
-                icon={b.icon}
-                selected={businessType === b.value}
-                onPress={() => setBusinessType(b.value)}
+                key={o.value}
+                label={o.label}
+                subtitle={o.subtitle}
+                icon={o.icon}
+                selected={operatingLocation === o.value}
+                onPress={() => setOperatingLocation(o.value)}
               />
             ))}
           </View>
         )}
 
         {step === 2 && (
-          <View>
+          <View onLayout={(e) => { containerY.current = e.nativeEvent.layout.y; }}>
             <Text style={styles.title}>Basic details</Text>
-            <TerraceTextField label="Business Name *" value={name} onChangeText={setName} placeholder="Business name" />
-            <PhoneField label="Mobile *" value={mobile} onChange={setMobile} />
+            {fieldWrap("name", <TerraceTextField label="Business Name *" value={name} onChangeText={(v) => { setName(v); clearErr("name"); }} placeholder="Business name" error={fe.name || undefined} />, true)}
+            {fieldWrap("mobile", <PhoneField label="Mobile *" value={mobile} onChange={(v) => { setMobile(v); clearErr("mobile"); }} invalid={!!fe.mobile} />)}
             <TerraceTextField label="Email (optional)" value={email} onChangeText={setEmail} placeholder="email@example.com" keyboardType="email-address" autoCapitalize="none" />
           </View>
         )}
 
         {step === 3 && (
-          <View>
+          <View onLayout={(e) => { containerY.current = e.nativeEvent.layout.y; }}>
             <Text style={styles.title}>Select category</Text>
-            <TerraceSelectField
+            {fieldWrap("cat", <TerraceSelectField
               label="Category"
               options={categoryOptions}
-              selectedId={isOther ? null : categoryId != null ? String(categoryId) : null}
-              onChange={(id) => { setCategoryId(Number(id)); setIsOther(false); }}
+              selectedId={isOther ? OTHER_ID : categoryId != null ? String(categoryId) : null}
+              onChange={(id) => {
+                if (id === OTHER_ID) { setIsOther(true); setCategoryId(null); clearErr("cat"); return; }
+                // Normal category: drop any custom text so it can't be submitted.
+                setCategoryId(Number(id)); setIsOther(false); setOtherCategory(""); clearErr("cat");
+              }}
               placeholder="Select a category"
               leftIcon="pricetag-outline"
-            />
-            <OptionCard label="Other" selected={isOther} onPress={() => { setIsOther(true); setCategoryId(null); }} />
+              error={!!fe.cat}
+            />)}
             {isOther ? (
-              <TerraceTextField label="Other Category *" value={otherCategory} onChangeText={setOtherCategory} placeholder="Describe your category" />
+              <TerraceTextField label="Custom category *" error={fe.other || undefined} value={otherCategory} onChangeText={(v) => { setOtherCategory(v.slice(0, OTHER_CATEGORY_MAX)); clearErr("other"); }} maxLength={OTHER_CATEGORY_MAX} helperText={`${otherCategory.length}/${OTHER_CATEGORY_MAX}`} placeholder="Enter your category" />
             ) : null}
           </View>
         )}
 
         {step === 4 && (
-          <View>
-            <Text style={styles.title}>Where is your business located?</Text>
-            <OptionCard label="Within Society" selected={locationType === "within_society"} onPress={() => setLocationType("within_society")} />
-            <OptionCard label="Outside Society" selected={locationType === "outside_society"} onPress={() => setLocationType("outside_society")} />
+          <View onLayout={(e) => { containerY.current = e.nativeEvent.layout.y; }}>
+            <Text style={styles.title}>{`Is your business located inside ${mySocietyName ?? "your society"}?`}</Text>
+            <View style={styles.segRow}>
+              {([["Yes", "within_society"], ["No", "outside_society"]] as const).map(([label, val]) => {
+                const sel = locationType === val;
+                return (
+                  <Pressable
+                    key={val}
+                    onPress={() => { setLocationType(val); setFe({}); }}
+                    style={[styles.segItem, sel && styles.segItemSelected]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: sel }}
+                  >
+                    {sel ? <Ionicons name="checkmark-circle" size={getWidth(18)} color={TERRACE_COLORS.orange} style={{ marginRight: getWidth(6) }} /> : null}
+                    <Text style={[styles.segText, sel && { color: TERRACE_COLORS.orange }]}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             {locationType === "within_society" ? (
               <>
-                <TerraceSelectField label="Society *" options={societyOptions} selectedId={societyId} onChange={setSocietyId} placeholder="Select society" leftIcon="business-outline" />
-                <TerraceTextField label="Unit / Shop No. *" value={unitShop} onChangeText={setUnitShop} placeholder="e.g. S-14" />
+                {fieldWrap("unit", <TerraceTextField label="Unit / Shop No. *" value={unitShop} onChangeText={(v) => { setUnitShop(v); clearErr("unit"); }} placeholder="e.g. S-14" error={fe.unit || undefined} />, true)}
                 <TerraceTextField label="Building / Tower / Block" value={building} onChangeText={setBuilding} placeholder="e.g. Tower B" />
                 <TerraceTextField label="Google Maps Location" value={mapUrl} onChangeText={setMapUrl} placeholder="Map URL" autoCapitalize="none" />
               </>
             ) : locationType === "outside_society" ? (
               <>
+                {fieldWrap("loc",
                 <Pressable
                   onPress={captureLocation}
                   disabled={locating}
-                  style={[styles.optionCard, lat != null && styles.optionCardSelected]}
+                  style={[styles.optionCard, lat != null && styles.optionCardSelected, !!fe.loc && { borderColor: "#DC2626" }]}
                 >
                   {locating ? (
                     <ActivityIndicator
@@ -594,20 +710,22 @@ export default function BusinessWizard() {
                     />
                   )}
                   <Text style={styles.optionLabel}>
-                    {lat != null
-                      ? `Location set (${lat.toFixed(4)}, ${lng?.toFixed(4)})`
-                      : "Use my current location *"}
+                    {locating
+                      ? "Getting your location..."
+                      : lat != null
+                        ? `Location set (${lat.toFixed(4)}, ${lng?.toFixed(4)})`
+                        : "Use my current location *"}
                   </Text>
-                </Pressable>
-                <TerraceTextField label="Google Maps Location *" value={mapUrl} onChangeText={setMapUrl} placeholder="Map URL" autoCapitalize="none" />
-                <TerraceTextField label="Unit / Shop No. *" value={unitShop} onChangeText={setUnitShop} placeholder="e.g. Shop 4" />
+                </Pressable>)}
+                {fieldWrap("map", <TerraceTextField label="Google Maps Location *" value={mapUrl} onChangeText={(v) => { setMapUrl(v); clearErr("map"); }} placeholder="Map URL" autoCapitalize="none" error={fe.map || undefined} />, true)}
+                {fieldWrap("unit", <TerraceTextField label="Unit / Shop No. *" value={unitShop} onChangeText={(v) => { setUnitShop(v); clearErr("unit"); }} placeholder="e.g. Shop 4" error={fe.unit || undefined} />, true)}
                 <TerraceTextField label="Building / Block" value={building} onChangeText={setBuilding} placeholder="e.g. Sai Plaza" />
-                <TerraceTextField label="Address Line 1 *" value={addr1} onChangeText={setAddr1} placeholder="Street / road" />
+                {fieldWrap("addr1", <TerraceTextField label="Address Line 1 *" value={addr1} onChangeText={(v) => { setAddr1(v); clearErr("addr1"); }} placeholder="Street / road" error={fe.addr1 || undefined} />, true)}
                 <TerraceTextField label="Address Line 2" value={addr2} onChangeText={setAddr2} placeholder="Landmark" />
-                <TerraceTextField label="PIN Code *" value={pin} onChangeText={setPin} placeholder="6-digit PIN" keyboardType="number-pad" maxLength={6} />
-                <TerraceTextField label="Area / Locality *" value={locality} onChangeText={setLocality} placeholder="Locality" />
-                <TerraceTextField label="City *" value={city} onChangeText={setCity} placeholder="City" />
-                <TerraceTextField label="State *" value={state} onChangeText={setStateVal} placeholder="State" />
+                {fieldWrap("pin", <TerraceTextField label="PIN Code *" value={pin} onChangeText={(v) => { setPin(v.replace(/\D/g, "").slice(0, 6)); clearErr("pin"); }} placeholder="6-digit PIN" keyboardType="number-pad" maxLength={6} error={fe.pin || undefined} />, true)}
+                {fieldWrap("locality", <TerraceTextField label="Area / Locality *" value={locality} onChangeText={(v) => { setLocality(v); clearErr("locality"); }} placeholder="Locality" error={fe.locality || undefined} />, true)}
+                {fieldWrap("state", <TerraceSelectField label="State / UT *" options={stateOptions} selectedId={state || null} onChange={(id) => { setStateVal(id); setCity(""); clearErr("state"); }} placeholder="Select state" modalTitle="Select state / UT" leftIcon="map-outline" searchable error={!!fe.state} />)}
+                {fieldWrap("city", <TerraceSelectField label="City *" options={cityOptions} selectedId={city || null} onChange={(c) => { setCity(c); clearErr("city"); }} placeholder={state ? "Select city" : "Select a state first"} modalTitle="Select city" leftIcon="location-outline" disabled={!state} searchable error={!!fe.city} />)}
               </>
             ) : null}
           </View>
@@ -639,12 +757,10 @@ export default function BusinessWizard() {
         )}
 
         {step === 6 && (
-          <View>
+          <View onLayout={(e) => { containerY.current = e.nativeEvent.layout.y; }}>
             <Text style={styles.title}>Business details</Text>
             <TerraceTextField label="Business Description (Optional)" value={description} onChangeText={setDescription} placeholder="About your business" multiline numberOfLines={4} />
-            <TerraceSelectField label="Delivery / Service Availability *" options={DELIVERY.map((d) => ({ id: d.value, name: d.label }))} selectedId={delivery} onChange={(id) => setDelivery(id as DeliveryAvailability)} placeholder="Select availability" leftIcon="bicycle-outline" />
-            <TerraceTextField label="Delivery Category *" value={deliveryCategory} onChangeText={setDeliveryCategory} placeholder="e.g. Grocery & Essentials" />
-            <PhoneField label="Business Phone / WhatsApp *" value={bizPhone} onChange={setBizPhone} />
+            {fieldWrap("bizphone", <PhoneField label="Business Phone / WhatsApp *" value={bizPhone} onChange={(v) => { setBizPhone(v); clearErr("bizphone"); }} invalid={!!fe.bizphone} />)}
             <TerraceTextField label="Alternative Mobile (Optional)" value={altMobile} onChangeText={setAltMobile} placeholder="Alternate number" keyboardType="phone-pad" maxLength={13} />
             <TerraceTextField label="Email (Optional)" value={bizEmail} onChangeText={setBizEmail} placeholder="business@example.com" keyboardType="email-address" autoCapitalize="none" />
             <TerraceTextField label="Social Media / Website (Optional)" value={socialUrl} onChangeText={setSocialUrl} placeholder="https://..." autoCapitalize="none" />
@@ -678,7 +794,7 @@ export default function BusinessWizard() {
             <Text style={styles.doneSub}>
               Your business is submitted and pending admin approval. We&apos;ll notify you once it&apos;s verified.
             </Text>
-            <ActionButton title="Go to Home" onPress={() => router.dismissTo("/(tabs)/home")} variant="primary" size="lg" fullWidth containerStyle={styles.cta} />
+            <View style={styles.doneBtn}><CountdownFillButton label="Go to Home" durationMs={3000} onComplete={() => router.dismissTo("/(tabs)/home")} /></View>
           </View>
         )}
       </KeyboardAwareScrollView>
@@ -694,7 +810,7 @@ export default function BusinessWizard() {
             size="lg"
             fullWidth
             loading={saving}
-            disabled={saving}
+            disabled={saving || (step === 1 && !operatingLocation)}
             containerStyle={styles.cta}
           />
         </View>
@@ -705,16 +821,34 @@ export default function BusinessWizard() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TERRACE_COLORS.screenBg },
-  center: { alignItems: "center", justifyContent: "center", flex: 1 },
+  center: { alignItems: "center", justifyContent: "center", width: "100%" },
+  // Success step: let the content group sit vertically centered in the free area.
+  scrollDone: { flexGrow: 1, justifyContent: "center", paddingBottom: getHeight(48) },
+  doneBtn: { width: "100%", marginTop: getHeight(24) },
   scroll: { paddingHorizontal: getWidth(20), paddingTop: getHeight(8), paddingBottom: getHeight(24) },
   stepperWrap: { marginTop: getHeight(12), marginBottom: getHeight(8) },
   title: {
-    fontSize: getWidth(22),
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontSize: getWidth(20),
+    fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginTop: getHeight(16),
     marginBottom: getHeight(14),
   },
+  segRow: { flexDirection: "row", gap: getWidth(12), marginBottom: getHeight(12) },
+  segItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderRadius: getWidth(14),
+    borderWidth: 1.5,
+    borderColor: TERRACE_COLORS.inputBorder,
+    paddingVertical: getHeight(14),
+  },
+  segItemSelected: { borderColor: TERRACE_COLORS.orange, backgroundColor: TERRACE_COLORS.greenTint },
+  segText: { fontSize: getWidth(16), fontFamily: "Manrope_600SemiBold", color: TERRACE_COLORS.textDark },
+  fieldError: { marginTop: -getHeight(8), marginBottom: getHeight(10), fontSize: getWidth(12), color: "#DC2626", fontFamily: "Manrope_500Medium" },
   optionCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -727,7 +861,8 @@ const styles = StyleSheet.create({
     marginBottom: getHeight(12),
   },
   optionCardSelected: { borderColor: TERRACE_COLORS.orange, backgroundColor: TERRACE_COLORS.greenTint },
-  optionLabel: { flex: 1, fontSize: getWidth(16), fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: TERRACE_COLORS.textDark },
+  optionSubtitle: { marginTop: getHeight(4), fontSize: getWidth(13), color: TERRACE_COLORS.textMuted, fontFamily: "Manrope_400Regular" },
+  optionLabel: { fontSize: getWidth(16),  fontFamily: "Manrope_600SemiBold", color: TERRACE_COLORS.textDark },
   radio: {
     width: getWidth(22),
     height: getWidth(22),
@@ -783,7 +918,7 @@ const phoneStyles = StyleSheet.create({
   wrap: { marginBottom: getHeight(18) },
   label: {
     fontSize: getWidth(13),
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+     fontFamily: "Manrope_600SemiBold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(6),
   },
@@ -800,7 +935,7 @@ const phoneStyles = StyleSheet.create({
   cc: {
     paddingHorizontal: getWidth(14),
     fontSize: getWidth(16),
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     borderRightWidth: 1.5,
     borderRightColor: TERRACE_COLORS.inputBorder,

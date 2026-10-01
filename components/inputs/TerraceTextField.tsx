@@ -44,6 +44,7 @@ function TerraceTextField({
       <View
         style={[
           styles.inputRow,
+          inputProps.multiline && styles.inputRowMulti,
           focused && { borderColor: TERRACE_COLORS.orange },
           !!error && { borderColor: "#DC2626" },
         ]}
@@ -59,7 +60,7 @@ function TerraceTextField({
         <TextInput
           {...inputProps}
           placeholderTextColor="#9CA3AF"
-          style={styles.input}
+          style={[styles.input, inputProps.multiline && styles.inputMulti]}
           onFocus={(e) => {
             setFocused(true);
             inputProps.onFocus?.(e);
@@ -88,12 +89,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: getWidth(14),
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     color: TERRACE_COLORS.textDark,
     marginBottom: getHeight(8),
   },
   optional: {
-    fontWeight: "400", fontFamily: "Manrope_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: TERRACE_COLORS.textMuted,
   },
   inputRow: {
@@ -106,6 +107,9 @@ const styles = StyleSheet.create({
     height: getHeight(54),
     paddingHorizontal: getWidth(14),
   },
+  // Textarea: taller box, text starts at the top and scrolls when it overflows.
+  inputRowMulti: { height: getHeight(120), alignItems: "flex-start", paddingVertical: getHeight(10) },
+  inputMulti: { textAlignVertical: "top" },
   icon: {
     marginRight: getWidth(10),
   },

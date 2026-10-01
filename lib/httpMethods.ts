@@ -1,4 +1,10 @@
-import { getToken, signOutUser } from "@/lib/tokenManager";
+import {
+  ensureFreshAccessToken,
+  expireSession,
+  getToken,
+  refreshAccessToken,
+  waitForAuthReady,
+} from "@/lib/tokenManager";
 import { useConfigWarningStore } from "@/store/useConfigWarningStore";
 import Constants from "expo-constants";
 
@@ -44,7 +50,7 @@ function buildHeaders(isFormData: boolean, extra?: Record<string, string>) {
   } as Record<string, string>;
 }
 
-async function handleResponse<T>(r: Response): Promise<T> {
+async function handleResponse<T>(r: Response, authed = true): Promise<T> {
   let json: any = {};
   try {
     json = await r.json();
@@ -53,22 +59,6 @@ async function handleResponse<T>(r: Response): Promise<T> {
   }
 
   if (!r.ok) {
-    // If unauthorized or expired - but only signOut if it's a real auth error from server
-    if (r.status === 401) {
-      const msg = (json?.error || json?.message || "").toLowerCase();
-      // Only sign out if server explicitly says token is invalid/expired
-      if (msg.includes("expired") || msg.includes("invalid") || msg.includes("user not found")) {
-        console.warn("Server says token is invalid, signing out:", msg);
-        try {
-          // Use token manager to avoid circular dependency
-          await signOutUser();
-        } catch (err) {
-          console.error("Failed to sign out:", err);
-        }
-      } else {
-        console.warn("401 error but not token related:", msg);
-      }
-    }
     const message = json?.error || json?.message || `HTTP ${r.status}`;
     const err: any = new Error(message);
     err.status = r.status;
@@ -78,13 +68,28 @@ async function handleResponse<T>(r: Response): Promise<T> {
   return json as T;
 }
 
+// A 401 that a refresh can fix (access token expired), as opposed to a bad
+// signature / unknown user (refreshing won't help) or a plain permission error.
+const isExpiredAuthError = (err: any) =>
+  err?.status === 401 &&
+  (err?.body?.tokenExpired === true || /expired/i.test(String(err?.body?.error ?? err?.message ?? "")));
+
+const isHardAuthError = (err: any) =>
+  err?.status === 401 && /invalid token|user not found/i.test(String(err?.body?.error ?? err?.message ?? ""));
+
 // Generic request wrapper
 let __apiCallCount = 0;
 
-async function request<T>(method: string, path: string, body?: any): Promise<T> {
-  if (__DEV__) {
+async function request<T>(method: string, path: string, body?: any, retried = false): Promise<T> {
+  if (__DEV__ && !retried) {
     console.log(`[API #${++__apiCallCount}] ${method} ${path}`);
   }
+  // Don't fire authenticated calls before the stored session is restored, and
+  // renew a token that is about to expire so the call doesn't 401 at all.
+  await waitForAuthReady();
+  const hadToken = !!getToken();
+  if (hadToken && !retried) await ensureFreshAccessToken();
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
@@ -99,9 +104,21 @@ async function request<T>(method: string, path: string, body?: any): Promise<T> 
       ...(body !== undefined ? { body: isFormData ? body : JSON.stringify(body) } : {}),
     });
     clearTimeout(timeoutId);
-    return handleResponse<T>(r);
-  } catch (error) {
+    return await handleResponse<T>(r);
+  } catch (error: any) {
     clearTimeout(timeoutId);
+    if (hadToken) {
+      if (isExpiredAuthError(error) && !retried) {
+        // One refresh for any number of concurrent 401s (single-flight in the
+        // store); then retry exactly once — no retry loops.
+        const outcome = await refreshAccessToken();
+        if (outcome === "ok") return request<T>(method, path, body, true);
+        // "invalid": the store already logged the user out. "network": keep the
+        // session and surface the original error so the caller can show retry.
+      } else if (isHardAuthError(error) || (isExpiredAuthError(error) && retried)) {
+        expireSession();
+      }
+    }
     throw error;
   }
 }
@@ -126,7 +143,7 @@ export async function PostPublic<T>(path: string, body: any): Promise<T> {
       body: JSON.stringify(body),
     });
     clearTimeout(timeoutId);
-    return handleResponse<T>(r);
+    return handleResponse<T>(r, false);
   } catch (error) {
     clearTimeout(timeoutId);
     throw error;

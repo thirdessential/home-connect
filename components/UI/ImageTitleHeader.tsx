@@ -9,6 +9,8 @@ import FormSheetModal from "../modals/FormSheetModal";
 
 interface ImageTitleHeaderProps {
   imageUri?: string;
+  /** User id for the avatar gradient (omit for non-user headers). */
+  avatarUserId?: string;
   title: string;
   subtitle?: string;
   imageSize?: number;
@@ -67,6 +69,7 @@ const areEqual = (
 const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
   ({
     imageUri,
+    avatarUserId,
     title,
     subtitle,
     isSameUser,
@@ -153,6 +156,8 @@ const ImageTitleHeader = React.memo<ImageTitleHeaderProps>(
           <View style={[styles.imageWrapper, { borderColor: onImage ? "#fff" : t.colors.border }]}>
           <CircularImage
             uri={imageUri}
+            name={avatarUserId ? title : undefined}
+            avatarUserId={avatarUserId}
             mode={imageMode}
             onChange={onImageChange}
             size={imageSize}
@@ -302,7 +307,7 @@ const styles = StyleSheet.create({
   verifiedIconWrap: { flexShrink: 0 },
   // username class styling
   username: {
-    fontWeight: "600", fontFamily: "Manrope_600SemiBold",
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 15,
     flexShrink: 1,
   },
@@ -320,7 +325,7 @@ const styles = StyleSheet.create({
   badgePillText: {
     color: "#002114",
     fontSize: 9,
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     letterSpacing: 0.5,
   },
   // text-sm text-gray-500

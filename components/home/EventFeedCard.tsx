@@ -1,3 +1,4 @@
+import UserAvatar from "@/components/UI/UserAvatar";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedItem } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
@@ -149,33 +150,16 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
         {!!item.attendees?.length && (
           <View style={styles.attendeeRow}>
             <View style={styles.avatarStack}>
-              {item.attendees.slice(0, 2).map((a, i) =>
-                a.avatarUrl ? (
-                  <Image
-                    key={a.id}
-                    source={{ uri: a.avatarUrl }}
-                    style={[
-                      styles.attendeeAvatar,
-                      { borderColor: t.colors.surface },
-                      i > 0 && styles.overlap,
-                    ]}
-                  />
-                ) : (
-                  <View
-                    key={a.id}
-                    style={[
-                      styles.attendeeAvatar,
-                      styles.attendeeFallback,
-                      { borderColor: t.colors.surface, backgroundColor: t.colors.brand },
-                      i > 0 && styles.overlap,
-                    ]}
-                  >
-                    <Text style={[styles.attendeeInitial, { color: t.colors.onBrand }]}>
-                      {a.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                ),
-              )}
+              {item.attendees.slice(0, 2).map((a, i) => (
+                <UserAvatar
+                  key={a.id}
+                  uri={a.avatarUrl}
+                  name={a.name}
+                  userId={a.userId}
+                  size={24}
+                  style={[{ borderWidth: 2, borderColor: t.colors.surface }, i > 0 && styles.overlap]}
+                />
+              ))}
             </View>
             <Text
               style={[styles.attendeeText, { color: t.colors.textSecondary }]}
@@ -255,7 +239,7 @@ const styles = StyleSheet.create({
   heroImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   heroFallbackIcon: { alignItems: "center", justifyContent: "center" },
   heroInner: { ...StyleSheet.absoluteFill, padding: 16, justifyContent: "space-between" },
-  heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "700", fontFamily: "Manrope_700Bold", lineHeight: 28, letterSpacing: -0.4 },
+  heroTitle: { color: "#FFFFFF", fontSize: 20,  fontFamily: "Manrope_700Bold", lineHeight: 28 },
   categoryPill: {
     alignSelf: "flex-start",
     marginTop: 8,
@@ -264,23 +248,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  categoryText: { fontSize: 14, fontWeight: "600", fontFamily: "Manrope_600SemiBold", color: "#ffffff", letterSpacing: -0.4 },
+  categoryText: { fontSize: 14,  fontFamily: "Manrope_600SemiBold", color: "#ffffff" },
 
   plainHeader: { paddingHorizontal: 16, paddingTop: 16 },
   body: { padding: 16, gap: 14 },
-  plainTitle: { fontSize: 20, fontWeight: "700", fontFamily: "Manrope_700Bold", lineHeight: 28, letterSpacing: -0.4 },
+  plainTitle: { fontSize: 20, fontFamily: "Manrope_700Bold", lineHeight: 28 },
 
   metaRow: { flexDirection: "row", flexWrap: "wrap", rowGap: 6, columnGap: 16 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
-  metaText: { fontSize: 13, fontFamily: "Manrope_400Regular" ,lineHeight: 16, letterSpacing: -0.4 },
+  metaText: { fontSize: 13, fontFamily: "Manrope_400Regular" ,lineHeight: 16 },
 
-  description: { fontSize: 14, fontFamily: "Manrope_400Regular", lineHeight: 20, letterSpacing: -0.4 },
+  description: { fontSize: 14, fontFamily: "Manrope_400Regular", lineHeight: 20 },
 
   progressBlock: { gap: 8 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  spotsText: { fontSize: 12, fontFamily: "Manrope_400Regular", lineHeight: 16, letterSpacing: -0.4 },
-  spotsCount: { fontSize: 14, fontFamily: "Manrope_700Bold", letterSpacing: -0.4 },
-  progressHint: { fontSize: 12, fontFamily: "Manrope_400Regular",  flexShrink: 1, textAlign: "right", letterSpacing: -0.4 },
+  spotsText: { fontSize: 12, fontFamily: "Manrope_400Regular", lineHeight: 16 },
+  spotsCount: { fontSize: 14, fontFamily: "Manrope_700Bold" },
+  progressHint: { fontSize: 12, fontFamily: "Manrope_400Regular",  flexShrink: 1, textAlign: "right" },
   track: { width: "100%", height: 8, borderRadius: 999, overflow: "hidden" },
   fill: { height: 8, borderRadius: 999 },
 
@@ -288,10 +272,10 @@ const styles = StyleSheet.create({
   avatarStack: { flexDirection: "row" },
   attendeeAvatar: { width: 24, height: 24, borderRadius: 12, borderWidth: 2 },
   attendeeFallback: { alignItems: "center", justifyContent: "center" },
-  attendeeInitial: { fontSize: 12, fontWeight: "700", fontFamily: "Manrope_700Bold", letterSpacing: -0.4 },
+  attendeeInitial: { fontSize: 12,  fontFamily: "Manrope_700Bold" },
   overlap: { marginLeft: -8 },
-  attendeeText: { flex: 1, fontSize: 12, fontFamily: "Manrope_500Medium", lineHeight: 16, letterSpacing: -0.4 },
-  seeAll: { fontSize: 12,  fontFamily: "Manrope_600SemiBold", letterSpacing: -0.4 },
+  attendeeText: { flex: 1, fontSize: 12, fontFamily: "Manrope_500Medium", lineHeight: 16 },
+  seeAll: { fontSize: 12,  fontFamily: "Manrope_600SemiBold" },
 
   cta: {
     height: 45,
@@ -301,7 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  ctaText: { fontSize: 18,  fontFamily: "Manrope_600SemiBold", letterSpacing: -0.4 },
+  ctaText: { fontSize: 18,  fontFamily: "Manrope_600SemiBold" },
 
   footer: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1 },
 });

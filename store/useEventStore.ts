@@ -16,7 +16,7 @@ import {
 } from "@/types/event.type";
 import { create } from "zustand";
 
-type EventImageFile = { uri: string; name: string; type: string } | null;
+type EventImageFile = { uri: string; name: string; type: string }[];
 
 async function createEventMultipart(
   payload: CreateEventPayload,
@@ -27,9 +27,7 @@ async function createEventMultipart(
   Object.entries(payload).forEach(([k, v]) => {
     if (v !== undefined && v !== null) form.append(k, String(v));
   });
-  if (image) {
-    form.append("eventimage", { uri: image.uri, name: image.name, type: image.type } as any);
-  }
+  image.forEach((f) => form.append("eventimage", { uri: f.uri, name: f.name, type: f.type } as any));
   const r = await fetch(`${API_BASE}/api/events`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -62,6 +60,13 @@ type Actions = {
   createEvent: (payload: CreateEventPayload, image: EventImageFile) => Promise<EventDetail>;
   getEvent: (eventId: number | string) => Promise<EventDetail>;
   getMyEvents: () => Promise<EventRecord[]>;
+  /** One page of "created" or "joined" events for a status. Stateless (does not touch myEvents). */
+  fetchEventPage: (
+    kind: "created" | "joined",
+    status: string,
+    page: number,
+    limit?: number,
+  ) => Promise<{ events: EventRecord[]; hasMore: boolean; total: number }>;
   joinEvent: (eventId: number | string) => Promise<void>;
   getParticipants: (eventId: number | string) => Promise<EventParticipant[]>;
   getCancelledParticipants: (eventId: number | string) => Promise<EventParticipant[]>;
@@ -133,6 +138,14 @@ export const useEventStore = create<State & Actions>((set) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  fetchEventPage: async (kind, status, page, limit = 10) => {
+    const path = kind === "created" ? "my-events" : "joined-events";
+    const res = await Get<{ events: EventRecord[]; hasMore?: boolean; total?: number }>(
+      `/api/events/${path}?status=${encodeURIComponent(status)}&page=${page}&limit=${limit}`,
+    );
+    return { events: res.events ?? [], hasMore: !!res.hasMore, total: res.total ?? 0 };
   },
 
   joinEvent: async (eventId) => {

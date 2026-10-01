@@ -4,7 +4,7 @@ import {
   useHomeDummyStore,
 } from "@/assets/mocks/homeDummyData";
 import { usePermissions } from "@/hooks/usePermissions";
-import { formatPostTime } from "@/lib/dateTime";
+import { formatPostTime, isEventUnjoinable } from "@/lib/dateTime";
 import { useEventStore } from "@/store/useEventStore";
 import { useFeedsStore } from "@/store/useFeedsStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -115,6 +115,7 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
       id: `${f._id}-participant-${idOf(p.userId) ?? i}-${i}`,
       name: p?.fullName || "Resident",
       avatarUrl: p?.profilePhotoUrl,
+      userId: idOf(p.userId) ?? undefined,
     })),
     isJoined: participants.some((p) => idOf(p.userId) === currentUserId),
     options: (() => {
@@ -143,6 +144,7 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
     comments: (f.comments ?? []).map((c: any, i: number) => ({
       id: String(c?._id ?? i),
       author: c?.user?.fullName || "Resident",
+      authorId: idOf(c?.user) ?? undefined,
       avatarUrl: c?.user?.profilePhotoUrl,
       text: c?.text ?? "",
       createdAt: formatPostTime(c?.createdAt ?? ""),
@@ -190,6 +192,8 @@ export function useHomeFeed(): {
         // guard below), so it's filtered out of Home rather than shown as a
         // dead card. Posts/polls are untouched.
         .filter((f) => f.type !== "event" || f.mysqlEventId != null)
+        // Cached events can outlive their registration window / start time.
+        .filter((f) => f.type !== "event" || !isEventUnjoinable(f.registrationClosesAt, f.eventStartsAt))
         .map((f) => toHomeFeedItem(f, user?._id))
         .map((item) => (isGuest ? anonymizeForGuest(item) : item)),
     [feeds, user?._id, isGuest],

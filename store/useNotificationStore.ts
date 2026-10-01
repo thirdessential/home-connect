@@ -32,8 +32,9 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
     fetchAll: async () => {
         set({ loading: true, error: null });
         try {
-            const res = await Get<{ success: boolean; notifications: any[] }>("/api/notification/user");
-            const items: AppNotification[] = (res?.notifications || []).map((n: any) => ({
+            const res = await Get<{ success: boolean; data?: { notifications: any[] }; notifications?: any[] }>("/api/notification/user");
+            const list = res?.data?.notifications ?? res?.notifications ?? [];
+            const items: AppNotification[] = list.map((n: any) => ({
                 id: String(n.id ?? n._id),
                 title: n.title ?? "Notification",
                 body: n.body ?? n.message ?? "",
@@ -44,7 +45,11 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
             const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000; // 15-day history window
             const recent = items.filter((i) => new Date(i.receivedAt).getTime() >= cutoff);
             recent.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
-            set({ items: recent, loading: false });
+            // Keep push-received items the server hasn't returned yet (fetch race);
+            // server rows win, matched by notificationId so nothing duplicates.
+            const serverIds = new Set(recent.map((i) => i.id));
+            const pending = get().items.filter((i) => !serverIds.has(i.id) && !i.id.startsWith("local-"));
+            set({ items: [...pending, ...recent], loading: false });
         } catch (err: any) {
             set({ error: err?.message || "Failed to load notifications", loading: false });
         }
@@ -52,7 +57,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
 
     add: (n) =>
         set((s) => {
-            const id = n.id ?? `local-${Date.now()}`;
+            const id = n.id ?? (n.data?.notificationId ? String(n.data.notificationId) : `local-${n.title}-${n.body}-${n.receivedAt}`);
             if (s.items.some((i) => i.id === id)) return s; // no duplicate ids
             return { items: [{ ...n, id, read: false }, ...s.items] };
         }),

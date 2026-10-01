@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12 },
   card: { padding: 12, borderRadius: 12, borderWidth: 1, gap: 4 },
   rowLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  heading: { fontSize: 15, fontWeight: "700", fontFamily: "Manrope_700Bold", marginBottom: 4 },
+  heading: { fontSize: 15, fontFamily: "Manrope_700Bold", marginBottom: 4 },
   label: { fontSize: 13 },
   actions: { gap: 10, marginTop: 8 },
 });

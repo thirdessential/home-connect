@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { formatTime12h } from "@/lib/dateTime";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 interface TimePickerFieldProps {
@@ -100,7 +101,7 @@ export const TimePickerField: React.FC<TimePickerFieldProps> = ({
     ],
   );
 
-  const displayText = value ? `${value} ⏰` : "Select time";
+  const displayText = value ? `${formatTime12h(value)} ⏰` : "Select time";
 
   // On iOS: "spinner" is the native wheel — do NOT pass textColor or
   // themeVariant alongside it, they conflict and freeze the display.
@@ -145,6 +146,7 @@ export const TimePickerField: React.FC<TimePickerFieldProps> = ({
       <DateTimePickerModal
         isVisible={pickerShow}
         mode="time"
+        is24Hour={false}
         date={dateObj}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
@@ -164,7 +166,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    fontWeight: "700", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   trigger: {

@@ -136,7 +136,7 @@ export default function ProfileScreen() {
         headerContainer: {
           borderBottomLeftRadius: 24,
           borderBottomRightRadius: 24,
-          paddingTop: Math.max(insets.top, 12) + 30,
+          paddingTop: Math.max(insets.top, 12),
           paddingBottom: 10,
           paddingHorizontal: 16,
           marginHorizontal: -16,
@@ -328,6 +328,8 @@ export default function ProfileScreen() {
           <View style={staticStyles.avatarRow}>
             <CircularImage
               uri={avatarUri ?? user?.profilePhotoUrl ?? undefined}
+              name={name}
+              avatarUserId={user?._id ?? "me"}
               mode="edit"
               onChange={onChangeAvatar}
               onBeforeOpen={() => requireVerified("action")}

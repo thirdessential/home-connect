@@ -30,14 +30,13 @@ type ImgStatus = "uploading" | "success" | "failed";
 const MAX_LEN = 300;
 
 type CreateOption = {
-  key: "post" | "event" | "poll" | "business" | "service";
+  key: "event" | "poll" | "business" | "service";
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
 };
 
 const OPTIONS: CreateOption[] = [
-  { key: "post", label: "Post", icon: "create-outline", color: "#166534" },
   { key: "event", label: "Event", icon: "calendar-outline", color: "#7C3AED" },
   { key: "poll", label: "Poll", icon: "bar-chart-outline", color: "#D97706" },
   { key: "business", label: "Business", icon: "storefront-outline", color: "#0D9488" },
@@ -60,7 +59,6 @@ export default function CreatePostScreen() {
   const createFeed = useFeedsStore((s) => s.createFeed);
   const addFeedOptimistically = useFeedsStore((s) => s.addFeedOptimistically);
 
-  const [selected, setSelected] = useState<CreateOption["key"]>("post");
   const [text, setText] = useState("");
   const [lengthError, setLengthError] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
@@ -103,8 +101,6 @@ export default function CreatePostScreen() {
 
   const handleSelectOption = useCallback(
     (key: CreateOption["key"]) => {
-      setSelected(key);
-      if (key === "post") return;
       if (key === "event") {
         router.push("/(shared)/create-event");
         return;
@@ -123,10 +119,6 @@ export default function CreatePostScreen() {
         router.push("/(shared)/create-service");
         return;
       }
-      // Business reuses the existing "How will you use the terrace?"
-      // Resident/Business onboarding flow — not rebuilt here. verify-role
-      // pre-selects "Business" for an already-Business account (via its own
-      // JWT-backed role check), so it isn't skipped here.
       router.push("/onboarding/business");
     },
     [],
@@ -198,16 +190,7 @@ export default function CreatePostScreen() {
           <Ionicons name="arrow-back" size={22} color={t.colors.textPrimary} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: t.colors.textPrimary }]}>Create Post</Text>
-        <TouchableOpacity
-          onPress={handlePost}
-          disabled={!text.trim() || submitting}
-          style={[
-            styles.postBtn,
-            { backgroundColor: t.colors.brand, opacity: !text.trim() || submitting ? 0.5 : 1 },
-          ]}
-        >
-          <Text style={styles.postBtnText}>{submitting ? "Posting…" : "Post"}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerBtn} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -221,7 +204,7 @@ export default function CreatePostScreen() {
               <Image source={{ uri: currentUser.profilePhotoUrl }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: t.colors.brandWeak }]}>
-                <Text style={{ color: t.colors.brandDark, fontWeight: "700", fontFamily: "Manrope_700Bold" }}>
+                <Text style={{ color: t.colors.brandDark, fontFamily: "Manrope_700Bold" }}>
                   {(currentUser?.fullName || "U").slice(0, 1).toUpperCase()}
                 </Text>
               </View>
@@ -315,18 +298,28 @@ export default function CreatePostScreen() {
                 </Text>
               </View>
             </View>
+
+            <TouchableOpacity
+              onPress={handlePost}
+              disabled={!text.trim() || submitting}
+              style={[
+                styles.postBtn,
+                { backgroundColor: t.colors.brand, opacity: !text.trim() || submitting ? 0.5 : 1 },
+              ]}
+            >
+              <Text style={styles.postBtnText}>{submitting ? "Posting…" : "Post"}</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.section, { backgroundColor: t.colors.surface }]}>
             <View style={styles.dividerRow}>
               <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
-              <Text style={[styles.sectionTitle, { color: t.colors.textPrimary }]}>Create Something</Text>
+              <Text style={[styles.sectionTitle, { color: t.colors.textPrimary }]}>Do more</Text>
               <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
             </View>
 
             <View style={styles.optionsGrid}>
               {OPTIONS.map((opt) => {
-                const isSelected = selected === opt.key;
                 return (
                   <TouchableOpacity
                     key={opt.key}
@@ -339,12 +332,12 @@ export default function CreatePostScreen() {
                     <Text
                       style={[
                         styles.optionLabel,
-                        { color: isSelected ? opt.color : t.colors.textPrimary },
+                        { color: t.colors.textPrimary },
                       ]}
+                      numberOfLines={1}
                     >
                       {opt.label}
                     </Text>
-                    {isSelected && <View style={[styles.optionUnderline, { backgroundColor: opt.color }]} />}
                   </TouchableOpacity>
                 );
               })}
@@ -382,13 +375,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700", fontFamily: "Manrope_700Bold" },
-  postBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  postBtnText: { color: "#fff", fontWeight: "700", fontFamily: "Manrope_700Bold", fontSize: 14 },
+  headerTitle: { fontSize: 17, fontFamily: "Manrope_700Bold" },
+  postBtn: { marginTop: 16, alignItems: "center", paddingVertical: 14, borderRadius: 12 },
+  postBtnText: { color: "#fff", fontFamily: "Manrope_700Bold", fontSize: 16 },
   userRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   avatar: { width: 48, height: 48, borderRadius: 24 },
   avatarFallback: { alignItems: "center", justifyContent: "center" },
-  userName: { fontSize: 15, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+  userName: { fontSize: 15, fontFamily: "Manrope_700Bold" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
   locationText: { fontSize: 12, flexShrink: 1 },
   composer: { borderWidth: 1, borderRadius: 16, padding: 16, minHeight: 220 },
@@ -408,7 +401,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  retryText: { color: "#fff", fontSize: 12, fontWeight: "600", fontFamily: "Manrope_600SemiBold", marginTop: 4 },
+  retryText: { color: "#fff", fontSize: 12, fontFamily: "Manrope_600SemiBold", marginTop: 4 },
   removeImageBtn: { position: "absolute", top: 8, right: 8 },
   composerFooter: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginTop: 12 },
   composerActions: { flexDirection: "row", gap: 8 },
@@ -421,18 +414,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  chipText: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
+  chipText: { fontSize: 13, fontFamily: "Manrope_600SemiBold" },
   counter: { fontSize: 12 },
   section: { paddingVertical: 20, paddingHorizontal: 16 },
   dividerRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   divider: { flex: 1, height: 1 },
-  sectionTitle: { fontSize: 14, fontWeight: "700", fontFamily: "Manrope_700Bold", paddingHorizontal: 12 },
-  optionsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-around" },
-  optionItem: { width: "30%", alignItems: "center", gap: 6, marginBottom: 16 },
+  sectionTitle: { fontSize: 14, fontFamily: "Manrope_700Bold", paddingHorizontal: 12 },
+  optionsGrid: { flexDirection: "row", justifyContent: "space-between" },
+  optionItem: { flex: 1, alignItems: "center", gap: 6, marginBottom: 16 },
   optionCircle: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center" },
-  optionLabel: { fontSize: 13, fontWeight: "600", fontFamily: "Manrope_600SemiBold" },
-  optionUnderline: { width: 28, height: 2, borderRadius: 1, marginTop: 2 },
+  optionLabel: { fontSize: 13, fontFamily: "Manrope_600SemiBold" },
   banner: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 14, padding: 14 },
-  bannerTitle: { fontSize: 13, fontWeight: "700", fontFamily: "Manrope_700Bold" },
+  bannerTitle: { fontSize: 13, fontFamily: "Manrope_700Bold" },
   bannerSubtitle: { fontSize: 11, marginTop: 2 },
 });
