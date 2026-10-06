@@ -37,7 +37,13 @@ const BusinessCardItem = memo(
         <Pressable onPress={handlePress}>
           <View style={styles.cardTop}>
             <View style={[styles.logo, { backgroundColor: theme.colors.brandWeak }]}>
-              <CircularImage uri={business.image} size={44} mode="view" />
+              <CircularImage
+                uri={business.image ?? business.profilePhotoUrl ?? business.logo_url}
+                name={business.title}
+                avatarUserId={String(business._id ?? business.title ?? "")}
+                size={44}
+                mode="view"
+              />
             </View>
             <View style={styles.infoContainer}>
               <View style={styles.headingRow}>
@@ -88,6 +94,7 @@ const BusinessCardItem = memo(
       prevProps.business.title === nextProps.business.title &&
       prevProps.business.category === nextProps.business.category &&
       prevProps.business.image === nextProps.business.image &&
+      prevProps.business.profilePhotoUrl === nextProps.business.profilePhotoUrl &&
       prevProps.theme === nextProps.theme &&
       prevProps.onPress === nextProps.onPress
     );

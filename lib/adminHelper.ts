@@ -115,9 +115,12 @@ export const transformDataForDisplay = (
             isVerified: status === "approved",
             proofType: "View Document",
             status: status,
+            // MySQL resident requests expose the designated profile photo as
+            // `profile_image` (users.profile_photo_url) — never the proof/selfie.
             avatar:
                 profilePhotoUrl ||
-                fullName?.substring(0, 2).toUpperCase() ||
+                item.profile_image ||
+                (fullName || name)?.substring(0, 2).toUpperCase() ||
                 "US",
             // Passed through only when the API actually returns them — never fabricated.
             phone,
@@ -150,7 +153,9 @@ export const transformDataForDisplay = (
             subtext: society?.name || "Unknown Society",
             proofType: "View Document",
             status: status,
-            avatar: images?.[0] || "BU",
+            // Business identity = its logo (MySQL registrations: `profilePhotoUrl`
+            // is the logo); initials only when neither exists.
+            avatar: images?.[0] || profilePhotoUrl || "BU",
             ownerId: typeof userId === "object" ? userId?._id : userId,
             // MySQL business registrations carry these; Mongo ones leave them undefined.
             source: item.source,

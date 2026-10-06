@@ -1,3 +1,4 @@
+import VerificationRouteGuard from "@/components/verification/VerificationRouteGuard";
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import RoleUsageStep, { UsageRole } from "@/components/onboarding/RoleUsageStep";
@@ -10,7 +11,7 @@ import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function VerifyRoleScreen() {
+function VerifyRoleScreen() {
   // Role comes from the authenticated session, never from UI/client input.
   const { hasRole } = usePermissions();
   const isBusinessUser = hasRole(UserRole.BUSINESS);
@@ -105,3 +106,11 @@ const styles = StyleSheet.create({
     marginLeft: getWidth(8),
   },
 });
+
+export default function VerifyRoleScreenGuarded() {
+  return (
+    <VerificationRouteGuard>
+      <VerifyRoleScreen />
+    </VerificationRouteGuard>
+  );
+}

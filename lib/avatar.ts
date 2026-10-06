@@ -1,12 +1,21 @@
 // Deterministic user-avatar helpers: initials + a stable gradient per user.
 
-/** "Dummy" -> "DU", "Dummy Tester" -> "DT", extra spaces/empty -> "U". */
+/**
+ * Initials from a display name — the single shared rule.
+ * 2+ words -> first letter of first + last word ("Amit Kumar Sharma" -> "AS");
+ * 1 word -> one letter ("hello" -> "H"); extra spaces ignored.
+ * Returns "" when there is no usable name, so callers show the generic default avatar.
+ */
 export const getAvatarInitials = (name?: string | null): string => {
-  const words = (typeof name === "string" ? name : "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return "U";
   const chars = (w: string) => Array.from(w); // safe for non-BMP characters
-  if (words.length === 1) return chars(words[0]).slice(0, 2).join("").toUpperCase() || "U";
-  return (chars(words[0])[0] + chars(words[1])[0]).toUpperCase() || "U";
+  const words = (typeof name === "string" ? name : "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => /[\p{L}\p{N}]/u.test(w));
+  if (!words.length) return "";
+  const lead = (w: string) => (chars(w.replace(/^[^\p{L}\p{N}]+/u, ""))[0] ?? "").toUpperCase();
+  if (words.length === 1) return lead(words[0]);
+  return lead(words[0]) + lead(words[words.length - 1]);
 };
 
 // All pairs keep white text at >= ~4:1 contrast (mid/dark tones only).

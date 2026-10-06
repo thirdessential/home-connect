@@ -192,14 +192,19 @@ export default function ProfileScreen() {
     [updateUser, updateUserField, user?._id, user?.profilePhotoUrl],
   );
 
-  // Narrow dep: only fullName + role changes should recompute
+  // A real name (from the backend user row — set by a submitted resident
+  // verification or the profile) always wins; role-based labels are only the
+  // fallback when no name exists, so a pending/rejected guest-role user with a
+  // submitted name never shows "Guest".
   const name = useMemo(() => {
     if (!user) return "";
-    if (hasRole(UserRole.BUSINESS)) return user.fullName || "Business User";
-    if (hasRole(UserRole.ADMIN)) return user.fullName || "Admin";
-    if (hasRole(UserRole.RESIDENT)) return user.fullName || "Resident";
+    const real = user.fullName?.trim();
+    if (real) return real;
+    if (hasRole(UserRole.BUSINESS)) return "Business User";
+    if (hasRole(UserRole.ADMIN)) return "Admin";
+    if (hasRole(UserRole.RESIDENT)) return "Resident";
     if (hasRole(UserRole.GUEST)) return "Guest";
-    return user.fullName || "User";
+    return "User";
   }, [user?.fullName, hasRole]);
 
   // Trivial derivations — useMemo overhead exceeds savings, derive directly

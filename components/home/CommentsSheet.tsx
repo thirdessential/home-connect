@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   initial: { fontSize: 12, fontFamily: "Manrope_700Bold" },
   commentBody: { flex: 1 },
   author: { fontSize: 13, fontFamily: "Manrope_600SemiBold" },
-  time: { fontSize: 11, fontWeight: "400", fontFamily: "Manrope_400Regular" },
+  time: { fontSize: 11, fontFamily: "Manrope_400Regular" },
   text: { fontSize: 13, lineHeight: 19, marginTop: 2 },
   // FormSheetModal's footer slot already supplies the top border + spacing
   // above this (footerContainer), so this only needs the row layout.

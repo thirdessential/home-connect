@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   pageHeading: {
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     fontSize: 24,
     padding: 16,
   },

@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: "#fff",
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     fontSize: 18,
   },
 });

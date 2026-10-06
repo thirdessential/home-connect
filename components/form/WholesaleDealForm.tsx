@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     color: "#6B7280",
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     fontSize: 15,
   },
   activeCircleText: {

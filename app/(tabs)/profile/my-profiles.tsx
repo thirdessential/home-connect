@@ -4,6 +4,7 @@
 // account creation or management (derived from the authenticated user's own
 // roles — never a client-only flag), and Delete Account.
 
+import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { Card } from "@/components/UI/Card";
 import TitleHeader from "@/components/UI/TitleHeader";
 import { useToast } from "@/components/common/Toast";
@@ -160,7 +161,14 @@ export default function MyProfilesScreen() {
 
   // Reuse the existing verification/business-onboarding flows verbatim —
   // same routes VerificationGateModal/HomeScreen already push to.
-  const goCreateResident = useCallback(() => router.push("/onboarding/verify-role"), []);
+  const { isVerificationPending } = useVerificationStatus();
+  const goCreateResident = useCallback(() => {
+    if (isVerificationPending) {
+      showToast("Verification Pending — your request is waiting for admin approval.", "info");
+      return;
+    }
+    router.push("/onboarding/verify-role");
+  }, [isVerificationPending, showToast]);
   const goCreateBusiness = useCallback(() => {
     if (isBusinessPending) {
       showToast("Your business account is under verification. Please wait.", "info");
@@ -188,7 +196,7 @@ export default function MyProfilesScreen() {
     if (hasResident) {
       items.push({ key: "manage-resident", label: "Manage Your Resident Account", icon: "home-outline", onPress: openManageResident });
     } else {
-      items.push({ key: "create-resident", label: "Create Your Resident Account", icon: "home-outline", onPress: goCreateResident });
+      items.push({ key: "create-resident", label: isVerificationPending ? "Verification Pending" : "Create Your Resident Account", icon: "home-outline", onPress: goCreateResident });
     }
     if (hasBusiness) {
       items.push({ key: "manage-business", label: "Manage Your Business Account", icon: "storefront-outline", onPress: goManageBusiness });
@@ -196,7 +204,7 @@ export default function MyProfilesScreen() {
       items.push({ key: "create-business", label: "Create Your Business Account", icon: "storefront-outline", onPress: goCreateBusiness });
     }
     return items;
-  }, [hasResident, hasBusiness, openPersonalProfile, openEditProfile, openManageResident, goManageBusiness, goCreateBusiness, goCreateResident]);
+  }, [hasResident, hasBusiness, isVerificationPending, openPersonalProfile, openEditProfile, openManageResident, goManageBusiness, goCreateBusiness, goCreateResident]);
 
   return (
     <View style={[styles.container, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>

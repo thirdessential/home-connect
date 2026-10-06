@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   },
   eventPrice: {
     fontSize: 20,
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   eventGoal: {
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 4,
   },
   statDescription: {
@@ -1278,7 +1278,7 @@ const styles = StyleSheet.create({
   },
   messageTitle: {
     fontSize: 24,
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 8,
   },
   messageText: {

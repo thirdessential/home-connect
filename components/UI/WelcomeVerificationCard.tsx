@@ -24,10 +24,10 @@ const WelcomeVerificationCard = memo(() => {
 
       <View style={styles.body}>
         <Text style={[styles.title, { color: t.colors.text }]} numberOfLines={1}>
-          Verification Pending
+          Verification Required
         </Text>
         <Text style={[styles.description, { color: t.colors.secondaryText }]} numberOfLines={2}>
-          Your profile verification is still pending. Complete the required verification to
+          Your profile is not verified yet. Complete the required verification to
           unlock all Home Connect features.
         </Text>
 

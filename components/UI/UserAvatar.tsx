@@ -1,5 +1,6 @@
 import { buildImageUrl } from "@/lib/imageUtils";
 import { getAvatarGradient, getAvatarInitials } from "@/lib/avatar";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useEffect, useState } from "react";
@@ -34,6 +35,16 @@ function UserAvatar({ uri, name, userId, size = 40, style }: Props) {
     );
   }
 
+  const initials = getAvatarInitials(name);
+  // No usable name: the existing generic default avatar (never random initials).
+  if (!initials) {
+    return (
+      <View style={[base, { alignItems: "center", justifyContent: "center", backgroundColor: "#e5e7eb" }, style]}>
+        <Ionicons name="person-circle-outline" size={size * 0.9} color="#999" />
+      </View>
+    );
+  }
+
   const [c1, c2] = getAvatarGradient(userId || name);
   return (
     <LinearGradient
@@ -56,7 +67,7 @@ function UserAvatar({ uri, name, userId, size = 40, style }: Props) {
           textShadowRadius: 2,
         }}
       >
-        {getAvatarInitials(name)}
+        {initials}
       </Text>
     </LinearGradient>
   );

@@ -1,3 +1,4 @@
+import VerificationRouteGuard from "@/components/verification/VerificationRouteGuard";
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import { useToast } from "@/components/common/Toast";
@@ -164,7 +165,7 @@ const toDisplayUrl = (p?: string | null) => buildImageUrl(p) ?? null;
 
 const isRemote = (uri: string) => uri.startsWith("http") || uri.startsWith("/uploads");
 
-export default function BusinessWizard() {
+function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
   const { showToast } = useToast();
   const s = useBusinessRegistrationStore();
   const user = useUserStore((st) => st.user);
@@ -571,7 +572,11 @@ export default function BusinessWizard() {
   const handleSubmit = async () => {
     try {
       await s.submit();
+      onSubmitted(); // lets this session's success screen through the pending guard
       setStep(7);
+      // Pull the backend state so Home/Profile switch to "Verification Pending" at once.
+      const uid = useUserStore.getState().user?._id;
+      if (uid) useUserStore.getState().fetchUser(uid).catch(() => {});
     } catch (e: any) {
       if (Array.isArray(e?.body?.missing_fields)) {
         showToast(`Missing: ${e.body.missing_fields.join(", ")}`, "error");
@@ -951,3 +956,13 @@ const phoneStyles = StyleSheet.create({
     height: "100%",
   },
 });
+
+export default function BusinessWizardScreen() {
+  const [submittedHere, setSubmittedHere] = useState(false);
+  const onSubmitted = useCallback(() => setSubmittedHere(true), []);
+  return (
+    <VerificationRouteGuard bypass={submittedHere}>
+      <BusinessWizard onSubmitted={onSubmitted} />
+    </VerificationRouteGuard>
+  );
+}

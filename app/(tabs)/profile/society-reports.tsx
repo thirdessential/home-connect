@@ -7,7 +7,8 @@ import Skeleton from "@/components/UI/Skeleton";
 import TitleHeader from "@/components/UI/TitleHeader";
 import { Get } from "@/lib/httpMethods";
 import { useTheme } from "@/theme/theme";
-import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,6 +37,10 @@ type AdminReport = {
 export default function SocietyReportsScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  // The dashboard passes the selected society; the backend re-checks that the
+  // caller may administer it (403 otherwise) and, for a society admin, always
+  // limits the queue to their own society regardless of this param.
+  const { societyId } = useLocalSearchParams<{ societyId?: string }>();
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +53,7 @@ export default function SocietyReportsScreen() {
     try {
       // Real shape: { success, data: { reports: [...], pagination: { page, totalPages } } }
       const res = await Get<{ success: boolean; data: { reports: AdminReport[]; pagination: { page: number; totalPages: number } } }>(
-        `/api/admin/reports?page=${pageToLoad}&limit=20`,
+        `/api/admin/reports?page=${pageToLoad}&limit=20${societyId ? `&societyId=${encodeURIComponent(String(societyId))}` : ""}`,
       );
       const rows = res?.data?.reports ?? [];
       setReports((prev) => (pageToLoad > 1 ? [...prev, ...rows] : rows));
@@ -59,7 +64,7 @@ export default function SocietyReportsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [societyId]);
 
   useEffect(() => {
     load(1);
@@ -68,6 +73,15 @@ export default function SocietyReportsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
       <TitleHeader title="Society Reports" onBackPress={() => router.back()} />
+      <TouchableOpacity
+        onPress={() => router.back()}
+        hitSlop={8}
+        accessibilityRole="button"
+        style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingVertical: 10, alignSelf: "flex-start" }}
+      >
+        <Ionicons name="arrow-back" size={16} color={t.colors.brandDark ?? t.colors.primary} />
+        <Text style={{ fontSize: 14.5, fontFamily: "Manrope_700Bold", color: t.colors.brandDark ?? t.colors.primary }}>Back to Dashboard</Text>
+      </TouchableOpacity>
       {loading && reports.length === 0 ? (
         <View style={styles.skeletons}>
           {[0, 1, 2].map((i) => (

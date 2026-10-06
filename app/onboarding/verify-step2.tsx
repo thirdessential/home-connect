@@ -1,3 +1,4 @@
+import VerificationRouteGuard from "@/components/verification/VerificationRouteGuard";
 // import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import ResidentProofStep, { ResidentProofResult } from "@/components/onboarding/ResidentProofStep";
@@ -13,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type OwnerOrTenant = "owner" | "tenant";
 
-export default function VerifyStep2Screen() {
+function VerifyStep2Screen() {
   const { fullName, email, towerId, flatNo } = useLocalSearchParams<{
     role?: string;
     fullName?: string;
@@ -149,3 +150,11 @@ const styles = StyleSheet.create({
   ownerOptionText: { fontSize: getWidth(15), fontFamily: "Manrope_600SemiBold", color: TERRACE_COLORS.textMuted },
   ownerOptionTextSelected: { color: TERRACE_COLORS.orange },
 });
+
+export default function VerifyStep2ScreenGuarded() {
+  return (
+    <VerificationRouteGuard>
+      <VerifyStep2Screen />
+    </VerificationRouteGuard>
+  );
+}

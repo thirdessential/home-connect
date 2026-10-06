@@ -805,7 +805,7 @@ export default function ServiceForm({ onSubmit, showStepper = true }: ServiceFor
 const styles = StyleSheet.create({
   header: {
     fontSize: 20,
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginBottom: 24,
     textAlign: "center",
     color: "#22223B",

@@ -644,7 +644,7 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
         >
           <View style={styles.unverifiedModalBody}>
             <Text style={[t.typography.body, styles.unverifiedModalText, { color: t.colors.textSecondary }]}>
-              Your account is currently under review by the admin. You&apos;ll be able to join deals
+              Your account is currently under review by the admin. {"You'll"} be able to join deals
               and events once your verification is approved.
             </Text>
             <ActionButton

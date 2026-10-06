@@ -1,3 +1,4 @@
+import { useVerificationStatus, VERIFICATION_PENDING_MESSAGE, VERIFICATION_PENDING_TITLE } from "@/hooks/useVerificationStatus";
 import { useTheme } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -17,6 +18,7 @@ const VerificationGateModal = memo(function VerificationGateModal({
   mode?: "action" | "page";
 }) {
   const t = useTheme();
+  const { isVerificationPending } = useVerificationStatus();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -26,25 +28,37 @@ const VerificationGateModal = memo(function VerificationGateModal({
           <View style={[styles.iconWrap, { backgroundColor: t.colors.brandWeak }]}>
             <Ionicons name="shield-checkmark-outline" size={26} color={t.colors.brandDark} />
           </View>
-          <Text style={[styles.title, { color: t.colors.text }]}>Please verify your account</Text>
+          <Text style={[styles.title, { color: t.colors.text }]}>
+            {isVerificationPending ? VERIFICATION_PENDING_TITLE : "Please verify your account"}
+          </Text>
           <Text style={[styles.message, { color: t.colors.secondaryText }]}>
-            {mode === "page"
-              ? "Please verify your account before you can access this page."
-              : "Please verify your account before you can use this feature."}
+            {isVerificationPending
+              ? VERIFICATION_PENDING_MESSAGE
+              : mode === "page"
+                ? "Please verify your account before you can access this page."
+                : "Please verify your account before you can use this feature."}
           </Text>
 
-          <Pressable
-            style={[styles.cta, { backgroundColor: t.colors.brandDark }]}
-            onPress={() => {
-              onClose();
-              router.push("/onboarding/verify-role");
-            }}
-          >
-            <Text style={styles.ctaText}>Verify Account</Text>
-          </Pressable>
-          <Pressable onPress={onClose} hitSlop={8} style={styles.dismiss}>
-            <Text style={[styles.dismissText, { color: t.colors.secondaryText }]}>Not now</Text>
-          </Pressable>
+          {isVerificationPending ? (
+            <Pressable style={[styles.cta, { backgroundColor: t.colors.brandDark }]} onPress={onClose}>
+              <Text style={styles.ctaText}>Got it</Text>
+            </Pressable>
+          ) : (
+            <>
+              <Pressable
+                style={[styles.cta, { backgroundColor: t.colors.brandDark }]}
+                onPress={() => {
+                  onClose();
+                  router.push("/onboarding/verify-role");
+                }}
+              >
+                <Text style={styles.ctaText}>Verify Account</Text>
+              </Pressable>
+              <Pressable onPress={onClose} hitSlop={8} style={styles.dismiss}>
+                <Text style={[styles.dismissText, { color: t.colors.secondaryText }]}>Not now</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
     </Modal>

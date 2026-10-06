@@ -106,6 +106,6 @@ const styles = StyleSheet.create({
   // shorter title/caption doesn't leave its card shorter than a sibling
   // whose text actually wraps.
   title: { fontSize: 14, lineHeight: 18, minHeight: 36, fontFamily: "Manrope_600SemiBold", marginTop: 2 },
-  value: { fontSize: 26, lineHeight: 30, fontWeight: "800", fontFamily: "Manrope_800ExtraBold", letterSpacing: -0.5 },
+  value: { fontSize: 26, lineHeight: 30, fontFamily: "Manrope_800ExtraBold", letterSpacing: -0.5 },
   caption: { fontSize: 12, lineHeight: 16, minHeight: 32, marginTop: 2 },
 });

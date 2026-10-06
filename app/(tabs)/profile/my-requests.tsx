@@ -481,7 +481,7 @@ export default function MyRequestsScreen() {
       }}
     >
       <View style={{}}>
-        <Text style={{ fontWeight: "bold", fontFamily: "Manrope_700Bold", fontSize: 24, padding: 16 }}>
+        <Text style={{ fontFamily: "Manrope_700Bold", fontSize: 24, padding: 16 }}>
           My Requests
         </Text>
       </View>

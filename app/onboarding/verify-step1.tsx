@@ -1,3 +1,4 @@
+import VerificationRouteGuard from "@/components/verification/VerificationRouteGuard";
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import ActionButton from "@/components/inputs/ActionButton";
@@ -16,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const STEPS = ["Basic Details", "Verification", "Review"];
 
-export default function VerifyStep1Screen() {
+function VerifyStep1Screen() {
   const { role, mode } = useLocalSearchParams<{ role?: string; mode?: string }>();
   const isEdit = mode === "edit";
   const towerList = useSocietyStore((s) => s.towerList);
@@ -278,3 +279,11 @@ const styles = StyleSheet.create({
     marginTop: getHeight(14),
   },
 });
+
+export default function VerifyStep1ScreenGuarded() {
+  return (
+    <VerificationRouteGuard>
+      <VerifyStep1Screen />
+    </VerificationRouteGuard>
+  );
+}

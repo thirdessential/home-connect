@@ -391,12 +391,16 @@ function HomeScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.lockStripTitle, { color: t.colors.textPrimary }]}>
                 {pendingReview || hasPendingBusiness
-                  ? "Your request is pending admin approval."
+                  ? "Verification Pending"
                   : "Verification is required to interact and access all features."}
               </Text>
               <Text style={[styles.lockStripSubtitle, { color: t.colors.textSecondary }]}>
-                Your community. Your safety.
+                {pendingReview || hasPendingBusiness
+                  ? "Your verification request has been submitted and is waiting for admin approval."
+                  : "Your community. Your safety."}
               </Text>
+              {/* Verify Now only exists while nothing has been submitted (or after a rejection). */}
+              {!(pendingReview || hasPendingBusiness) && (
               <View style={styles.fabWr}> 
               <TouchableOpacity
                 style={[styles.fab, { backgroundColor: t.colors.brand }]}
@@ -407,6 +411,7 @@ function HomeScreen() {
                 <Text style={[styles.fabLabel, { color: t.colors.onBrand }]}>Verify Now</Text>
               </TouchableOpacity>
               </View>
+              )}
             </View>
           </View>
         </>

@@ -58,15 +58,15 @@ export type Typography = {
     h4: { fontSize: number; lineHeight: number; fontFamily?: string };
     h5: { fontSize: number; lineHeight: number; fontFamily?: string };
     h6: { fontSize: number; lineHeight: number; fontFamily?: string };
-    button1: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
-    buttonText: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
-    body: { fontSize: number; lineHeight: number; fontWeight: '400' | '500', color?: string };
-    bodySmall: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
-    small: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
-    text: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
-    label: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
-    caption: { fontSize: number; lineHeight: number; fontWeight: '400' | '500' };
-    iconText: { fontSize: number; lineHeight: number; fontWeight: '600' | '500' };
+    button1: { fontSize: number; lineHeight: number;  };
+    buttonText: { fontSize: number; lineHeight: number;  };
+    body: { fontSize: number; lineHeight: number; color?: string };
+    bodySmall: { fontSize: number; lineHeight: number;  };
+    small: { fontSize: number; lineHeight: number;  };
+    text: { fontSize: number; lineHeight: number;  };
+    label: { fontSize: number; lineHeight: number;  };
+    caption: { fontSize: number; lineHeight: number;  };
+    iconText: { fontSize: number; lineHeight: number;  };
     fontFamily?: string; // Add font family support
 };
 

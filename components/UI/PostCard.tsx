@@ -391,7 +391,7 @@ const PostCard = React.memo(function PostCard({
                 textAlign: "center",
               }}
             >
-              Your account is currently under review by the admin. You&apos;ll
+              Your account is currently under review by the admin. {"You'll"}
               be able to like and comment once your verification is approved.
             </Text>
             <TouchableOpacity

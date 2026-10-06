@@ -1,4 +1,4 @@
-import { Get, Patch, Post } from "@/lib/httpMethods";
+import { Delete, Get, Patch, Post } from "@/lib/httpMethods";
 import { ReportItem } from "@/types/business.type";
 import { create } from "zustand";
 import { User } from "./auth.type";
@@ -252,6 +252,28 @@ const initialReportedContent: ReportedContent = {
     totalCount: 0,
 };
 
+// ─── Society admin management (Super Admin) ───────────────────────────────
+
+export interface SocietyAdmin {
+    user_id: string;
+    name: string;
+    profile_image?: string | null;
+    phone?: string | null;
+    flat_no?: string | null;
+    tower?: string | null;
+    admin_since?: string | null;
+    status: string;
+}
+
+export interface EligibleResident {
+    user_id: string;
+    name: string;
+    profile_image?: string | null;
+    phone?: string | null;
+    flat_no?: string | null;
+    tower?: string | null;
+}
+
 export interface AdminStore {
     // ── State ──────────────────────────────────────────────────────────────
     reportedContent: ReportedContent;
@@ -276,7 +298,7 @@ export interface AdminStore {
     getAllReportedContent: (societyId: string) => Promise<void>;
 
     /** Fetch just the total count of the unified report queue, for the dashboard stats card. */
-    getReportsCount: () => Promise<void>;
+    getReportsCount: (societyId?: string) => Promise<void>;
 
     /** Fetch all pending approval requests for a specific society */
     getAllPendingContent: (societyId: string) => Promise<void>;
@@ -288,6 +310,15 @@ export interface AdminStore {
     approveResident: (userId: string | number) => Promise<void>;
     /** Reject a resident verification (requires a reason). */
     rejectResident: (userId: string | number, reason: string) => Promise<void>;
+
+    /** Super Admin: list admins of a society. */
+    getSocietyAdmins: (societyId: string) => Promise<SocietyAdmin[]>;
+    /** Super Admin: residents of the society that can be promoted. */
+    getEligibleResidents: (societyId: string, search?: string) => Promise<EligibleResident[]>;
+    /** Super Admin: make a resident a Society Admin (throws with the backend message on failure). */
+    makeSocietyAdmin: (societyId: string, userId: string) => Promise<void>;
+    /** Super Admin: remove Society Admin access (the user stays a resident). */
+    removeSocietyAdmin: (societyId: string, userId: string) => Promise<void>;
 
     /** Fetch all approved content for a specific society */
     getAllApprovedContent: (societyId: string) => Promise<void>;
@@ -332,11 +363,11 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
 
     // ── Actions ──────────────────────────────────────────────────────────────
 
-    getReportsCount: async () => {
+    getReportsCount: async (societyId?: string) => {
         set({ reportsCountLoading: true });
         try {
             const response = await Get<{ success: boolean; data: { pagination: { total: number } } }>(
-                `/api/admin/reports?page=1&limit=1`,
+                `/api/admin/reports?page=1&limit=1${societyId ? `&societyId=${encodeURIComponent(societyId)}` : ""}`,
             );
             if (response?.success && response.data) {
                 set({ reportsCount: response.data.pagination?.total ?? 0, reportsCountLoading: false });
@@ -392,6 +423,29 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
         await Patch(`/api/admin/business/${businessId}/reject`, {
             rejection_reason: reason,
         });
+    },
+
+    getSocietyAdmins: async (societyId) => {
+        const res = await Get<{ success: boolean; data: { admins: SocietyAdmin[] } }>(
+            `/api/admin/societies/${societyId}/admins`,
+        );
+        return res?.data?.admins ?? [];
+    },
+
+    getEligibleResidents: async (societyId, search) => {
+        const q = search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
+        const res = await Get<{ success: boolean; data: { residents: EligibleResident[] } }>(
+            `/api/admin/societies/${societyId}/residents${q}`,
+        );
+        return res?.data?.residents ?? [];
+    },
+
+    makeSocietyAdmin: async (societyId, userId) => {
+        await Patch(`/api/admin/societies/${societyId}/admins/${userId}`, {});
+    },
+
+    removeSocietyAdmin: async (societyId, userId) => {
+        await Delete(`/api/admin/societies/${societyId}/admins/${userId}`);
     },
 
     approveResident: async (userId) => {

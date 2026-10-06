@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   addCtaIcon: {
     fontSize: 20,
     color: "#6B7280",
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     marginTop: -2,
   },
   addCtaText: {
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FCFBF8",
   },
   pageHeading: {
-    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+    fontFamily: "Manrope_700Bold",
     fontSize: 24,
     padding: 16,
   },

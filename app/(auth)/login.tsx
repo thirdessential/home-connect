@@ -274,15 +274,14 @@ const styles = StyleSheet.create({
   headline: {
     fontSize: getWidth(27),
     lineHeight: getHeight(34),
-    fontWeight: "600",
+    
     fontFamily: manropeFamily('700'),
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
-    // marginTop: getHeight(16),
   },
   headlineAccent: {
     color: TERRACE_COLORS.orange,
-    fontWeight: "600",
+    
     fontFamily: manropeFamily('700'),
   },
   featureRow: {
@@ -306,7 +305,6 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: getWidth(15),
     // lineHeight: getHeight(15),
-    // fontWeight: "700",
     fontFamily: manropeFamily('700'),
     // marginBottom: getHeight(5),
   },
@@ -345,7 +343,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: getWidth(22),
-    // fontWeight: "700",
+    // 
     fontFamily: manropeFamily('700'),
     color: TERRACE_COLORS.textDark,
   },
@@ -381,7 +379,7 @@ const styles = StyleSheet.create({
   },
   ccText: {
     fontSize: getWidth(16),
-    // fontWeight: "700",
+    // 
     fontFamily: manropeFamily('700'),
     color: TERRACE_COLORS.textDark,
     marginRight: getWidth(4),
@@ -430,12 +428,12 @@ const styles = StyleSheet.create({
   tcText: {
     fontSize: getWidth(14),
     color: TERRACE_COLORS.textDark,
-    fontWeight: "500",
+    
     fontFamily: manropeFamily('500'),
   },
   tcLink: {
     color: TERRACE_COLORS.orange,
-    fontWeight: "600",
+    
     fontFamily: manropeFamily('700'),
     textDecorationLine: "underline",
   },

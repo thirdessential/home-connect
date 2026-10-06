@@ -269,6 +269,12 @@ export function usePushNotifications() {
       });
       // Reconcile with MySQL (source of truth) so the persisted row replaces the live one.
       void useNotificationStore.getState().fetchAll();
+      // Society-admin access granted/removed: re-read the user so roles (and the
+      // admin UI) update right away instead of waiting for the next app resume.
+      if ((n.request.content.data as Record<string, any> | undefined)?.type === "ROLE_CHANGE") {
+        const uid = useUserStore.getState().user?._id;
+        if (uid) void useUserStore.getState().fetchUser(uid);
+      }
     });
 
     // Tap (foreground, background, or cold start): record + deep-link.

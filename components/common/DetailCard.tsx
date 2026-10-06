@@ -19,14 +19,6 @@ interface DetailCardProps {
   onRequestInfo?: (id: string, type: string) => void;
 }
 
-// Two-initials fallback from the user's name: "Priya Sharma" -> "PS".
-const getInitials = (name?: string) => {
-  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "U";
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
-
 const REG_TYPE_LABELS: Record<string, string> = {
   not_registered: "Not Registered",
   gst: "GST",
@@ -126,9 +118,10 @@ const DetailCard = memo(
   }: DetailCardProps) => {
     const t = useTheme();
     const [detailsVisible, setDetailsVisible] = useState(false);
+    // Absolute URL, or a legacy local "/uploads/..." path (resolved by CircularImage).
     const hasPhoto =
-      typeof request.avatar === "string" && request.avatar.startsWith("http");
-    const initials = getInitials(request.name);
+      typeof request.avatar === "string" &&
+      (request.avatar.startsWith("http") || request.avatar.startsWith("/"));
 
     // Every document/photo the request may carry, flattened into one list —
     // drives the single "Attachments" thumbnail + "+N" row (reference UI),
@@ -198,19 +191,14 @@ const DetailCard = memo(
 
         <View style={styles.requestContent}>
           <View style={styles.requestProfile}>
-            {hasPhoto ? (
-              <CircularImage
-                uri={request.avatar}
-                mode="view"
-                onChange={(uri) => {}}
-                size={46}
-                loading={false}
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarText]}>
-                <Text style={styles.avatarLetters}>{initials}</Text>
-              </View>
-            )}
+            <CircularImage
+              uri={hasPhoto ? request.avatar : undefined}
+              name={request.name}
+              avatarUserId={String(request.id ?? request.name ?? "")}
+              mode="view"
+              size={46}
+              loading={false}
+            />
             <View style={[styles.profileInfo, { flex: 1 }]}>
               <View style={styles.nameRow}>
                 <Text

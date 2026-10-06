@@ -144,7 +144,7 @@ export default function DealsListScreen() {
                 <Text
                   style={{
                     fontSize: 18,
-                    fontWeight: "bold", fontFamily: "Manrope_700Bold",
+                    fontFamily: "Manrope_700Bold",
                     color: t.colors.textPrimary,
                     marginBottom: 6,
                   }}

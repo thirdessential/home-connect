@@ -77,6 +77,9 @@ ReasonBadge.displayName = "ReasonBadge";
 
 interface ReportedCardProps {
   avatar?: string;
+  /** Set for user/business cards so a missing image shows that user's initials. */
+  avatarName?: string;
+  avatarId?: string;
   title: string;
   subtitle?: string;
   totalReportCount: number;
@@ -89,6 +92,8 @@ interface ReportedCardProps {
 const ReportedCard = memo(
   ({
     avatar,
+    avatarName,
+    avatarId,
     title,
     subtitle,
     totalReportCount,
@@ -108,7 +113,13 @@ const ReportedCard = memo(
           onPress={() => setExpanded((p) => !p)}
         >
           <View style={styles.cardHeader}>
-            <CircularImage uri={avatar} size={44} mode="view" />
+            <CircularImage
+              uri={avatar}
+              size={44}
+              mode="view"
+              name={avatarName}
+              avatarUserId={avatarName ? avatarId || avatarName : undefined}
+            />
             <View style={styles.cardInfo}>
               <Text
                 style={[styles.cardTitle, { color: theme.colors.textPrimary }]}
@@ -256,6 +267,8 @@ const ReportedContentsView = memo(
         case "users":
           return users.items.map((u) => ({
             avatar: u.profilePhotoUrl,
+            avatarName: u.fullName,
+            avatarId: u._id,
             title: u.fullName || "Unknown User",
             subtitle: u.roles?.join(", "),
             totalReportCount: u.totalReportCount,
@@ -275,6 +288,8 @@ const ReportedContentsView = memo(
         case "businesses":
           return businesses.items.map((b) => ({
             avatar: b.profilePhotoUrl,
+            avatarName: b.title,
+            avatarId: b._id,
             title: b.title || "Unnamed Business",
             subtitle: b.category,
             totalReportCount: b.totalReportCount,
