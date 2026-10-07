@@ -140,7 +140,8 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
     votedOptionId: myVote?.optionId ?? null,
     likeCount: f.likes?.length ?? 0,
     isLiked: (f.likes ?? []).some((l: any) => idOf(l) === currentUserId),
-    commentCount: f.comments?.length ?? 0,
+    // Top-level comments only — replies are counted under their parent.
+    commentCount: (f.comments ?? []).filter((c: any) => !c?.parentCommentId).length,
     comments: (f.comments ?? []).map((c: any, i: number) => ({
       id: String(c?._id ?? i),
       author: c?.user?.fullName || "Resident",
@@ -148,6 +149,7 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
       avatarUrl: c?.user?.profilePhotoUrl,
       text: c?.text ?? "",
       createdAt: formatPostTime(c?.createdAt ?? ""),
+      parentId: c?.parentCommentId ? String(c.parentCommentId) : null,
     })),
   };
 }
@@ -237,8 +239,8 @@ export function useHomeFeed(): {
         }
         router.navigate(`/(shared)/event-details?eventId=${item.mysqlEventId}`);
       },
-      addComment: async (id, text) => {
-        if (user?._id) await addCommentApi(id, { userId: user._id, text });
+      addComment: async (id, text, parentCommentId) => {
+        if (user?._id) await addCommentApi(id, { userId: user._id, text, parentCommentId });
       },
       deleteItem: async (id) => {
         const ok = await removeFeedApi(id);

@@ -22,22 +22,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Static styles — defined once at module level, never recreated
 const staticStyles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
-  avatarRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  avatarRow: { alignItems: "center", gap: 6 },
+  nameRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 10 },
+  identity: { alignItems: "center", marginTop: 8, alignSelf: "stretch" },
+  name: { textAlign: "center" },
   cardMargin: {
-    marginTop: 16,
+    marginTop: 24,
     marginBottom: 0,
-    paddingBottom: 0,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 20,
+    borderWidth: 1,
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  logoutBtn: { borderRadius: 12, paddingVertical: 12, marginBottom: 8, fontFamily: "Manrope_500Medium" },
+  logoutBtn: { borderRadius: 16, paddingVertical: 12, marginBottom: 8, fontFamily: "Manrope_500Medium" },
   logoutSpacing: { marginTop: 20 },
   roleBadge: { paddingVertical: 4, paddingHorizontal: 10 },
-  listRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14 },
+  listRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 12 },
   listDivider: {
     position: "absolute",
     left: 0,
@@ -110,7 +115,7 @@ const ListRow = memo(function ListRowCmp({
         <View
           style={[
             staticStyles.listDivider,
-            { backgroundColor: t.colors.border, left: 70 },
+            { backgroundColor: t.colors.border, left: 66, right: 12 },
           ]}
         />
       )}
@@ -134,10 +139,8 @@ export default function ProfileScreen() {
     () =>
       StyleSheet.create({
         headerContainer: {
-          borderBottomLeftRadius: 24,
-          borderBottomRightRadius: 24,
-          paddingTop: Math.max(insets.top, 12),
-          paddingBottom: 10,
+          paddingTop: Math.max(insets.top, 12) + 8,
+          paddingBottom: 4,
           paddingHorizontal: 16,
           marginHorizontal: -16,
           marginTop: -16,
@@ -208,7 +211,17 @@ export default function ProfileScreen() {
   }, [user?.fullName, hasRole]);
 
   // Trivial derivations — useMemo overhead exceeds savings, derive directly
-  const phone = user?.phone || "N/A";
+  const phone = useMemo(() => {
+    const raw = user?.phone || "";
+    const digits = raw.replace(/\D/g, "");
+    // "+91 98765 43210" for Indian numbers; anything else is shown as stored.
+    if (digits.length >= 10) {
+      const last10 = digits.slice(-10);
+      const cc = digits.length > 10 ? `+${digits.slice(0, digits.length - 10)}` : "+91";
+      return `${cc} ${last10.slice(0, 5)} ${last10.slice(5)}`;
+    }
+    return raw || "N/A";
+  }, [user?.phone]);
 
   // Single source of truth: the backend's own isAddressVerified.status — same
   // field Home reads (see HomeScreen's userVerification). Role flags come from
@@ -338,24 +351,19 @@ export default function ProfileScreen() {
               mode="edit"
               onChange={onChangeAvatar}
               onBeforeOpen={() => requireVerified("action")}
-              size={92}
+              size={104}
               loading={false}
             />
-            <View style={staticStyles.flexOne}>
+            <View style={staticStyles.identity}>
               <Text
-                style={{ ...t.typography.h1, color: t.colors.textPrimary }}
+                style={[{ ...t.typography.h1, color: t.colors.textPrimary }, staticStyles.name]}
+                numberOfLines={1}
               >
                 {name}
               </Text>
               {phone ? (
-                <Text style={{ color: t.colors.textSecondary, marginTop: 4, fontSize: 14, fontFamily: "Manrope_500Medium" }}>
+                <Text style={{ color: t.colors.textSecondary, marginTop: 4, fontSize: 15, fontFamily: "Manrope_500Medium", textAlign: "center" }}>
                   {phone}
-                </Text>
-              ) : null}
-              {/* Render email if available on user shape */}
-              {(user as any)?.email ? (
-                <Text style={{ color: t.colors.textSecondary, marginTop: 2, fontSize: 14, fontFamily: "Manrope_500Medium" }}>
-                  {(user as any).email}
                 </Text>
               ) : null}
               {!hasRole(UserRole.GUEST) && (
@@ -377,7 +385,7 @@ export default function ProfileScreen() {
 
         {/* Quick links card */}
         {menuItems.length > 0 && (
-          <Card style={staticStyles.cardMargin}>
+          <Card style={[staticStyles.cardMargin, { borderColor: t.colors.border }]}>
             <View style={staticStyles.quickLinksInner}>
               {menuItems.map((item, index) => (
                 <ListRow

@@ -293,7 +293,11 @@ export const useFeedsStore = create<FeedsState>()(
                 try {
                     const response = await Post<{ success: boolean; comments: any[] }>(
                         `/api/feed/comment/${feedId}`,
-                        { userId: comment?.userId ?? comment?.user?._id, text: comment?.text },
+                        {
+                            userId: comment?.userId ?? comment?.user?._id,
+                            text: comment?.text,
+                            ...(comment?.parentCommentId ? { parentCommentId: comment.parentCommentId } : {}),
+                        },
                     );
                     if (response?.success) {
                         set((state) => ({

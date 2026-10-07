@@ -64,9 +64,27 @@ export default function MyProfilesScreen() {
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
   const { hasRole } = usePermissions();
-  const societyName = useSocietyStore((state) => state?.selectedSociety?.name);
-  const phone = user?.phone || "N/A";
-  const address = user?.completeAddress || societyName || "No address available";
+  const selectedSociety = useSocietyStore((state) => state?.selectedSociety);
+  const phone = user?.phone || "";
+
+  // Community residence = flat + tower + the user's own society (all from the
+  // authenticated user's backend record). The postal `completeAddress` is only
+  // a fallback when none of those exist.
+  const residence = useMemo(() => {
+    const own = user?.societyId && typeof user.societyId === "object" ? user.societyId : null;
+    const society = own?.name || user?.selected_society?.name || selectedSociety?.name || "";
+    // `tower` may be stored as the tower's id or its name — resolve to the name.
+    const rawTower = user?.tower?.trim();
+    const match = rawTower
+      ? (selectedSociety?.towers ?? []).find((tw) => tw._id === rawTower || tw.name === rawTower)
+      : undefined;
+    const tower = match?.name ?? (rawTower && !/^[0-9a-f]{24}$/i.test(rawTower) ? rawTower : "");
+    const flat = user?.flatNo?.trim() || "";
+    const towerLabel = tower ? (/^tower\b/i.test(tower) ? tower : `Tower ${tower}`) : "";
+    const unit = [flat, towerLabel].filter(Boolean).join(", ");
+    return { unit, society, postal: user?.completeAddress || "" };
+  }, [user?.societyId, user?.selected_society?.name, user?.tower, user?.flatNo, user?.completeAddress, selectedSociety]);
+  const hasResidence = !!(residence.unit || residence.society);
 
   const { showToast } = useToast();
   const hasResident = hasRole(UserRole.RESIDENT);
@@ -81,7 +99,6 @@ export default function MyProfilesScreen() {
     if (!hasBusiness) loadBusiness().catch(() => {});
   }, [hasBusiness, loadBusiness]);
 
-  const [personalProfileVisible, setPersonalProfileVisible] = useState(false);
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [manageResidentVisible, setManageResidentVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -177,7 +194,6 @@ export default function MyProfilesScreen() {
     router.push("/onboarding/business");
   }, [isBusinessPending, showToast]);
   const goManageBusiness = useCallback(() => router.push("/(shared)/businessCatalogue"), []);
-  const openPersonalProfile = useCallback(() => setPersonalProfileVisible(true), []);
   const openEditProfile = useCallback(() => setEditProfileVisible(true), []);
   const openManageResident = useCallback(
     () => router.push({ pathname: "/onboarding/verify-step1", params: { role: "resident", mode: "edit" } }),
@@ -187,7 +203,6 @@ export default function MyProfilesScreen() {
 
   const accountOptions = useMemo(() => {
     const items: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }[] = [
-      { key: "personal-profile", label: "My Personal Profile", icon: "person-circle-outline", onPress: openPersonalProfile },
       { key: "edit-profile", label: "Edit User Profile", icon: "person-outline", onPress: openEditProfile },
     ];
     // Independent per role — a Resident-only (or Business-only) user must
@@ -204,7 +219,7 @@ export default function MyProfilesScreen() {
       items.push({ key: "create-business", label: "Create Your Business Account", icon: "storefront-outline", onPress: goCreateBusiness });
     }
     return items;
-  }, [hasResident, hasBusiness, isVerificationPending, openPersonalProfile, openEditProfile, openManageResident, goManageBusiness, goCreateBusiness, goCreateResident]);
+  }, [hasResident, hasBusiness, isVerificationPending, openEditProfile, openManageResident, goManageBusiness, goCreateBusiness, goCreateResident]);
 
   return (
     <View style={[styles.container, { backgroundColor: t.colors.white, paddingTop: insets.top }]}>
@@ -215,28 +230,47 @@ export default function MyProfilesScreen() {
       >
         <Card style={[styles.card, styles.cardPadding]}>
           <Text style={[styles.sectionTitle, { color: t.colors.textPrimary }]}>My personal profile</Text>
-          {address.length > 0 && (
-            <>
-              <View style={styles.infoRow}>
-                <View style={[styles.infoIconWrap, { backgroundColor: t.colors.brandWeak }]}>
-                  <Ionicons name="location-outline" size={18} color={t.colors.brand} />
+          {[
+            { key: "name", label: "Name", icon: "person-outline", value: user?.fullName?.trim() },
+            { key: "email", label: "Email", icon: "mail-outline", value: user?.email?.trim() },
+            { key: "phone", label: "Phone", icon: "phone-portrait-outline", value: phone },
+          ]
+            .filter((r) => !!r.value)
+            .map((r) => (
+              <View key={r.key}>
+                <View style={styles.infoRow}>
+                  <View style={[styles.infoIconWrap, { backgroundColor: t.colors.brandWeak }]}>
+                    <Ionicons name={r.icon as any} size={18} color={t.colors.brand} />
+                  </View>
+                  <View style={styles.infoRowText}>
+                    <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>{r.label}</Text>
+                    <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{r.value}</Text>
+                  </View>
                 </View>
-                <View style={styles.infoRowText}>
-                  <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>Address</Text>
-                  <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{address}</Text>
-                </View>
+                <View style={[styles.infoDivider, { backgroundColor: t.colors.border }]} />
               </View>
-              <View style={[styles.infoDivider, { backgroundColor: t.colors.border }]} />
-            </>
-          )}
-          {phone && (
+            ))}
+          {(hasResidence || !!residence.postal) && (
             <View style={styles.infoRow}>
               <View style={[styles.infoIconWrap, { backgroundColor: t.colors.brandWeak }]}>
-                <Ionicons name="phone-portrait-outline" size={18} color={t.colors.brand} />
+                <Ionicons name="location-outline" size={18} color={t.colors.brand} />
               </View>
               <View style={styles.infoRowText}>
-                <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>Phone</Text>
-                <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{phone}</Text>
+                <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>
+                  {hasResidence ? "Residence" : "Address"}
+                </Text>
+                {hasResidence ? (
+                  <>
+                    {residence.unit ? (
+                      <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{residence.unit}</Text>
+                    ) : null}
+                    {residence.society ? (
+                      <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{residence.society}</Text>
+                    ) : null}
+                  </>
+                ) : (
+                  <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>{residence.postal}</Text>
+                )}
               </View>
             </View>
           )}
@@ -258,24 +292,6 @@ export default function MyProfilesScreen() {
           <Row label="Delete Account" icon="trash-bin-outline" onPress={openDelete} danger isLast />
         </Card>
       </ScrollView>
-
-      <FormSheetModal
-        visible={personalProfileVisible}
-        onClose={() => setPersonalProfileVisible(false)}
-        title="My Personal Profile"
-        dismissOnBackdrop
-      >
-        <View style={{ paddingVertical: 8, gap: 12 }}>
-          <Text style={{ color: t.colors.textSecondary, fontSize: 12 }}>Name</Text>
-          <Text style={{ color: t.colors.textPrimary, fontSize: 15, marginTop: -8 }}>{user?.fullName || "-"}</Text>
-          <Text style={{ color: t.colors.textSecondary, fontSize: 12 }}>Email</Text>
-          <Text style={{ color: t.colors.textPrimary, fontSize: 15, marginTop: -8 }}>{user?.email || "-"}</Text>
-          <Text style={{ color: t.colors.textSecondary, fontSize: 12 }}>Phone</Text>
-          <Text style={{ color: t.colors.textPrimary, fontSize: 15, marginTop: -8 }}>{user?.phone || "-"}</Text>
-          <Text style={{ color: t.colors.textSecondary, fontSize: 12 }}>Address</Text>
-          <Text style={{ color: t.colors.textPrimary, fontSize: 15, marginTop: -8 }}>{user?.completeAddress || "-"}</Text>
-        </View>
-      </FormSheetModal>
 
       <FormSheetModal
         visible={editProfileVisible}

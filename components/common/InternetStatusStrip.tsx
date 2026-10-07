@@ -5,12 +5,15 @@ import { useProductStore } from "@/store/useBusinessStore";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text } from "react-native";
+import { AppState, Animated, Easing, StyleSheet, Text } from "react-native";
 import { OFFLINE_STRIP_HEIGHT, bottomNavFootprint, offlineStripInset, setBannerState } from "@/lib/offlineStripInset";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CONNECTED_VISIBLE_MS = 3000;
 const CHECK_INTERVAL_MS = 5000;
+// A single failed probe (cold radio, emulator warm-up, network switch) isn't
+// "offline" — require consecutive failures before flipping from a known state.
+const FAILURES_TO_OFFLINE = 2;
 
 export default function InternetStatusStrip() {
   const insets = useSafeAreaInsets();
@@ -54,10 +57,19 @@ export default function InternetStatusStrip() {
 
   useEffect(() => {
     let active = true;
+    let failures = 0;
+    let inFlight = false;
 
     const check = async () => {
-      const next = await checkInternetConnection();
+      if (inFlight) return;
+      inFlight = true;
+      const result = await checkInternetConnection();
+      inFlight = false;
       if (!active) return;
+      failures = result ? 0 : failures + 1;
+      // Unknown stays unknown (no strip) until a result is trustworthy.
+      if (!result && failures < FAILURES_TO_OFFLINE) return;
+      const next = result;
       const was = previous.current;
       previous.current = next;
       setOnline(next);
@@ -83,9 +95,14 @@ export default function InternetStatusStrip() {
 
     check();
     const interval = setInterval(check, CHECK_INTERVAL_MS);
+    // Re-check right away on resume instead of waiting for the next tick.
+    const sub = AppState.addEventListener("change", (st) => {
+      if (st === "active") check();
+    });
     return () => {
       active = false;
       clearInterval(interval);
+      sub.remove();
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, []);

@@ -9,7 +9,8 @@ type Props = {
   societyName?: string | null;
   /** e.g. "29 residents" */
   countLabel?: string;
-  onBack: () => void;
+  /** Omit when the header sits inside the dashboard (no "back" step). */
+  onBack?: () => void;
 };
 
 /** Header shared by every dashboard drill-down: "← Back to Dashboard", title, society, count. */
@@ -18,6 +19,7 @@ const DrillDownHeader = memo(function DrillDownHeader({ title, societyName, coun
   const accent = t.colors.brandDark ?? t.colors.primary;
   return (
     <View style={styles.wrap}>
+      {onBack ? (
       <TouchableOpacity
         onPress={onBack}
         hitSlop={8}
@@ -28,6 +30,7 @@ const DrillDownHeader = memo(function DrillDownHeader({ title, societyName, coun
         <Ionicons name="arrow-back" size={16} color={accent} />
         <Text style={[styles.backText, { color: accent }]}>Back to Dashboard</Text>
       </TouchableOpacity>
+      ) : null}
       <Text style={[t.typography.h5, styles.title, { color: t.colors.textPrimary }]}>{title}</Text>
       {societyName ? (
         <Text style={[styles.sub, { color: t.colors.textSecondary }]} numberOfLines={1}>

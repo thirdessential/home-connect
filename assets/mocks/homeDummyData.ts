@@ -262,7 +262,7 @@ type DummyState = {
   toggleLike: (id: string) => void;
   vote: (id: string, optionId: string) => void;
   toggleRsvp: (id: string) => void;
-  addComment: (id: string, text: string) => Promise<void>;
+  addComment: (id: string, text: string, parentCommentId?: string) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   reset: () => void;
 };
@@ -311,14 +311,20 @@ export const useHomeDummyStore = create<DummyState>((set) => ({
       })),
     })),
 
-  addComment: async (id, text) => {
+  addComment: async (id, text, parentCommentId) => {
     set((s) => ({
       items: update(s.items, id, (i) => ({
         ...i,
-        commentCount: i.commentCount + 1,
+        commentCount: i.commentCount + (parentCommentId ? 0 : 1),
         comments: [
           ...(i.comments ?? []),
-          { id: `local-${i.comments?.length ?? 0}`, author: "You", text, createdAt: "just now" },
+          {
+            id: `local-${i.comments?.length ?? 0}`,
+            author: "You",
+            text,
+            createdAt: "just now",
+            parentId: parentCommentId ?? null,
+          },
         ],
       })),
     }));

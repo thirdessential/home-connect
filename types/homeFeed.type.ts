@@ -23,6 +23,8 @@ export type HomeFeedComment = {
   avatarUrl?: string;
   text: string;
   createdAt: string;
+  /** Set on replies — id of the top-level comment they belong to. */
+  parentId?: string | null;
 };
 
 export type HomeFeedOption = { id: string; name: string; votes: number };
@@ -79,7 +81,7 @@ export type HomeFeedActions = {
   toggleLike: (id: string) => void;
   vote: (id: string, optionId: string) => void;
   toggleRsvp: (id: string) => void;
-  addComment: (id: string, text: string) => Promise<void>;
+  addComment: (id: string, text: string, parentCommentId?: string) => Promise<void>;
   /** Deletes an owned post/poll. Throws with a user-friendly message on failure. */
   deleteItem: (id: string) => Promise<void>;
 };

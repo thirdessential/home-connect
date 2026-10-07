@@ -75,28 +75,25 @@ export default function VerifyOtpScreen() {
     };
   }, [startTimer]);
 
-  const handleOtpChange = useCallback((value: string) => {
-    setOtp(value);
-    setError(false);
-  }, []);
-
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(auth)/login");
   }, []);
 
-  const handleVerify = useCallback(async () => {
+  // `code` is passed explicitly by the auto-submit path: state set in the same
+  // event as the 6th digit isn't visible to this closure yet.
+  const handleVerify = useCallback(async (code: string = otp) => {
     // Guard against duplicate taps / double navigation.
     if (submittingRef.current) return;
     Keyboard.dismiss();
-    if (otp.length !== AUTH_PAGE.OTP_LENGTH) {
+    if (code.length !== AUTH_PAGE.OTP_LENGTH) {
       setError(true);
       showToast(TERRACE_AUTH.invalidOtp, "error");
       return;
     }
     submittingRef.current = true;
     try {
-      await verifyOtp(phone, otp);
+      await verifyOtp(phone, code);
       showToast(TERRACE_AUTH.verifiedToast, "success");
       // Guard against navigating twice even if a success handler were ever
       // triggered more than once (e.g. a duplicate resolved promise).
@@ -119,6 +116,18 @@ export default function VerifyOtpScreen() {
       submittingRef.current = false;
     }
   }, [otp, phone, showToast, verifyOtp]);
+
+  // Typing the 6th digit, pasting, or SMS autofill all arrive here with the
+  // complete code — verify immediately, no button press. submittingRef (in
+  // handleVerify) keeps it to one request per complete code.
+  const handleOtpChange = useCallback(
+    (value: string) => {
+      setOtp(value);
+      setError(false);
+      if (value.length === AUTH_PAGE.OTP_LENGTH) handleVerify(value);
+    },
+    [handleVerify],
+  );
 
   const handleResend = useCallback(async () => {
     if (secondsLeft > 0 || isSendingOtp) return;
@@ -175,7 +184,7 @@ export default function VerifyOtpScreen() {
 
         <ActionButton
           title={TERRACE_AUTH.continue}
-          onPress={handleVerify}
+          onPress={() => handleVerify()}
           variant="primary"
           size="lg"
           fullWidth

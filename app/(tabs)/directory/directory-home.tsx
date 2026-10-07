@@ -134,13 +134,10 @@ export default function DirectoryHome() {
     });
   }, [router]);
 
-  // Calculate top padding based on safe area insets and platform
-  // const topPadding = Math.max(insets.top, Platform.OS === "ios" ? 40 : 40);
-
   return (
     <View
       style={{
-        // paddingTop: topPadding,
+        paddingTop: insets.top,
         flex: 1,
         backgroundColor: t.colors.white,
       }}

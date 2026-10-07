@@ -4,11 +4,13 @@ import UserAvatar from "@/components/UI/UserAvatar";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedComment } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useState } from "react";
+import { useToast } from "@/components/common/Toast";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   StyleSheet,
   Text,
   TextInput,
@@ -16,34 +18,87 @@ import {
   View,
 } from "react-native";
 
+/** Characters (not words) — mirrors FEED_COMMENT_MAX on the server. */
+const MAX_CHARS = 200;
+// Code-point aware so emoji count once, matching the backend's [...text].length.
+const clampChars = (v: string) => {
+  const chars = Array.from(v);
+  return chars.length > MAX_CHARS ? chars.slice(0, MAX_CHARS).join("") : v;
+};
+const charCount = (v: string) => Array.from(v).length;
+
 type Props = {
   visible: boolean;
   onClose: () => void;
   comments: HomeFeedComment[];
-  onSubmit: (text: string) => Promise<void>;
+  onSubmit: (text: string, parentCommentId?: string) => Promise<void>;
   feedId?: string; // needed to report an individual comment
 };
 
 /** Comment thread + composer. Submission is delegated to the caller. */
 export default function CommentsSheet({ visible, onClose, comments, onSubmit, feedId }: Props) {
   const t = useTheme();
+  const { showToast } = useToast();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; author: string } | null>(null);
   const [reportCommentId, setReportCommentId] = useState<string | null>(null);
+  const inputRef = useRef<TextInput>(null);
+  // Synchronous lock — `sending` state alone lags a render, so a fast double
+  // tap could slip two requests through.
+  const submittingRef = useRef(false);
+
+  // Open the keyboard as soon as the sheet appears. The Modal's slide-in
+  // animation swallows an immediate focus() on iOS, hence the short delay.
+  useEffect(() => {
+    if (!visible) {
+      setText("");
+      setReplyTo(null);
+      return;
+    }
+    const id = setTimeout(() => inputRef.current?.focus(), 350);
+    return () => {
+      clearTimeout(id);
+      // Blur before the Modal's input is torn down so no keyboard event
+      // resolves a focused view that no longer exists.
+      Keyboard.dismiss();
+    };
+  }, [visible]);
+
+  const startReply = useCallback((c: HomeFeedComment) => {
+    setReplyTo({ id: c.parentId ?? c.id, author: c.author });
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  // Top-level comments, each followed by its replies.
+  const rows = useMemo(() => {
+    const replies = new Map<string, HomeFeedComment[]>();
+    comments.forEach((c) => {
+      if (c.parentId) replies.set(c.parentId, [...(replies.get(c.parentId) ?? []), c]);
+    });
+    return comments
+      .filter((c) => !c.parentId)
+      .flatMap((c) => [c, ...(replies.get(c.id) ?? [])]);
+  }, [comments]);
+  const topLevelCount = useMemo(() => comments.filter((c) => !c.parentId).length, [comments]);
 
   const handleSend = useCallback(async () => {
     const value = text.trim();
-    if (!value || sending) return;
+    if (!value || submittingRef.current) return;
+    submittingRef.current = true;
     setSending(true);
     try {
-      await onSubmit(value);
+      await onSubmit(value, replyTo?.id);
       setText("");
-    } catch {
-      // Caller surfaces the failure; keep the draft so nothing is lost.
+      setReplyTo(null);
+    } catch (e: any) {
+      // Keep the draft so nothing is lost.
+      showToast(e?.message || "Couldn't post. Please try again.", "error");
     } finally {
+      submittingRef.current = false;
       setSending(false);
     }
-  }, [text, sending, onSubmit]);
+  }, [text, onSubmit, replyTo, showToast]);
 
   if (!visible) return null;
 
@@ -53,13 +108,26 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
   // hatch for exactly this case) and puts the composer in `footer`, which
   // renders as a sibling below the body, not inside it.
   const composer = (
+    <View>
+      {replyTo && (
+        <View style={styles.replyBanner}>
+          <Text style={[styles.replyText, { color: t.colors.textSecondary }]} numberOfLines={1}>
+            {`Replying to ${replyTo.author}`}
+          </Text>
+          <TouchableOpacity onPress={() => setReplyTo(null)} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={t.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
     <View style={styles.composer}>
       <TextInput
+        ref={inputRef}
         value={text}
-        onChangeText={setText}
-        placeholder="Add a comment…"
+        onChangeText={(v) => setText(clampChars(v))}
+        placeholder={replyTo ? "Write a reply..." : "Write a comment..."}
         placeholderTextColor={t.colors.textSecondary}
         multiline
+        returnKeyType="default"
         style={[
           styles.input,
           {
@@ -84,6 +152,15 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
         )}
       </TouchableOpacity>
     </View>
+      <Text
+        style={[
+          styles.counter,
+          { color: charCount(text) >= MAX_CHARS ? t.colors.brand : t.colors.textSecondary },
+        ]}
+      >
+        {`${charCount(text)}/${MAX_CHARS}`}
+      </Text>
+    </View>
   );
 
   return (
@@ -91,21 +168,22 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
       visible={visible}
       onClose={onClose}
       title="Comments"
-      subtitle={`${comments.length} comment${comments.length === 1 ? "" : "s"}`}
+      subtitle={`${topLevelCount} comment${topLevelCount === 1 ? "" : "s"}`}
       scroll={false}
       footer={composer}
     >
       <FlatList
-        data={comments}
+        data={rows}
         keyExtractor={(c) => c.id}
         style={styles.list}
+        keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           <Text style={[styles.empty, { color: t.colors.textSecondary }]}>
-            No comments yet. Be the first to reply.
+            No comments yet. Be the first to comment.
           </Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.comment}>
+          <View style={[styles.comment, item.parentId ? styles.reply : null]}>
             <UserAvatar uri={item.avatarUrl} name={item.author} userId={item.authorId} size={32} />
             <View style={styles.commentBody}>
               <Text style={[styles.author, { color: t.colors.textPrimary }]}>
@@ -115,6 +193,9 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
                 </Text>
               </Text>
               <Text style={[styles.text, { color: t.colors.textSecondary }]}>{item.text}</Text>
+              <TouchableOpacity onPress={() => startReply(item)} hitSlop={8} style={styles.replyBtn}>
+                <Text style={[styles.replyLabel, { color: t.colors.textSecondary }]}>Reply</Text>
+              </TouchableOpacity>
             </View>
             <TouchableOpacity onPress={() => setReportCommentId(item.id)} hitSlop={8} style={styles.commentMenu}>
               <Ionicons name="ellipsis-vertical" size={16} color={t.colors.textSecondary} />
@@ -136,7 +217,13 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
 }
 
 const styles = StyleSheet.create({
-  list: { maxHeight: 150 },
+  list: { maxHeight: 240 },
+  reply: { marginLeft: 42 },
+  replyBtn: { alignSelf: "flex-start", paddingTop: 4 },
+  replyLabel: { fontSize: 12, fontFamily: "Manrope_600SemiBold" },
+  replyBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 6 },
+  replyText: { fontSize: 12, flex: 1 },
+  counter: { fontSize: 11, textAlign: "right", marginTop: 4 },
   empty: { textAlign: "center", paddingVertical: 28, fontSize: 13 },
   comment: { flexDirection: "row", gap: 10, paddingVertical: 10 },
   commentMenu: { padding: 4, alignSelf: "flex-start" },

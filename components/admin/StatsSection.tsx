@@ -11,6 +11,7 @@ export type VerificationStats = {
 
 export type StatsLoading = {
   reportsCount?: boolean;
+  pendingRequests?: boolean;
 };
 
 export type SelectedStatsCard =
@@ -27,6 +28,8 @@ type Props = {
   onApprovedBusinessPress: () => void;
   onReportedContentsPress: () => void;
   loadingStats?: StatsLoading;
+  /** Pending fetch failed and nothing is cached — show a dash, never a false 0. */
+  pendingError?: boolean;
 };
 
 const StatsSection = memo(function StatsSection({
@@ -37,6 +40,7 @@ const StatsSection = memo(function StatsSection({
   onApprovedBusinessPress,
   onReportedContentsPress,
   loadingStats,
+  pendingError,
 }: Props) {
   // Uniform 2×2 grid — all 4 cards are the same "item" (48%) size/structure,
   // row 1: Pending Requests / Approved Residents, row 2: Approved Businesses
@@ -46,7 +50,8 @@ const StatsSection = memo(function StatsSection({
       <View style={styles.item}>
         <StatsCard
           title="Pending Requests"
-          value={stats.pendingRequests}
+          value={pendingError ? "–" : stats.pendingRequests}
+          loading={loadingStats?.pendingRequests}
           icon="people-outline"
           caption="Needs your review"
           color="#B9741B"

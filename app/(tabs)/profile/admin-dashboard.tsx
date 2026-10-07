@@ -9,7 +9,7 @@ import * as Haptics from "expo-haptics";
 import DrillDownHeader from "@/components/admin/DrillDownHeader";
 import TowerGrid, { groupResidentsByTower } from "@/components/admin/TowerGrid";
 import SocietySelectorModal from "@/components/admin/SocietySelectorModal";
-import StatsSection, { VerificationStats } from "@/components/admin/StatsSection";
+import StatsSection, { SelectedStatsCard, VerificationStats } from "@/components/admin/StatsSection";
 import ApprovedBusinessView from "@/components/common/ApprovedBusinessView";
 import ApprovedResidentsView from "@/components/common/ApprovedResidentsView";
 import EmptyState from "@/components/common/EmptyState";
@@ -29,7 +29,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   BackHandler,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -41,10 +40,9 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-// "main" is the dashboard; every other view is a dedicated drill-down that
-// shows "← Back to Dashboard" and stays scoped to the selected society.
+// The dashboard cards pick which section renders below them (same screen, no
+// navigation). Everything stays scoped to the selected society.
 type DashboardView =
-  | "main"
   | "pending"
   | "approved"
   | "business"
@@ -56,16 +54,16 @@ export default function AdminDashboard() {
   const insets = useSafeAreaInsets();
   const { hasRole } = usePermissions();
   const isSuperAdmin = hasRole(UserRole.SUPER_ADMIN);
-  // Matches the app's normal header top-padding convention (e.g. service/[id].tsx,
-  // business/[id].tsx) — this screen was diverging with a flat 40 on Android too.
-  const topPadding = Math.max(insets.top, Platform.OS === "ios" ? 44 : 24);
-
   // ── UI state ─────────────────────────────────────────────────────────────────
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(
     new Set(),
   );
   const [selectedEntityType, setSelectedEntityType] = useState("all");
-  const [currentView, setCurrentView] = useState<DashboardView>("main");
+  // Default section is Pending Requests. The card highlight and the content
+  // below are both derived from this one state, so they can never disagree.
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef(0);
+  const [currentView, setCurrentView] = useState<DashboardView>("pending");
   const [selectedTowerId, setSelectedTowerId] = useState<string | null>(null);
   const { showStatusToast } = useToast();
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -96,6 +94,8 @@ export default function AdminDashboard() {
   const ownSociety = useSocietyStore((state) => state.selectedSociety);
   const towerList = adminSociety?.towers ?? [];
   const pendingContent = useAdminStore((state) => state.pendingContent);
+  const pendingContentLoading = useAdminStore((state) => state.pendingContentLoading);
+  const pendingContentError = useAdminStore((state) => state.pendingContentError);
   const getAllPendingContent = useAdminStore(
     (state) => state.getAllPendingContent,
   );
@@ -178,25 +178,19 @@ export default function AdminDashboard() {
     ]).finally(() => setIsFetchingSocietyData(false));
   }, [isSuperAdmin, adminSociety, societies]);
 
-  // ── Navigation (dashboard ⇄ drill-downs) ──────────────────────────────────────
-  const goToDashboard = useCallback(() => {
-    setCurrentView("main");
-    setSelectedTowerId(null);
-    setSelectedRequests(new Set());
-  }, []);
-
-  // Android hardware back returns from a drill-down to the dashboard first;
-  // from the dashboard itself it behaves as before (leaves the screen).
+  // ── Section selection ─────────────────────────────────────────────────────────
+  // Leaving the dashboard (to Reports, another admin screen, or Profile) and
+  // coming back must not restore an old drill-down such as a Tower — every
+  // normal open starts on Pending Requests again.
   useFocusEffect(
-    useCallback(() => {
-      if (Platform.OS !== "android") return;
-      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-        if (currentView === "main") return false;
-        goToDashboard();
-        return true;
-      });
-      return () => sub.remove();
-    }, [currentView, goToDashboard]),
+    useCallback(
+      () => () => {
+        setCurrentView("pending");
+        setSelectedTowerId(null);
+        setSelectedRequests(new Set());
+      },
+      [],
+    ),
   );
 
   // ── Stats card handlers ───────────────────────────────────────────────────────
@@ -215,14 +209,22 @@ export default function AdminDashboard() {
     });
   }, [adminSocietyId]);
 
+  // Towers live at the bottom; bring the section they swap into back in view.
+  const scrollToSection = useCallback(() => {
+    requestAnimationFrame(() =>
+      scrollRef.current?.scrollTo({ y: Math.max(0, sectionY.current - 8), animated: true }),
+    );
+  }, []);
   const handleSelectTower = useCallback((towerId: string) => {
     setSelectedTowerId(towerId);
     setCurrentView("tower");
-  }, []);
+    scrollToSection();
+  }, [scrollToSection]);
   const handleSelectAllTowers = useCallback(() => {
     setSelectedTowerId(null);
     setCurrentView("allTowers");
-  }, []);
+    scrollToSection();
+  }, [scrollToSection]);
 
   // Resident lists come from the society-scoped approved endpoint; towers are
   // grouped only from that society's own tower list.
@@ -249,6 +251,15 @@ export default function AdminDashboard() {
           : [],
     };
   }, [selectedEntityType, pendingContent]);
+
+  const selectedCard: SelectedStatsCard =
+    currentView === "pending"
+      ? "pending"
+      : currentView === "approved" || currentView === "allTowers" || currentView === "tower"
+        ? "approved-residents"
+        : currentView === "business"
+          ? "approved-business"
+          : null;
 
   const verificationStats = useMemo((): VerificationStats => {
     return {
@@ -642,7 +653,7 @@ export default function AdminDashboard() {
 
   const handleSelectSociety = useCallback(async (item: Society) => {
     setAdminSociety(item);
-    setCurrentView("main");
+    setCurrentView("pending");
     setSelectedTowerId(null);
     setSocietySelectorVisible(false);
     setSocietySearch("");
@@ -658,7 +669,7 @@ export default function AdminDashboard() {
   return (
     <>
       <SafeAreaProvider>
-        <View style={[styles.root]}>
+        <View style={[styles.root, { paddingTop: insets.top }]}>
           {isInitialLoading || isFetchingSocietyData ? (
             <DashboardSkeleton />
           ) : !adminSociety ? (
@@ -684,6 +695,7 @@ export default function AdminDashboard() {
             )
           ) : (
             <ScrollView
+              ref={scrollRef}
               style={[
                 styles.container,
                     { backgroundColor: t.colors.white },
@@ -699,137 +711,145 @@ export default function AdminDashboard() {
                 />
               }
             >
-              {currentView === "main" && (
-                <>
-                  <DashboardHeader
-                    isSuperAdmin={isSuperAdmin}
-                    selectedSociety={adminSociety}
-                    onSocietyPress={openSocietySelector}
-                  />
+              <DashboardHeader
+                isSuperAdmin={isSuperAdmin}
+                selectedSociety={adminSociety}
+                onSocietyPress={openSocietySelector}
+              />
 
-                  {isSuperAdmin && adminSocietyId && (
-                    <SocietyAdminsSection
-                      societyId={adminSocietyId}
-                      societyName={adminSociety?.name ?? "this society"}
+              {isSuperAdmin && adminSocietyId && (
+                <SocietyAdminsSection
+                  societyId={adminSocietyId}
+                  societyName={adminSociety?.name ?? "this society"}
+                />
+              )}
+
+              <View style={styles.bottomSpacer} />
+
+              <StatsSection
+                stats={verificationStats}
+                selectedCard={selectedCard}
+                onPendingPress={handlePendingRequestsClick}
+                onApprovedResidentsPress={handleApprovedResidentsClick}
+                onApprovedBusinessPress={handleApprovedBusinessClick}
+                onReportedContentsPress={handleReportedContentsClick}
+                loadingStats={{
+                  reportsCount: reportsCountLoading,
+                  // Spinner (not 0) until the first pending result lands;
+                  // an already-known count stays visible during refreshes.
+                  pendingRequests:
+                    (pendingContentLoading || isInitialLoading || isFetchingSocietyData) &&
+                    pendingContent.totalCount === 0,
+                }}
+                pendingError={!!pendingContentError && pendingContent.totalCount === 0}
+              />
+
+              {/* Selected section — renders where the dashboard used to show Towers */}
+              <View onLayout={(e) => { sectionY.current = e.nativeEvent.layout.y; }}>
+                {currentView === "pending" && (
+                  <>
+                    <DrillDownHeader
+                      title="Pending Requests"
+                      societyName={adminSociety?.name}
+                      countLabel={`${pendingContent.totalCount} pending`}
                     />
-                  )}
+                    <PendingRequestsSection
+                      requests={displayData.requests}
+                      allRequestsSelected={allRequestsSelected}
+                      isRequestSelected={isRequestSelected}
+                      activeFilter={selectedEntityType}
+                      counts={{
+                        all: pendingContent.totalCount,
+                        user: pendingContent.residents?.total ?? 0,
+                        business: pendingContent.businesses?.total ?? 0,
+                      }}
+                      onFilterChange={handleFilterChange}
+                      onSelectAll={handleSelectAll}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      onSelectionChange={handleRequestSelect}
+                    />
+                  </>
+                )}
 
-                  <View style={styles.bottomSpacer} />
-
-                  <StatsSection
-                    stats={verificationStats}
-                    selectedCard={null}
-                    onPendingPress={handlePendingRequestsClick}
-                    onApprovedResidentsPress={handleApprovedResidentsClick}
-                    onApprovedBusinessPress={handleApprovedBusinessClick}
-                    onReportedContentsPress={handleReportedContentsClick}
-                    loadingStats={{ reportsCount: reportsCountLoading }}
-                  />
-
-                  <TowerGrid
-                    towers={towerList}
-                    countFor={(id) => residentsByTower.get(id)?.length ?? 0}
-                    totalResidents={approvedResidents.length}
-                    onSelectTower={handleSelectTower}
-                    onSelectAll={handleSelectAllTowers}
-                  />
-                </>
-              )}
-
-              {currentView === "pending" && (
-                <>
+                {currentView !== "pending" && (
                   <DrillDownHeader
-                    title="Pending Requests"
+                    title={
+                      currentView === "approved"
+                        ? "Approved Residents"
+                        : currentView === "allTowers"
+                          ? "All Residents"
+                          : currentView === "tower"
+                            ? `Tower ${selectedTower?.name ?? ""}`.trim()
+                            : "Approved Businesses"
+                    }
                     societyName={adminSociety?.name}
-                    countLabel={`${pendingContent.totalCount} pending`}
-                    onBack={goToDashboard}
+                    countLabel={
+                      currentView === "business"
+                        ? `${approvedContent.businesses?.total ?? 0} business${(approvedContent.businesses?.total ?? 0) === 1 ? "" : "es"}`
+                        : (() => {
+                            const n = currentView === "tower" ? towerResidents.length : approvedResidents.length;
+                            return `${n} resident${n === 1 ? "" : "s"}`;
+                          })()
+                    }
                   />
-                  <PendingRequestsSection
-                    requests={displayData.requests}
-                    allRequestsSelected={allRequestsSelected}
-                    isRequestSelected={isRequestSelected}
-                    activeFilter={selectedEntityType}
-                    counts={{
-                      all: pendingContent.totalCount,
-                      user: pendingContent.residents?.total ?? 0,
-                      business: pendingContent.businesses?.total ?? 0,
-                    }}
-                    onFilterChange={handleFilterChange}
-                    onSelectAll={handleSelectAll}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    onSelectionChange={handleRequestSelect}
-                  />
-                </>
-              )}
+                )}
 
+                {currentView !== "pending" && approvedContentLoading && approvedResidents.length === 0 && (approvedContent.businesses?.items?.length ?? 0) === 0 ? (
+                  <DashboardSkeleton />
+                ) : currentView !== "pending" && approvedContentError ? (
+                  <EmptyState
+                    icon="alert-circle-outline"
+                    title="Couldn't load the list"
+                    subtitle="Pull down to refresh and try again."
+                  />
+                ) : (
+                  <>
+                    {currentView === "approved" && (
+                      <ApprovedResidentsView
+                        residents={approvedResidents}
+                        towerList={towerList}
+                        emptyTitle="No approved residents yet"
+                      />
+                    )}
+                    {currentView === "allTowers" && (
+                      <ApprovedResidentsView
+                        residents={approvedResidents}
+                        towerList={towerList}
+                        showTower
+                        emptyTitle="No approved residents yet"
+                      />
+                    )}
+                    {currentView === "tower" && (
+                      <ApprovedResidentsView
+                        residents={towerResidents}
+                        towerList={towerList}
+                        emptyTitle="No residents in this tower yet"
+                        emptySubtitle={`Tower ${selectedTower?.name ?? ""} has no approved residents at the moment.`}
+                      />
+                    )}
+                    {currentView === "business" &&
+                      ((approvedContent.businesses?.items?.length ?? 0) === 0 ? (
+                        <EmptyState icon="storefront-outline" title="No approved businesses yet" />
+                      ) : (
+                        <ApprovedBusinessView approvedBusinesses={approvedContent.businesses?.items ?? []} />
+                      ))}
+                  </>
+                )}
+              </View>
+
+              {/* Towers belong to the Approved Residents flow only (the card, or
+                  All / a tower picked from here); picking one swaps the list above. */}
               {(currentView === "approved" ||
                 currentView === "allTowers" ||
-                currentView === "tower" ||
-                currentView === "business") && (
-                <DrillDownHeader
-                  title={
-                    currentView === "approved"
-                      ? "Approved Residents"
-                      : currentView === "allTowers"
-                        ? "All Residents"
-                        : currentView === "tower"
-                          ? `Tower ${selectedTower?.name ?? ""}`.trim()
-                          : "Approved Businesses"
-                  }
-                  societyName={adminSociety?.name}
-                  countLabel={
-                    currentView === "business"
-                      ? `${approvedContent.businesses?.total ?? 0} business${(approvedContent.businesses?.total ?? 0) === 1 ? "" : "es"}`
-                      : (() => {
-                          const n = currentView === "tower" ? towerResidents.length : approvedResidents.length;
-                          return `${n} resident${n === 1 ? "" : "s"}`;
-                        })()
-                  }
-                  onBack={goToDashboard}
+                currentView === "tower") && (
+                <TowerGrid
+                  towers={towerList}
+                  countFor={(id) => residentsByTower.get(id)?.length ?? 0}
+                  totalResidents={approvedResidents.length}
+                  onSelectTower={handleSelectTower}
+                  onSelectAll={handleSelectAllTowers}
                 />
-              )}
-
-              {currentView !== "main" && currentView !== "pending" && approvedContentLoading && approvedResidents.length === 0 && (approvedContent.businesses?.items?.length ?? 0) === 0 ? (
-                <DashboardSkeleton />
-              ) : currentView !== "main" && currentView !== "pending" && approvedContentError ? (
-                <EmptyState
-                  icon="alert-circle-outline"
-                  title="Couldn't load the list"
-                  subtitle="Pull down to refresh and try again."
-                />
-              ) : (
-                <>
-                  {currentView === "approved" && (
-                    <ApprovedResidentsView
-                      residents={approvedResidents}
-                      towerList={towerList}
-                      emptyTitle="No approved residents yet"
-                    />
-                  )}
-                  {currentView === "allTowers" && (
-                    <ApprovedResidentsView
-                      residents={approvedResidents}
-                      towerList={towerList}
-                      showTower
-                      emptyTitle="No approved residents yet"
-                    />
-                  )}
-                  {currentView === "tower" && (
-                    <ApprovedResidentsView
-                      residents={towerResidents}
-                      towerList={towerList}
-                      emptyTitle="No residents in this tower yet"
-                      emptySubtitle={`Tower ${selectedTower?.name ?? ""} has no approved residents at the moment.`}
-                    />
-                  )}
-                  {currentView === "business" &&
-                    ((approvedContent.businesses?.items?.length ?? 0) === 0 ? (
-                      <EmptyState icon="storefront-outline" title="No approved businesses yet" />
-                    ) : (
-                      <ApprovedBusinessView approvedBusinesses={approvedContent.businesses?.items ?? []} />
-                    ))}
-                </>
               )}
               <View style={styles.bottomSpacer} />
             </ScrollView>

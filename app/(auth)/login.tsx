@@ -8,23 +8,24 @@ import TermsSheet from "@/components/auth/TermsSheet";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import { useToast } from "@/components/common/Toast";
 import ActionButton from "@/components/inputs/ActionButton";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useAuthStore } from "@/store/useAuthStore";
 import { manropeFamily } from "@/theme/fonts";
-import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Dimensions,
   Keyboard,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 function FeatureColumn({ item }: { item: (typeof TERRACE_FEATURES)[number] }) {
@@ -52,15 +53,10 @@ function FeatureColumn({ item }: { item: (typeof TERRACE_FEATURES)[number] }) {
 export default function LoginScreen() {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const inputRowRef = useRef<View>(null);
   const keyboardHeight = useKeyboardHeight();
-  const scrollRef = useRef<any>(null);
-  // Window isn't resized on Android edge-to-edge, so bring the phone field
-  // (near the bottom of the page) above the keyboard once it's open.
-  useEffect(() => {
-    if (keyboardHeight > 0 && inputRef.current?.isFocused()) {
-      scrollRef.current?.scrollToEnd?.(true);
-    }
-  }, [keyboardHeight]);
   const sendOtp = useAuthStore((s) => s.sendOtp);
   const isSendingOtp = useAuthStore((s) => s.isSendingOtp);
 
@@ -71,6 +67,35 @@ export default function LoginScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
+
+  // Window isn't resized on Android edge-to-edge, so the page extends under the
+  // keyboard. When it opens, scroll by exactly the amount that lifts the phone
+  // row's bottom edge to just above the keyboard (leaving room for part of the
+  // Continue button) — measured against the real keyboard top, so it adapts to
+  // any screen/keyboard height. Bottom padding (= keyboard height) gives the
+  // scroll view room to get there; closing the keyboard drops it again.
+  useEffect(() => {
+    if (keyboardHeight <= 0) return;
+    let cancelled = false;
+    // After the padding above has been laid out, so the scroll isn't clamped.
+    const raf = requestAnimationFrame(() => {
+      const row = inputRowRef.current;
+      if (cancelled || !row || !inputRef.current?.isFocused()) return;
+      row.measureInWindow((_x, y, _w, h) => {
+        if (cancelled) return;
+        const keyboardTop =
+          Keyboard.metrics()?.screenY ?? Dimensions.get("screen").height - keyboardHeight;
+        const shortfall = y + h - (keyboardTop - getHeight(100));
+        if (shortfall > 0) {
+          scrollRef.current?.scrollTo({ y: scrollY.current + shortfall, animated: true });
+        }
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [keyboardHeight]);
 
   const isValidMobile = mobile.length === 10;
   const canContinue = useMemo(
@@ -118,13 +143,13 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <KeyboardAwareScrollView
+      <ScrollView
         ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingBottom: keyboardHeight }]}
+        onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        enableOnAndroid
-        extraScrollHeight={getHeight(20)}
         bounces={false}
       >
         {/* Branding + marketing (padded) */}
@@ -160,6 +185,7 @@ export default function LoginScreen() {
           <Text style={styles.cardSubtitle}>{TERRACE_AUTH.getStartedSubtitle}</Text>
 
           <Pressable
+            ref={inputRowRef}
             style={[
               styles.inputRow,
               focused && { borderColor: TERRACE_COLORS.orange },
@@ -248,7 +274,7 @@ export default function LoginScreen() {
             <Text style={styles.footerText}>{TERRACE_AUTH.safeFooter}</Text>
           </View>
         </View>
-      </KeyboardAwareScrollView>
+      </ScrollView>
 
       <TermsSheet
         visible={sheetVisible}

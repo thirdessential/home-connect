@@ -172,21 +172,42 @@ function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, selectedSocietyId]);
 
+  // Pull-to-refresh. The feed is the only thing the spinner waits for; the
+  // connectivity probe runs alongside it (not before it) and only cuts the
+  // spinner short — with a toast — when the device is really offline. Deals,
+  // businesses, daily services and the admin badge refresh in the background
+  // and update their own stores as they land. Cached content stays on screen
+  // throughout.
+  const refreshInFlight = useRef(false);
   const onRefresh = useCallback(async () => {
-    if (!userId || !selectedSocietyId) return;
+    if (!userId || !selectedSocietyId || refreshInFlight.current) return;
+    refreshInFlight.current = true;
     setRefreshing(true);
-    if (!(await checkInternetConnection())) {
+    let offline = false;
+    checkInternetConnection().then((online) => {
+      if (online) return;
+      offline = true;
       setRefreshing(false);
+      refreshInFlight.current = false;
       showToast("No Internet Connection", "warning");
-      return;
+    });
+    try {
+      await fetchFeedsBySociety(selectedSocietyId, true);
+    } finally {
+      if (!offline) {
+        setRefreshing(false);
+        refreshInFlight.current = false;
+      }
     }
-    await Promise.allSettled([
-      fetchAllData(selectedSocietyId, true),
+    Promise.allSettled([
+      updateExpiredDeals(selectedSocietyId),
+      getAllDealsBySocietyId(selectedSocietyId),
+      fetchBusinessBySocietyId(selectedSocietyId),
+      getAllApprovedDailyServices(selectedSocietyId),
       ...(isAdmin ? [getAllPendingContent(selectedSocietyId)] : []),
     ]);
-    setRefreshing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, selectedSocietyId, fetchAllData, isAdmin]);
+  }, [userId, selectedSocietyId, isAdmin]);
 
   // Sync user business status — once per session
   useEffect(() => {

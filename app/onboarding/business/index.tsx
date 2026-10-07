@@ -38,7 +38,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import KeyboardAwareScrollView from "@/components/common/SafeKeyboardAwareScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Digits only; strip a leading country code so "+919876543210" -> "9876543210".

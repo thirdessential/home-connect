@@ -215,8 +215,8 @@ function FeedList({
         onClose={() => setCommentsFor(null)}
         comments={commentsFor ? (byId[commentsFor]?.comments ?? []) : []}
         feedId={commentsFor ?? undefined}
-        onSubmit={async (text) => {
-          if (commentsFor) await actions.addComment(commentsFor, text);
+        onSubmit={async (text, parentCommentId) => {
+          if (commentsFor) await actions.addComment(commentsFor, text, parentCommentId);
         }}
       />
 
