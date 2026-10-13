@@ -1,4 +1,5 @@
 import { verificationStatus } from "@/assets/enums/common.enum";
+import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { PermissionsManager } from "@/lib/PermissionsManager";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -15,9 +16,12 @@ const permissionsManager = PermissionsManager.fromDefaults();
 export const usePermissions = () => {
     // Use selector instead of full store destructure to avoid re-renders on unrelated auth changes
     const roles = useAuthStore((state) => state.roles);
+    // "Verified" = approved as a resident OR as a business. Both flip on the
+    // backend independently (a business approval leaves the resident status at
+    // its default "pending"), so reading only the resident status left approved
+    // business owners gated everywhere. One shared mapping, see useVerificationStatus.
+    const { isVerifiedAccount: isResidentVerified } = useVerificationStatus();
     const addressVerified = useUserStore((state) => state.isAddressVerified);
-    const isResidentVerified =
-        addressVerified?.status === verificationStatus.APPROVED;
     const userRoles = useMemo(() => (roles || [UserRole.GUEST]) as UserRole[], [roles]);
 
     const hasRole = useCallback((requiredRoles: UserRole | UserRole[]): boolean => {
@@ -66,8 +70,9 @@ export const usePermissions = () => {
         const isPendingOrRejected =
             status === verificationStatus.PENDING ||
             status === verificationStatus.REJECTED;
-        return isNotGuest && isPendingOrRejected;
-    }, [userRoles, addressVerified]);
+        // An approved resident OR business account is never "unverified".
+        return isNotGuest && !isResidentVerified && isPendingOrRejected;
+    }, [userRoles, addressVerified, isResidentVerified]);
 
     return {
         hasRole,

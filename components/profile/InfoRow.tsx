@@ -8,6 +8,7 @@ interface InfoRowProps {
   label: string;
   value: string;
   iconColor?: string;
+  backgroundColor?: string;
 }
 
 const InfoRow = memo(function InfoRow({
@@ -15,22 +16,33 @@ const InfoRow = memo(function InfoRow({
   label,
   value,
   iconColor,
+  backgroundColor,
 }: InfoRowProps) {
   const t = useTheme();
+
   return (
     <View style={styles.infoRow}>
       <View
         style={[
           styles.iconContainer,
-          { backgroundColor: t.colors.lightBackground },
+          {
+            backgroundColor:
+              backgroundColor ?? t.colors.lightBackground,
+          },
         ]}
       >
-        <Ionicons name={icon} size={20} color={iconColor ?? t.colors.primary} />
+        <Ionicons
+          name={icon}
+          size={20}
+          color={iconColor ?? t.colors.primary}
+        />
       </View>
+
       <View style={styles.infoTextContainer}>
         <Text style={[styles.infoLabel, { color: t.colors.textSecondary }]}>
           {label}
         </Text>
+
         <Text style={[styles.infoValue, { color: t.colors.textPrimary }]}>
           {value}
         </Text>
@@ -42,7 +54,11 @@ const InfoRow = memo(function InfoRow({
 export default InfoRow;
 
 const styles = StyleSheet.create({
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   iconContainer: {
     width: 40,
     height: 40,
@@ -50,7 +66,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  infoTextContainer: { flex: 1 },
-  infoLabel: { fontSize: 12, fontFamily: "Manrope_500Medium", marginBottom: 2 },
-  infoValue: { fontSize: 15, fontFamily: "Manrope_600SemiBold" },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontFamily: "Manrope_500Medium",
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 15,
+    fontFamily: "Manrope_600SemiBold",
+  },
 });

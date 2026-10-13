@@ -138,8 +138,7 @@ function NavLinker() {
       // Back from background: renew the access token if it is near expiry and
       // rotate the refresh token if it is in its final 5 days.
       useAuthStore.getState().ensureFreshToken().catch(() => {});
-      const userId = useUserStore.getState().user?._id;
-      if (userId) useUserStore.getState().fetchUser(userId).catch(() => {});
+      useUserStore.getState().refreshCurrentUser().catch(() => {});
     });
     return () => sub.remove();
   }, [_hasHydrated, token]);

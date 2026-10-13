@@ -24,7 +24,19 @@ export function useVerificationStatus() {
     regBusinessStatus === "pending" ||
     (pendingBusinessCount ?? 0) > 0;
 
+  // Approval is read from the backend-synced status (admin approval sets it and
+  // refreshes roles server-side). It deliberately does not depend on the cached
+  // auth roles, which can still say "guest" until the next refresh.
+  const residentApproved = String(status ?? "").toLowerCase() === verificationStatus.APPROVED;
+  const businessApproved =
+    String(userBusinessStatus ?? "").toLowerCase() === verificationStatus.APPROVED ||
+    regBusinessStatus === "approved";
+
   return {
+    residentApproved,
+    businessApproved,
+    /** Approved as a resident or as a business: no verification CTA anywhere. */
+    isVerifiedAccount: residentApproved || businessApproved,
     residentPending,
     businessPending,
     isVerificationPending: residentPending || businessPending,

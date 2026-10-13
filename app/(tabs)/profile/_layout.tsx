@@ -61,6 +61,8 @@ export default function ProfileStack() {
           headerShown: false,
         }}
       />
+      <Stack.Screen name="approved-residents" options={{ headerShown: false }} />
+      <Stack.Screen name="approved-residents-list" options={{ headerShown: false }} />
     </Stack>
   );
 }

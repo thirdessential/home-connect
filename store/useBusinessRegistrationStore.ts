@@ -94,6 +94,8 @@ type Actions = {
   uploadPhotos: (files: UploadFile[]) => Promise<BusinessRegistration>;
   deletePhoto: (photoId: number) => Promise<BusinessRegistration>;
   submit: () => Promise<BusinessRegistration>;
+  /** Explicit "Discard": deletes the unsubmitted draft on the server, then clears local state. */
+  discardDraft: () => Promise<void>;
   getStatus: () => Promise<BusinessStatusResponse>;
   reset: () => void;
   clear: () => void;
@@ -308,6 +310,15 @@ export const useBusinessRegistrationStore = create<State & Actions>((set, get) =
       } finally {
         set({ saving: false });
       }
+    },
+
+    discardDraft: async () => {
+      const b = get().business;
+      // Only a never-submitted draft is removable; the server enforces this too.
+      if (b?.id && b.business_status === "draft") {
+        await Delete(`${REG}/${b.id}/draft`);
+      }
+      set({ business: null, categories: [], otherOption: null, error: null });
     },
 
     getStatus: async () => {

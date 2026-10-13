@@ -38,7 +38,8 @@ const CONTENT_PREVIEW_LIMIT = 110;
 const PostCard = React.memo(function PostCard({
   postData,
   loading = false,
-}: PostProps & { loading?: boolean }) {
+  readOnly = false,
+}: PostProps & { loading?: boolean; readOnly?: boolean }) {
   const t = useTheme();
   const { width: winWidth } = useWindowDimensions();
   const removeFeed = useFeedsStore((state) => state.removeFeed);
@@ -51,12 +52,13 @@ const PostCard = React.memo(function PostCard({
   const [imageIndex, setImageIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(winWidth);
   const currentUser = useUserStore((state) => state.user);
-  const { hasRole } = usePermissions();
+  const { hasRole, isResidentVerified } = usePermissions();
   const isGuest = hasRole(UserRole.GUEST);
   const unverifiedUser =
     !isGuest &&
     !hasRole(UserRole.ADMIN) &&
-    currentUser?.isAddressVerified?.status !== verificationStatus.APPROVED;
+    // Resident OR business approval counts (shared mapping in useVerificationStatus).
+    !isResidentVerified;
   // The poster's identity is verified but withheld from this viewer until
   // they themselves are verified.
   const locked = isGuest || unverifiedUser;
@@ -262,7 +264,7 @@ const PostCard = React.memo(function PostCard({
           verified={locked}
           isSameUser={currentUser?._id === postData?.user?._id}
           imageSize={44}
-          showOptionsMenu
+          showOptionsMenu={!readOnly}
           onReportPost={handleReportPost}
           onReportUser={handleReportUser}
           onShare={handleShare}
@@ -328,7 +330,7 @@ const PostCard = React.memo(function PostCard({
           </Text>
         ) : null}
 
-        {locked && (
+        {locked && !readOnly && (
           <TouchableOpacity
             onPress={handleGatedAction}
             activeOpacity={0.7}
@@ -350,7 +352,8 @@ const PostCard = React.memo(function PostCard({
           </TouchableOpacity>
         )}
 
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
+        {!readOnly && (
+<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <LikeButton feedId={postData?._id || postData?.id} likes={postData?.likes} size={18} showCount={false} onBeforeLike={handleGatedAction} />
             <TouchableOpacity onPress={handleCommentPress} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -363,6 +366,7 @@ const PostCard = React.memo(function PostCard({
             <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>Share</Text>
           </TouchableOpacity>
         </View>
+)}
       </View>
 
       {verifySheetVisible && (

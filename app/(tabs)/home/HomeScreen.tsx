@@ -1,6 +1,7 @@
 import { BUSINESS_LIMITS } from "@/assets/constants/common.constant";
 import { PRODUCTS_CONSTANTS } from "@/assets/constants/products.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
+import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import ProductCarousel from "@/components/business/ProductCarousel";
 import AdminDashboardButton from "@/components/home/AdminDashboardButton";
 import FeedList from "@/components/home/FeedList";
@@ -36,24 +37,14 @@ function HomeScreen() {
   const selectedSocietyId = useSocietyStore((state) => state.selectedSociety?._id);
   // Refresh user/business status on every Home focus. Feed loading is handled
   // once below so the focus effect cannot race it with a duplicate API call.
+  // No connectivity pre-probe: the fetch itself fails quietly when offline, and
+  // a false "offline" from the probe must never block the verification sync.
+  // (App-resume refresh lives once at the root layout, not here.)
   useFocusEffect(
     useCallback(() => {
-      checkInternetConnection().then((online) => {
-        if (!online) return;
-        if (userId) fetchUser(userId).catch(() => {});
-        loadCurrentBusiness().catch(() => {});
-      });
-      // Home stays mounted+focused while backgrounded (e.g. admin approves
-      // while the user is away); focus alone won't re-fire, so also refetch
-      // when the app comes back to foreground.
-      const sub = AppState.addEventListener("change", (state) => {
-        if (state === "active" && userId) {
-          checkInternetConnection().then((online) => {
-            if (online) fetchUser(userId).catch(() => {});
-          });
-        }
-      });
-      return () => sub.remove();
+      Promise.allSettled([refreshCurrentUser(), loadCurrentBusiness()]).then(() =>
+        setVerificationChecked(true),
+      );
     }, [userId, selectedSocietyId]),
   );
   // Android hardware back on Home: first press warns, second press (within
@@ -85,7 +76,7 @@ function HomeScreen() {
     (state) => state.user?.pendingBusinessCount,
   );
   const businessStatus = useUserStore((state) => state.user?.businessStatus);
-  const fetchUser = useUserStore((state) => state.fetchUser);
+  const refreshCurrentUser = useUserStore((state) => state.refreshCurrentUser);
   // MySQL business registrations live in their own store, not on user.businessStatus.
   const mysqlBusinessStatus = useBusinessRegistrationStore((state) => state.business?.business_status);
   const loadCurrentBusiness = useBusinessRegistrationStore((state) => state.loadCurrent);
@@ -135,12 +126,23 @@ function HomeScreen() {
     [hasAnyRole],
   );
 
-  const isGuest = useMemo(() => hasRole(UserRole.GUEST), [hasRole]);
+  // Backend approval wins over the cached auth role: an approved resident or
+  // business is never treated as a guest, even if roles haven't refreshed yet.
+  const { isVerifiedAccount } = useVerificationStatus();
+  const isGuest = useMemo(
+    () => hasRole(UserRole.GUEST) && !isVerifiedAccount,
+    [hasRole, isVerifiedAccount],
+  );
+
+  // "Unknown" is not "unverified": until the latest user state has been fetched
+  // this session (or the attempt failed, e.g. offline), keep the CTA hidden so a
+  // stale cached status can't flash "Verify Now".
+  const [verificationChecked, setVerificationChecked] = useState(false);
 
   // Drives the top banner, floating FAB and bottom lock strip — anyone who
-  // isn't yet an approved resident/admin sees the verification chrome.
+  // isn't yet an approved resident/business/admin sees the verification chrome.
   const showVerificationChrome =
-    isGuest || (!isAdmin && userVerification?.status !== verificationStatus.APPROVED);
+    verificationChecked && !isAdmin && !isVerifiedAccount && (isGuest || !!userVerification);
 
   // Start in loading state to avoid a one-render "No Posts Yet" flash before
   // the persisted feed store or the first network result is available.
@@ -192,6 +194,9 @@ function HomeScreen() {
       showToast("No Internet Connection", "warning");
     });
     try {
+      // Re-sync verification state too, so approval changes show on pull-to-refresh.
+      refreshCurrentUser().catch(() => {});
+      loadCurrentBusiness().catch(() => {});
       await fetchFeedsBySociety(selectedSocietyId, true);
     } finally {
       if (!offline) {

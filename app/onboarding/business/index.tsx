@@ -27,7 +27,8 @@ import {
 } from "@/types/businessRegistration.type";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import ConfirmationModal from "@/components/modals/ConfirmationModal";
+import { router, useNavigation } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -175,13 +176,21 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
   // JWT-backed session, never a client-controlled param.
   const { hasRole } = usePermissions();
   const isBusinessUser = hasRole(UserRole.BUSINESS);
+  // Set only when leaving is intentional (Discard, or an existing Business
+  // account being sent away); the beforeRemove guard below lets it through.
+  const allowLeaveRef = useRef(false);
   useEffect(() => {
     if (!isBusinessUser) return;
+    allowLeaveRef.current = true;
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/create");
   }, [isBusinessUser]);
 
   const [step, setStep] = useState(1);
+  const stepRef = useRef(1);
+  stepRef.current = step;
+  const [showDiscard, setShowDiscard] = useState(false);
+  const navigation = useNavigation();
   // Step 1 renders immediately — the draft lookup happens in the background and
   // the registration row is created on Continue. The screen must never be
   // gated behind a network round-trip.
@@ -305,7 +314,7 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
       const msg = Array.isArray(details) && details[0]?.message
         ? details[0].message
         : e?.message ?? "Something went wrong";
-      showToast(msg, "error");
+      showToast(msg, "error", { durationMs: 5000 });
     },
     [showToast],
   );
@@ -400,10 +409,35 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addr1, pin, locality, city, state, mapUrl, user, showToast]);
 
+  // One rule for every way of going back (header arrow, Android back, iOS swipe):
+  // step N>1 -> step N-1; step 1 -> confirm discard; success screen -> leave.
+  useEffect(() => {
+    const unsub = navigation.addListener("beforeRemove", (e) => {
+      if (allowLeaveRef.current || stepRef.current >= 7) return;
+      e.preventDefault();
+      if (stepRef.current > 1) setStep(stepRef.current - 1);
+      else setShowDiscard(true);
+    });
+    return unsub;
+  }, [navigation]);
+
   const goBack = useCallback(() => {
     if (step > 1) setStep((p) => p - 1);
-    else if (router.canGoBack()) router.back();
+    else setShowDiscard(true);
   }, [step]);
+
+  const confirmDiscard = useCallback(async () => {
+    try {
+      await s.discardDraft();
+    } catch (e: any) {
+      showToast(e?.message ?? "Could not discard the draft", "error");
+      throw e; // keep the dialog open
+    }
+    allowLeaveRef.current = true;
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/create");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showToast]);
 
   // ---- per-step submit handlers (save to backend, then advance) ----
   const next1 = async () => {
@@ -820,6 +854,18 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
           />
         </View>
       ) : null}
+      <ConfirmationModal
+        visible={showDiscard}
+        onClose={() => setShowDiscard(false)}
+        onConfirm={confirmDiscard}
+        title="Are you sure you want to go back?"
+        message="If you go back, your business information will be lost."
+        confirmText="Discard"
+        cancelText="Continue"
+        successTitle="Discarded"
+        successMessage="Your business draft was discarded."
+        autoCloseDelay={600}
+      />
     </SafeAreaView>
   );
 }

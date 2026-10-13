@@ -197,6 +197,7 @@ function CreatePostModal({
           !permissions.hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]);
         if (
           isResidentOnly &&
+          !permissions.isResidentVerified &&
           isAddressVerified?.status === verificationStatus.PENDING
         )
           return false;

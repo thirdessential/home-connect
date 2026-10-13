@@ -33,6 +33,8 @@ export interface UserStore {
     setApprovedResidents: (residents: User[]) => void;
     updateUserField: (field: keyof User, value: any) => void;
     fetchUser: (_id: string) => Promise<void>;
+    /** The one way to re-sync the logged-in user (incl. verification status) from the backend. */
+    refreshCurrentUser: () => Promise<void>;
     saveLocation: (payload: {
         address?: string;
         latitude: number;
@@ -61,6 +63,11 @@ export interface UserStore {
     clear: () => void;
     _setHasHydrated: (v: boolean) => void;
 }
+
+// Monotonic id of the newest fetchUser call. Only that call may write its result,
+// so a slow older response (e.g. a pre-approval "pending") can never overwrite a
+// newer one.
+let latestUserFetchSeq = 0;
 
 export const useUserStore = create<UserStore>()(
     persist(
@@ -107,12 +114,20 @@ export const useUserStore = create<UserStore>()(
                 }
             },
             fetchUser: async (_id: string) => {
+                const seq = ++latestUserFetchSeq;
                 set({ loading: true, error: null });
                 try {
                     // GET /api/user/:id returns the user object directly (no
                     // {success,user} envelope) — same shape fetchViewedUser
                     // already relies on above.
                     const userResponse = await Get<User>(`/api/user/${_id}`);
+                    // Superseded by a newer fetch, or the session changed (logout /
+                    // different account) while this was in flight: drop the result.
+                    const current = get().user;
+                    if (seq !== latestUserFetchSeq || !current || current._id !== _id) {
+                        if (seq === latestUserFetchSeq) set({ loading: false });
+                        return;
+                    }
                     if (userResponse?._id) {
                         set({
                             user: userResponse,
@@ -127,13 +142,21 @@ export const useUserStore = create<UserStore>()(
                             const { useAuthStore } = require("./useAuthStore") as typeof import("./useAuthStore");
                             useAuthStore.getState().setRoles(userResponse.roles);
                         }
+                    } else {
+                        set({ loading: false });
                     }
                 } catch (err: any) {
-                    set({
-                        error: err?.message || "Failed to fetch user",
-                        loading: false,
-                    });
+                    if (seq === latestUserFetchSeq) {
+                        set({
+                            error: err?.message || "Failed to fetch user",
+                            loading: false,
+                        });
+                    }
                 }
+            },
+            refreshCurrentUser: async () => {
+                const id = get().user?._id;
+                if (id) await get().fetchUser(id);
             },
             saveLocation: async (payload) => {
                 set({ loading: true, error: null });

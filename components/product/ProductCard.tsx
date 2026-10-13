@@ -29,6 +29,8 @@ type ProductCardProps = {
   type?: string;
   loading?: boolean;
   onDelete?: () => Promise<void>;
+  /** Profile/admin view: no like/comment/share/menu; event CTA only opens Event Details. */
+  readOnly?: boolean;
 };
 
 // Small pill used on deal cards to show ACTIVE / PENDING / APPROVED / etc.
@@ -60,18 +62,19 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ProductCard({ productDetails, style, type, loading = false, onDelete }: ProductCardProps) {
+function ProductCard({ productDetails, style, type, loading = false, onDelete, readOnly = false }: ProductCardProps) {
   const t = useTheme();
   const isEvent = type === "event";
 
-  const { hasRole } = usePermissions();
+  const { hasRole, isResidentVerified } = usePermissions();
   const isGuest = hasRole(UserRole.GUEST);
   const currentUser = useUserStore((state) => state.user);
   const removeDeal = useWholesaleDealStore((state) => state.removeDeal);
   const unverifiedUser =
     !isGuest &&
     !hasRole(UserRole.ADMIN) &&
-    currentUser?.isAddressVerified?.status !== verificationStatus.APPROVED;
+    // Resident OR business approval counts (shared mapping in useVerificationStatus).
+    !isResidentVerified;
 
   // ---- Modal / sheet visibility ------------------------------------------------
   const [verifySheetVisible, setVerifySheetVisible] = useState(false);
@@ -181,6 +184,7 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
   const userInfo = {
     imageUri: productDetails?.user?.profilePhotoUrl || productDetails?.userId?.profilePhotoUrl,
     name: productDetails?.user?.fullName || productDetails?.userId?.fullName,
+    id: productDetails?.user?._id || productDetails?.userId?._id,
   };
 
   const capitalizedTitle = useMemo(
@@ -534,7 +538,7 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
       {productDetails?.title && (
         <View style={styles.joinEventWrapper}>
           <ActionButton
-            title="Join Event"
+            title={readOnly ? "View Event Details" : "Join Event"}
             containerStyle={[styles.joinEventButton, { backgroundColor: t.colors.brand }]}
             textStyle={[styles.joinEventButtonText, { color: t.colors.onBrand }]}
             onPress={handleCtaPress}
@@ -548,7 +552,8 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
         </View>
       )}
 
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
+      {!readOnly && (
+<View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <LikeButton feedId={productDetails?._id ?? ""} likes={productDetails?.likes} size={18} showCount={false} onBeforeLike={handleGatedAction} />
             <TouchableOpacity onPress={handleCommentPress} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -561,12 +566,14 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
             <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>Share</Text>
           </TouchableOpacity>
         </View>
+)}
     </>
   );
 
   const cardHeader = (
     <ImageTitleHeader
       imageUri={userInfo.imageUri}
+      avatarUserId={userInfo.name ? String(userInfo.id ?? userInfo.name) : undefined}
       title={userInfo.name || COMMON_CONSTANTS.ANONYMOUS_USER}
       isSameUser={isSameUser}
       badge={isEvent ? "EVENT" : undefined}
@@ -574,7 +581,7 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete }:
       subtitle={headerSubtitle}
       imageSize={40}
       variant={hasHeroImage ? "onImage" : "default"}
-      showOptionsMenu={true}
+      showOptionsMenu={!readOnly}
       onRemovePost={handleRemovePost}
       onReportPost={handleReportProduct}
       onReportUser={handleReportUser}

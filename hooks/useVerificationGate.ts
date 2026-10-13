@@ -1,6 +1,7 @@
 import { usePermissions } from "@/hooks/usePermissions";
 import { UserRole } from "@/types/roles";
-import { useCallback, useState } from "react";
+import { useUserStore } from "@/store/useUserStore";
+import { useCallback, useEffect, useState } from "react";
 
 // Mirrors HomeScreen's `showVerificationChrome` — anyone who isn't an
 // approved resident/admin (guest, or submitted-but-pending/rejected) must
@@ -24,12 +25,20 @@ export function useVerificationGate() {
     (mode: "action" | "page" = "action") => {
       if (requiresVerification) {
         setGate({ visible: true, mode });
+        // The local status may be stale (e.g. approved by an admin since the last
+        // sync). Re-check with the backend; the effect below dismisses the popup
+        // if the fresh state turns out to be verified.
+        useUserStore.getState().refreshCurrentUser().catch(() => {});
         return false;
       }
       return true;
     },
     [requiresVerification],
   );
+
+  useEffect(() => {
+    if (!requiresVerification && gate.visible) setGate((g) => ({ ...g, visible: false }));
+  }, [requiresVerification, gate.visible]);
 
   const closeGate = useCallback(() => setGate((g) => ({ ...g, visible: false })), []);
 

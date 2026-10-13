@@ -3,6 +3,7 @@ import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import OrderSuccessModal from "@/components/modals/OrderSuccessModal";
 import ProductCard from "@/components/product/ProductCard";
 import ProfileSkeleton from "@/components/profile/ProfileSkeleton";
+import TitleHeader from "@/components/UI/TitleHeader";
 import UserProfileHeader from "@/components/profile/UserProfileHeader";
 import PollCard from "@/components/UI/PollCard";
 import PostCard from "@/components/UI/PostCard";
@@ -106,8 +107,6 @@ export default function UserProfileScreen() {
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleBack = useCallback(() => router.back(), [router]);
-  const handleCall = useCallback(() => {}, []);
-  const handleMessage = useCallback(() => {}, []);
   const handleRemoveUser = useCallback(() => setShowDeleteConfirm(true), []);
 
   const handleConfirmDelete = useCallback(async () => {
@@ -153,7 +152,7 @@ export default function UserProfileScreen() {
       await useUserStore
         .getState()
         .updateUser({ roles: updatedRoles }, targetUserId);
-      await useUserStore.getState().fetchUser(targetUserId);
+      await useUserStore.getState().fetchViewedUser(targetUserId);
       if (approvedResidents) {
         useUserStore
           .getState()
@@ -188,14 +187,15 @@ export default function UserProfileScreen() {
   const renderFeedItem = useCallback(
     ({ item }: { item: (typeof userFeeds)[0] }) => {
       if (item?.type === "post")
-        return <PostCard postData={item} loading={feedsLoading} />;
-      if (item?.type === "poll") return <PollCard pollId={item._id} />;
+        return <PostCard postData={item} loading={feedsLoading} readOnly />;
+      if (item?.type === "poll") return <PollCard pollId={item._id} pollData={item} readOnly />;
       if (item?.type === "event")
         return (
           <ProductCard
             productDetails={item}
             type="event"
             loading={feedsLoading}
+            readOnly
           />
         );
       return null;
@@ -213,29 +213,24 @@ export default function UserProfileScreen() {
       <UserProfileHeader
         user={selectedUser}
         userId={userId}
-        initials={initials}
         roleDisplay={roleDisplay}
         societyName={societyName}
-        selectedUserRoles={selectedUser?.roles ?? undefined}
-        onBack={handleBack}
-        onCall={handleCall}
-        onMessage={handleMessage}
-        onRemoveUser={handleRemoveUser}
-        onToggleAdminRole={handleToggleAdminRole}
       />
     ),
-    [
-      selectedUser,
-      userId,
-      initials,
-      roleDisplay,
-      societyName,
-      handleBack,
-      handleCall,
-      handleMessage,
-      handleRemoveUser,
-      handleToggleAdminRole,
-    ],
+    [selectedUser, userId, roleDisplay, societyName],
+  );
+
+  // Back + options menu stay pinned above the scrolling content.
+  const topBar = (
+    <TitleHeader
+      title="User Profile"
+      selectedUserRoles={selectedUser?.roles ?? undefined}
+      userId={userId}
+      onBackPress={handleBack}
+      showOptionsMenu={isDataReady}
+      onRemoveUser={handleRemoveUser}
+      onToggleAdminRole={handleToggleAdminRole}
+    />
   );
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -251,6 +246,7 @@ export default function UserProfileScreen() {
             },
           ]}
         >
+          {topBar}
           <ProfileSkeleton />
         </View>
       </SafeAreaProvider>
@@ -265,16 +261,19 @@ export default function UserProfileScreen() {
           { backgroundColor: t.colors.white, paddingTop: insets.top + 8 },
         ]}
       >
+        {topBar}
         <FlatList
           data={userFeeds}
           renderItem={renderFeedItem}
           keyExtractor={keyExtractor}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={
-            <NoDataCard iconName="reader-outline" message="No Post" />
+            feedsLoading ? null : (
+              <NoDataCard iconName="reader-outline" message="No posts, events or polls yet." />
+            )
           }
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.flatListContent}
+          contentContainerStyle={[styles.flatListContent, { paddingBottom: insets.bottom + 16 }]}
         />
       </View>
 
@@ -340,10 +339,10 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   flatListContent: {
     flexGrow: 1,
+    paddingHorizontal: 16,
     paddingBottom: 16,
   },
 });

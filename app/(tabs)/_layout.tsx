@@ -2,6 +2,7 @@ import { COMMON_CONSTANTS } from "@/assets/constants/common.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
 import GlobalBottomNavigation from "@/components/UI/GlobalBottomNavigation";
 import FormSheetModal from "@/components/modals/FormSheetModal";
+import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import VerificationGateModal from "@/components/common/VerificationGateModal";
 import { useCreatePostModal } from "@/hooks/useCreatePostModal";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -51,13 +52,14 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const isGuestUser = hasRole(UserRole.GUEST);
 
   // Memoize role checks and colors
+  const { isVerifiedAccount } = useVerificationStatus();
   const isPending = useMemo(
-    () => userStatus === verificationStatus.PENDING,
-    [userStatus],
+    () => !isVerifiedAccount && userStatus === verificationStatus.PENDING,
+    [userStatus, isVerifiedAccount],
   );
   const isRejected = useMemo(
-    () => userStatus === verificationStatus.REJECTED,
-    [userStatus],
+    () => !isVerifiedAccount && userStatus === verificationStatus.REJECTED,
+    [userStatus, isVerifiedAccount],
   );
 
   // Memoize tab labels

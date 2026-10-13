@@ -7,8 +7,9 @@ import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Share, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Share, Text, TouchableOpacity, View } from "react-native";
 import VerificationSheet from "../common/VerificationSheet";
 import LikeButton from "../inputs/LikeButton";
 import ConfirmationModal from "../modals/ConfirmationModal";
@@ -22,13 +23,21 @@ import Skeleton from "./Skeleton";
 const PollCard = React.memo(function PollCard({
   pollId,
   onDelete,
+  readOnly = false,
+  pollData: pollOverride,
 }: {
   pollId: string;
   onDelete?: () => Promise<void>;
+  /** Profile/admin view: no voting, menu or social actions; any tap goes Home. */
+  readOnly?: boolean;
+  /** Poll item supplied by the caller (e.g. a user's own feed list not in the home feed store). */
+  pollData?: any;
 }) {
-  const pollData = useFeedsStore((state) =>
+  const storePoll = useFeedsStore((state) =>
     state.feeds.find((f) => f._id === pollId),
   );
+  const pollData = pollOverride ?? storePoll;
+  const goHome = useCallback(() => router.navigate("/(tabs)/home"), []);
   const votePoll = useFeedsStore((state) => state.votePoll);
   const removeFeed = useFeedsStore((state) => state.removeFeed);
   const feedsLoading = useFeedsStore((state) => state.loading);
@@ -39,13 +48,14 @@ const PollCard = React.memo(function PollCard({
   const [unverifiedModalVisible, setUnverifiedModalVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportType, setReportType] = useState<"poll" | "user" | null>(null);
-  const { hasRole } = usePermissions();
+  const { hasRole, isResidentVerified } = usePermissions();
   const isGuest = hasRole(UserRole.GUEST);
   const currentUser = useUserStore((state) => state.user);
   const unverifiedUser =
     !isGuest &&
     !hasRole(UserRole.ADMIN) &&
-    currentUser?.isAddressVerified?.status !== verificationStatus.APPROVED;
+    // Resident OR business approval counts (shared mapping in useVerificationStatus).
+    !isResidentVerified;
 
   const [deleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
@@ -103,8 +113,8 @@ const PollCard = React.memo(function PollCard({
    *  - poll already has votes          (totalVotes > 0) — optional, shows live count
    */
   const showResults = useMemo(
-    () => isPollCreator || hasVoted || selected !== null,
-    [isPollCreator, hasVoted, selected],
+    () => readOnly || isPollCreator || hasVoted || selected !== null,
+    [readOnly, isPollCreator, hasVoted, selected],
   );
 
   // ── Vote count helpers ────────────────────────────────────────────────────
@@ -208,9 +218,15 @@ const PollCard = React.memo(function PollCard({
   if (!pollData) return null;
 
   return (
+    <Pressable disabled={!readOnly} onPress={goHome}>
     <Card style={{ borderRadius: 12 }}>
       {/* Header */}
       <ImageTitleHeader
+        avatarUserId={
+          typeof pollData.user === "object" && pollData.user?.fullName
+            ? String(pollData.user._id ?? pollData.user.fullName)
+            : undefined
+        }
         imageUri={
           typeof pollData.user === "object" && pollData.user !== null
             ? pollData.user.profilePhotoUrl
@@ -231,7 +247,7 @@ const PollCard = React.memo(function PollCard({
             : currentUser?._id === pollData.user?._id
         }
         imageSize={44}
-        showOptionsMenu={true}
+        showOptionsMenu={!readOnly}
         onReportPost={handleReportPost}
         onReportUser={handleReportUser}
         onShare={handleShare}
@@ -274,6 +290,7 @@ const PollCard = React.memo(function PollCard({
               key={index}
               activeOpacity={showResults ? 1 : 0.8}
               onPress={() => {
+                if (readOnly) { goHome(); return; }
                 if (isGuest) { setVerifySheetVisible(true); return; }
                 if (unverifiedUser) { setUnverifiedModalVisible(true); return; }
                 // Prevent voting if already in result mode
@@ -376,6 +393,7 @@ const PollCard = React.memo(function PollCard({
       )}
 
       {/* Social Actions */}
+      {!readOnly && (
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.colors.border }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <LikeButton feedId={pollData._id ?? ""} likes={pollData.likes} size={18} showCount={false} onBeforeLike={handleLikePress} />
@@ -389,6 +407,7 @@ const PollCard = React.memo(function PollCard({
             <Text style={{ color: t.colors.textSecondary, fontSize: 13 }}>Share</Text>
           </TouchableOpacity>
         </View>
+      )}
 
       {/* Verification Sheet */}
       {verifySheetVisible && (
@@ -481,6 +500,7 @@ const PollCard = React.memo(function PollCard({
         }
       />
     </Card>
+    </Pressable>
   );
 });
 

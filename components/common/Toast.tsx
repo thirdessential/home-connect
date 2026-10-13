@@ -24,7 +24,8 @@ type StatusToast = {
 };
 
 type ToastContextValue = {
-  showToast: (message: string, type?: ToastType) => void;
+  /** Errors stay 4s by default (others 2.5s); pass durationMs for important ones (e.g. 5000). */
+  showToast: (message: string, type?: ToastType, opts?: { durationMs?: number }) => void;
   /** Modern top toast with title + message; duplicates of the visible one are ignored. */
   showStatusToast: (t: StatusToast) => void;
 };
@@ -34,6 +35,10 @@ const STATUS_TONES: Record<StatusToast["tone"], { bg: string; border: string; ic
   neutral: { bg: "#FDECEC", border: "#F8CFCF", icon: "#C62828", title: "#7F1D1D", text: "#991B1B", name: "checkmark-circle" },
   error: { bg: "#FDECEC", border: "#F8CFCF", icon: "#C62828", title: "#7F1D1D", text: "#991B1B", name: "close-circle" },
 };
+
+const TOAST_MS = 2500;
+const ERROR_TOAST_MS = 4000;
+const STATUS_ERROR_MS = 4000;
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
@@ -55,6 +60,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   const translateY = useRef(new Animated.Value(120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastKey = useRef<string | null>(null);
 
   const hide = useCallback(() => {
     Animated.parallel([
@@ -68,12 +74,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
         duration: 220,
         useNativeDriver: true,
       }),
-    ]).start(() => setToast(null));
+    ]).start(() => {
+      toastKey.current = null;
+      setToast(null);
+    });
   }, [opacity, translateY]);
 
   const showToast = useCallback(
-    (message: string, type: ToastType = "error") => {
+    (message: string, type: ToastType = "error", opts?: { durationMs?: number }) => {
+      const duration = Math.max(opts?.durationMs ?? 0, type === "error" ? ERROR_TOAST_MS : TOAST_MS);
       if (hideTimer.current) clearTimeout(hideTimer.current);
+      // Same toast already showing: just extend it instead of re-animating a duplicate.
+      if (toastKey.current === `${type}|${message}`) {
+        hideTimer.current = setTimeout(hide, duration);
+        return;
+      }
+      toastKey.current = `${type}|${message}`;
       setToast({ message, type });
       translateY.setValue(120);
       opacity.setValue(0);
@@ -90,7 +106,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
           useNativeDriver: true,
         }),
       ]).start();
-      hideTimer.current = setTimeout(hide, 2500);
+      hideTimer.current = setTimeout(hide, duration);
     },
     [hide, opacity, translateY],
   );
@@ -132,7 +148,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
         Animated.spring(statusY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 70 }),
         Animated.timing(statusOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]).start();
-      statusTimer.current = setTimeout(hideStatus, 2800);
+      statusTimer.current = setTimeout(hideStatus, t.tone === "error" ? STATUS_ERROR_MS : 2800);
     },
     [hideStatus, statusOpacity, statusY],
   );

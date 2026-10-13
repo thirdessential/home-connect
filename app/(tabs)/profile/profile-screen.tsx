@@ -6,6 +6,7 @@ import ActionButton from "@/components/inputs/ActionButton";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
 import VerificationGateModal from "@/components/common/VerificationGateModal";
 import { useVerificationGate } from "@/hooks/useVerificationGate";
+import { useVerificationStatus } from "@/hooks/useVerificationStatus";
 import { sendDevelopmentTestPushToCurrentDevice } from "@/hooks/usePushNotifications";
 import { usePermissions } from "@/hooks/usePermissions";
 import { uploadToBackendKeyed } from "@/lib/backendUpload";
@@ -14,9 +15,9 @@ import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Static styles — defined once at module level, never recreated
@@ -171,6 +172,19 @@ export default function ProfileScreen() {
     }
   }, []);
   const { requireVerified, gate, closeGate } = useVerificationGate();
+  // Re-sync verification status whenever Profile is shown, and on pull-to-refresh,
+  // so an admin approval appears without logout/login.
+  const [profileRefreshing, setProfileRefreshing] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      useUserStore.getState().refreshCurrentUser().catch(() => {});
+    }, []),
+  );
+  const onProfileRefresh = useCallback(async () => {
+    setProfileRefreshing(true);
+    await useUserStore.getState().refreshCurrentUser().catch(() => {});
+    setProfileRefreshing(false);
+  }, []);
   const onChangeAvatar = useCallback(
     async (uri: string) => {
       setAvatarUri(uri); // immediate local preview of the cropped photo
@@ -227,10 +241,8 @@ export default function ProfileScreen() {
   // field Home reads (see HomeScreen's userVerification). Role flags come from
   // useAuthStore, which is only refreshed on login/explicit setRoles() calls
   // and can lag behind this status, so it must not gate verification display.
-  const isUserVerified = useMemo(
-    () => user?.isAddressVerified?.status === verificationStatus.APPROVED,
-    [user?.isAddressVerified?.status],
-  );
+  // Approved as a resident OR as a business (shared mapping with every gate).
+  const { isVerifiedAccount: isUserVerified, businessPending } = useVerificationStatus();
 
   const verificationBadge = useMemo(() => {
     const status = user?.isAddressVerified?.status;
@@ -249,7 +261,7 @@ export default function ProfileScreen() {
         iconBgColor: t.colors.error,
       };
     }
-    if (status === verificationStatus.PENDING) {
+    if (status === verificationStatus.PENDING || businessPending) {
       return {
         label: "Pending",
         icon: "time-outline" as const,
@@ -263,7 +275,7 @@ export default function ProfileScreen() {
       color: t.colors.error,
       iconBgColor: t.colors.error,
     };
-  }, [isUserVerified, user?.isAddressVerified?.status, t.colors.warning, t.colors.error]);
+  }, [isUserVerified, businessPending, user?.isAddressVerified?.status, t.colors.warning, t.colors.error]);
 
   const onLogout = useCallback(() => {
     setLogoutConfirmVisible(true);
@@ -340,6 +352,7 @@ export default function ProfileScreen() {
         // style={{ backgroundColor: t.colors.white }}
         contentContainerStyle={staticStyles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={profileRefreshing} onRefresh={onProfileRefresh} />}
       >
         {/* Avatar + identity header */}
         <View style={dynamicStyles.headerContainer}>
