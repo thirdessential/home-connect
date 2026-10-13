@@ -35,7 +35,10 @@ if (__DEV__ && backendEnv !== "development" && backendEnv !== "live") {
   useConfigWarningStore.getState().setWarning(message);
 }
 
-export const API_BASE = backendEnv === "development" ? DEVELOPMENT_URL : PRODUCTION_URL;
+// Release builds must never resolve to the LAN/localhost dev URL (on a real device
+// "localhost" is the phone itself and cleartext HTTP is blocked), so the dev URL is
+// honoured only in __DEV__ bundles, regardless of what .env held at build time.
+export const API_BASE = __DEV__ && backendEnv === "development" ? DEVELOPMENT_URL : PRODUCTION_URL;
 
 
 // Build headers with Authorization token if present. Skips Content-Type for

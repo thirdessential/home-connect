@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "236265950652",
-    "project_id": "home-connect-29dee",
-    "storage_bucket": "home-connect-29dee.firebasestorage.app"
+    "project_number": "994545813794",
+    "project_id": "my-terrace-app",
+    "storage_bucket": "my-terrace-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:236265950652:android:4fc959448df18514352fb9",
-        "android_client_info": {
-          "package_name": "com.anonymous.homeconnect"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAseqA8r1h2sEPepQiVpWCumjzCA6RfX-k"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:236265950652:android:5383065c32bd02f6352fb9",
+        "mobilesdk_app_id": "1:994545813794:android:60b8ef6cb70ff8fa69bd7b",
         "android_client_info": {
           "package_name": "com.myterraceapp"
         }
@@ -34,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAseqA8r1h2sEPepQiVpWCumjzCA6RfX-k"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:236265950652:android:14c971a28968a41b352fb9",
-        "android_client_info": {
-          "package_name": "com.terrace.myapp"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAseqA8r1h2sEPepQiVpWCumjzCA6RfX-k"
+          "current_key": "AIzaSyASMx1xL-abkLIhrWJLIsSBFjy-6dDdfKs"
         }
       ],
       "services": {
