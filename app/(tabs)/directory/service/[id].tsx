@@ -43,7 +43,7 @@ const RecommendationCard = memo(
       <Text
         style={[styles.recommendationText, { color: theme.colors.textPrimary }]}
       >
-        {isProfessionalService ? "Recomended" : "Verified"} by
+        {isProfessionalService ? "Recomended" : "Added"} by
         <Text style={{  fontFamily: "Manrope_700Bold" }}> {createdBy?.fullName}</Text>
       </Text>
     </Card>

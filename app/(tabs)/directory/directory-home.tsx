@@ -1,6 +1,6 @@
 import { verificationStatus } from "@/assets/enums/common.enum";
 import ServiceProviderCarousel from "@/components/directory/ServiceProviderCarousel";
-import SocietyInfoCard from "@/components/directory/SocietyInfoCard";
+import SocietyCard from "@/components/directory/SocietyCard";
 import { getVerificationStatus } from "@/lib/adminHelper";
 import { buildImageUrl } from "@/lib/imageUtils";
 import { useProductStore } from "@/store/useBusinessStore";
@@ -163,7 +163,9 @@ export default function DirectoryHome() {
         showsVerticalScrollIndicator={false}
       >
         {/* Society Information Card */}
-        <SocietyInfoCard />
+        <View style={{ marginBottom: 16 }}>
+          <SocietyCard />
+        </View>
 
         {(serviceLoading && !serviceList) || (businessLoading && !businessList) ? (
           <View style={{ paddingVertical: 32, alignItems: "center" }}>

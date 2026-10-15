@@ -1,5 +1,4 @@
 import { FORM_CONSTANTS } from "@/assets/constants/form.constant";
-import { verificationStatus } from "@/assets/enums/common.enum";
 import { DAILYHELP_CAT_MOCK } from "@/assets/mocks/category";
 import ImagePickerField from "@/components/form/ImagePickerField";
 import ActionButton from "@/components/inputs/ActionButton";
@@ -41,10 +40,6 @@ export default function RegisterHelperModal({
       ...form,
       phone: `+91${form.phone}`,
       societyIds: [selectedSociety?._id || ""],
-      verificationStatus: {
-        status: verificationStatus.PENDING,
-        rejectionReason: null,
-      },
     };
     await createDailyHelper(updatedDailyService);
     resetForm();

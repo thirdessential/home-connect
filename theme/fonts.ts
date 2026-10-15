@@ -11,7 +11,18 @@ import {
   Manrope_800ExtraBold,
 } from "@expo-google-fonts/manrope";
 
+import {
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from "@expo-google-fonts/plus-jakarta-sans";
+
 export const manropeAssets = {
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
   Manrope_400Regular,
   Manrope_500Medium,
   Manrope_600SemiBold,

@@ -11,7 +11,6 @@ export const styles = StyleSheet.create({
   },
   selectTitle: {
     fontSize: 18,
-    fontWeight: "700",
     fontFamily: "Manrope_700Bold",
   },
   reasonCard: {
@@ -25,7 +24,6 @@ export const styles = StyleSheet.create({
   },
   reasonLabel: {
     fontSize: 16,
-    fontWeight: "600",
     fontFamily: "Manrope_600SemiBold",
   },
   confirmIconCircle: {
@@ -40,7 +38,6 @@ export const styles = StyleSheet.create({
   },
   confirmTitle: {
     fontSize: 24,
-    fontWeight: "700",
     fontFamily: "Manrope_700Bold",
     textAlign: "center",
     marginBottom: 12,
