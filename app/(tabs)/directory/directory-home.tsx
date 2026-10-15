@@ -53,33 +53,33 @@ export default function DirectoryHome() {
   );
 
   // Memoize the mapped business data to prevent unnecessary recalculations
-  const mappedBusinessData = useMemo<ServiceProvider[]>(() => {
-    if (!businessList || !Array.isArray(businessList)) {
-      return [];
-    }
-    const approvedBusinesses = businessList.filter(
-      (business) =>
-        getVerificationStatus(business, "business") ===
-        verificationStatus.APPROVED,
-    );
+  // const mappedBusinessData = useMemo<ServiceProvider[]>(() => {
+  //   if (!businessList || !Array.isArray(businessList)) {
+  //     return [];
+  //   }
+  //   const approvedBusinesses = businessList.filter(
+  //     (business) =>
+  //       getVerificationStatus(business, "business") ===
+  //       verificationStatus.APPROVED,
+  //   );
 
-    return approvedBusinesses.map(
-      (business: any): ServiceProvider => ({
-        businessPhone: business.businessPhone,
-        catalogue: business.catalogue || [],
-        category: business.category,
-        city: business.city,
-        completeAddress: business.completeAddress,
-        createdAt: business.createdAt,
-        id: business._id || business.id,
-        name: business.title || business.name || "Business",
-        rating: parseFloat(business.rating) || 4.5,
-        reviewCount: business.reviewCount || 0,
-        imageUrl: buildImageUrl(business.images?.[0] || business.imageUrl),
-        productType: "business",
-      }),
-    );
-  }, [businessList]);
+  //   return approvedBusinesses.map(
+  //     (business: any): ServiceProvider => ({
+  //       businessPhone: business.businessPhone,
+  //       catalogue: business.catalogue || [],
+  //       category: business.category,
+  //       city: business.city,
+  //       completeAddress: business.completeAddress,
+  //       createdAt: business.createdAt,
+  //       id: business._id || business.id,
+  //       name: business.title || business.name || "Business",
+  //       rating: parseFloat(business.rating) || 4.5,
+  //       reviewCount: business.reviewCount || 0,
+  //       imageUrl: buildImageUrl(business.images?.[0] || business.imageUrl),
+  //       productType: "business",
+  //     }),
+  //   );
+  // }, [businessList]);
 
   const { dailyHelpData, professionalServicesData } = useMemo<{
     dailyHelpData: ServiceProvider[];
@@ -113,12 +113,12 @@ export default function DirectoryHome() {
   }, [serviceList]);
 
   // View all handlers for each category
-  const handleViewAllBusinesses = useCallback(() => {
-    router.push({
-      pathname: "/(tabs)/directory/all-services",
-      params: { type: "business" },
-    });
-  }, [router]);
+  // const handleViewAllBusinesses = useCallback(() => {
+  //   router.push({
+  //     pathname: "/(tabs)/directory/all-services",
+  //     params: { type: "business" },
+  //   });
+  // }, [router]);
 
   const handleViewAllProfessionalServices = useCallback(() => {
     router.push({
@@ -185,12 +185,12 @@ export default function DirectoryHome() {
               onViewAll={handleViewAllDailyHelp}
             />
 
-            <Text style={styles.sectionLabel(t)}>BUSINESS</Text>
+            {/* <Text style={styles.sectionLabel(t)}>BUSINESS</Text>
             <ServiceProviderCarousel
               title="Local Businesses"
               data={mappedBusinessData.slice(0, 5)}
               onViewAll={handleViewAllBusinesses}
-            />
+            /> */}
           </>
         )}
 
