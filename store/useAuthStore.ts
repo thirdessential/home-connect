@@ -2,6 +2,8 @@ import { API_BASE, Post, PostPublic } from "@/lib/httpMethods";
 import { secureStorage } from "@/lib/storage";
 import { registerAuthStore } from "@/lib/tokenManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { AuthStore, User } from "./auth.type";
@@ -11,6 +13,7 @@ import { useProductStore } from "./useBusinessStore";
 import { useDailyHelperStore } from "./useDailyHelper";
 import { useEventStore } from "./useEventStore";
 import { useFeedsStore } from "./useFeedsStore";
+import { useNotificationStore } from "./useNotificationStore";
 import { useSocietyStore } from "./useSocietyStore";
 import { useUserStore } from "./useUserStore";
 import { useWholesaleDealStore } from "./useWholesaleDealStore";
@@ -71,6 +74,15 @@ export const useAuthStore = create<AuthStore>()(
         useAdminStore.getState().clear();
         useBusinessRegistrationStore.getState().clear();
         useEventStore.getState().clear();
+        useNotificationStore.getState().clear();
+        // Delivered pushes stay in the OS tray after logout; drop them so the next
+        // account on this phone cannot read the previous account's notifications.
+        if (Platform.OS !== "web" && Constants.appOwnership !== "expo") {
+          try {
+            const Notifications = require("expo-notifications") as typeof import("expo-notifications");
+            void Notifications.dismissAllNotificationsAsync().catch(() => {});
+          } catch {}
+        }
         // Nulling the token above already overwrites the persisted secret, but
         // drop the SecureStore entry outright so no stale session blob is left.
         void useAuthStore.persist?.clearStorage?.();

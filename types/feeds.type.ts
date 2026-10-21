@@ -83,6 +83,9 @@ export type FeedItem = {
     /** Live ISO instants from the events row (server-computed). */
     registrationClosesAt?: string | null;
     eventStartsAt?: string | null;
+    /** Server-computed (viewer-agnostic): OPEN | FULL | CLOSED | STARTED | CANCELLED. */
+    registrationStatus?: string;
+    canJoin?: boolean;
     eventDetails?: {
         freeChildren?: boolean;
         guests?: boolean;

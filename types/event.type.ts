@@ -27,6 +27,12 @@ export type EventRecord = {
   status: string;
   registrationClosed?: boolean;
   joinedCount: number;
+  /** Server-computed registration state (single source of truth). */
+  maximumParticipants?: number;
+  joinedParticipants?: number;
+  remainingSlots?: number;
+  registrationStatus?: "OPEN" | "FULL" | "CLOSED" | "STARTED" | "JOINED" | "CANCELLED";
+  canJoin?: boolean;
   cancelledCount: number;
   societyId: number | null;
   commentCount?: number;

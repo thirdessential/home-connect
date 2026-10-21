@@ -63,6 +63,7 @@ export type HomeFeedItem = {
   minParticipants?: number;
   attendees?: HomeFeedAttendee[];
   isJoined?: boolean;
+  registrationStatus?: string;
 
   // Poll only
   options?: HomeFeedOption[];

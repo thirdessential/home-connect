@@ -32,6 +32,8 @@ export interface Tower {
     flatsPerFloor?: number;
     totalFlats?: number;
     residentsCount?: number;
+    /** Exact flat identifiers configured for this tower (strings, e.g. "101", "201A"). */
+    flats?: string[];
 }
 export interface Result {
     loading: boolean;

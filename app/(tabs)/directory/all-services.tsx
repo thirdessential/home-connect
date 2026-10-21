@@ -12,14 +12,16 @@ import { getVerificationStatus } from "@/lib/adminHelper";
 import { buildImageUrl } from "@/lib/imageUtils";
 import { useProductStore } from "@/store/useBusinessStore";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
+import { useSocietyStore } from "@/store/useSocietyStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Platform,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -132,6 +134,26 @@ export default function AllServicesScreen() {
 
   // Store selectors
   const dailyHelperList = useDailyHelperStore((s) => s.dailyHelperList);
+  const societyId = useSocietyStore((s) => s.selectedSociety?._id);
+  const getAllApprovedDailyServices = useDailyHelperStore((s) => s.getAllApprovedDailyServices);
+  const fetchBusinessBySocietyId = useProductStore((s) => s.fetchBusinessBySocietyId);
+  // Pull-to-refresh for the selected society; the list (and search text) stay in place.
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshInFlight = useRef(false);
+  const onRefresh = useCallback(async () => {
+    if (!societyId || refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        getAllApprovedDailyServices(societyId),
+        fetchBusinessBySocietyId(societyId),
+      ]);
+    } finally {
+      setRefreshing(false);
+      refreshInFlight.current = false;
+    }
+  }, [societyId, getAllApprovedDailyServices, fetchBusinessBySocietyId]);
   const businessList = useProductStore((s) => s.productList);
 
   // Determine title and get appropriate data
@@ -270,6 +292,15 @@ export default function AllServicesScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         scrollEnabled
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.brand}
+            colors={[theme.colors.brand]}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             icon="search-outline"

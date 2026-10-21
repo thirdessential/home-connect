@@ -32,6 +32,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { manropeFamily } from "@/theme/fonts";
+import { isEventFullError, registrationUi } from "@/lib/eventRegistration";
 
 // Event Details runs ~1.5px smaller than the global type scale (size + line height, family/weight untouched).
 const shrink = (typo: any) => {
@@ -198,7 +199,15 @@ export default function EventDetailsScreen() {
       setJoinedSuccess(true);
       load();
     } catch (e: any) {
-      showToast(e?.message ?? "Failed to join event", "error");
+      if (isEventFullError(e)) {
+        // Someone took the last slot first: close the sheet and re-sync so the
+        // footer flips to SOLD OUT from the server's own status.
+        setJoinSheetOpen(false);
+        showToast("This event is now full.", "error");
+        load();
+      } else {
+        showToast(e?.message ?? "Failed to join event", "error");
+      }
     } finally {
       setJoining(false);
       submittingRef.current = false;
@@ -267,22 +276,19 @@ export default function EventDetailsScreen() {
   // footer can explain the block instead of surfacing a failed request.
   // Start instant from the plain date/time fields (device-local wall clock, same
   // convention the rest of this screen uses); the server re-checks on join.
-  const startMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(e.startDate ?? "");
-  const [sh = 0, sm = 0] = (e.startTime ?? "").split(":").map(Number);
-  const hasStarted =
-    !!startMatch &&
-    new Date(+startMatch[1], +startMatch[2] - 1, +startMatch[3], sh || 0, sm || 0).getTime() <= Date.now();
-  const joinBlockedReason =
-    e.status === "cancelled"
-      ? "This event was cancelled"
+  // Server status first; the checks below only cover an older backend that
+  // doesn't send `registrationStatus` yet.
+  const reg = registrationUi(e.registrationStatus);
+  const joinBlockedReason = e.registrationStatus
+    ? reg.disabled
+      ? reg.label
+      : null
+    : e.status === "cancelled"
+      ? "EVENT CANCELLED"
       : e.registrationClosed || e.status === "closed" || e.status === "completed"
-        ? "Registration has closed"
-      : hasStarted
-        ? "Event has already started"
-      : e.remainingCapacity <= 0
-        ? "This event is full"
-        : e.registrationDeadline && new Date(e.registrationDeadline).getTime() <= Date.now()
-          ? "Registration has closed"
+        ? "REGISTRATION CLOSED"
+        : e.remainingCapacity <= 0
+          ? "SOLD OUT"
           : null;
 
   const isCreator = !!currentUserId && e.organizer?.userId === currentUserId;
@@ -540,7 +546,7 @@ export default function EventDetailsScreen() {
      
       
       <View style={[styles.footer, { backgroundColor: t.colors.white , borderColor: t.colors.border, paddingBottom: insets.bottom + 16 }]}>
-        {e.currentUserJoined ? (
+        {e.currentUserJoined && e.registrationStatus !== "STARTED" ? (
           <View style={[styles.joinedBadge, { backgroundColor: t.colors.brandWeak }]}>
             <Ionicons name="checkmark-circle" size={18} color={t.colors.brandDark} />
             <Text style={[ty.body, { color: t.colors.brandDark, marginLeft: 6, fontFamily: "Manrope_700Bold" }]}>

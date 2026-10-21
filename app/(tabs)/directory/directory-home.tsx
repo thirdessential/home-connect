@@ -9,10 +9,11 @@ import { useSocietyStore } from "@/store/useSocietyStore";
 import { useTheme } from "@/theme/theme";
 import { ServiceProvider } from "@/types/common.type";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -51,6 +52,26 @@ export default function DirectoryHome() {
       getAllApprovedDailyServices(societyId);
     }, [societyId, fetchBusinessBySocietyId, getAllApprovedDailyServices]),
   );
+
+  // Pull-to-refresh: same two fetches as the focus refresh, scoped to the
+  // selected society. Guarded so overlapping pulls don't double-request; the
+  // existing lists stay visible and the spinner always stops.
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshInFlight = useRef(false);
+  const onRefresh = useCallback(async () => {
+    if (!societyId || refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        fetchBusinessBySocietyId(societyId),
+        getAllApprovedDailyServices(societyId),
+      ]);
+    } finally {
+      setRefreshing(false);
+      refreshInFlight.current = false;
+    }
+  }, [societyId, fetchBusinessBySocietyId, getAllApprovedDailyServices]);
 
   // Memoize the mapped business data to prevent unnecessary recalculations
   // const mappedBusinessData = useMemo<ServiceProvider[]>(() => {
@@ -161,6 +182,15 @@ export default function DirectoryHome() {
           paddingBottom: insets.bottom + 20,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={t.colors.brand}
+            colors={[t.colors.brand]}
+            progressBackgroundColor={t.colors.surface}
+          />
+        }
       >
         {/* Society Information Card */}
         <View style={{ marginBottom: 16 }}>

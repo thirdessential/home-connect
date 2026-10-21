@@ -1,4 +1,5 @@
 import UserAvatar from "@/components/UI/UserAvatar";
+import { registrationUi } from "@/lib/eventRegistration";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedItem } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,6 +48,8 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
   const capacity = item.capacity ?? 0;
   const pct = capacity > 0 ? Math.min(100, (joined / capacity) * 100) : 0;
   const displayPct = capacity > 0 ? Math.max(pct, MIN_VISIBLE_PROGRESS_PCT) : 0;
+  const reg = registrationUi(item.registrationStatus, capacity > 0 ? "Join Event" : "RSVP");
+  const closed = reg.disabled;
   const stillNeeded = Math.max(0, (item.minParticipants ?? 0) - joined);
 
   return (
@@ -179,29 +182,36 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
         <TouchableOpacity
           onPress={onOpen}
           activeOpacity={0.85}
+          disabled={closed}
+          accessibilityState={{ disabled: closed }}
           style={[
             styles.cta,
-            { backgroundColor: item.isJoined ? t.colors.surfaceAlt : t.colors.brand },
+            {
+              backgroundColor: item.isJoined || closed ? t.colors.surfaceAlt : t.colors.brand,
+              opacity: closed ? 0.7 : 1,
+            },
           ]}
         >
           <Text
             style={[
               styles.ctaText,
-              { color: item.isJoined ? t.colors.textPrimary : t.colors.onBrand },
+              { color: item.isJoined || closed ? t.colors.textPrimary : t.colors.onBrand },
             ]}
           >
-            {item.isJoined ? "Joined" : capacity > 0 ? "Join Event" : "RSVP"}
+            {item.isJoined ? "Joined" : reg.label}
           </Text>
           <Ionicons
             name={
               item.isJoined
                 ? "checkmark-circle"
-                : capacity > 0
-                  ? "arrow-forward"
-                  : "checkmark-circle-outline"
+                : closed
+                  ? "lock-closed-outline"
+                  : capacity > 0
+                    ? "arrow-forward"
+                    : "checkmark-circle-outline"
             }
             size={18}
-            color={item.isJoined ? t.colors.textPrimary : t.colors.onBrand}
+            color={item.isJoined || closed ? t.colors.textPrimary : t.colors.onBrand}
           />
         </TouchableOpacity>
       </View>

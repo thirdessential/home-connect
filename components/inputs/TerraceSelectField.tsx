@@ -30,6 +30,8 @@ type Props = {
   disabled?: boolean;
   /** Adds a search box above the list (opt-in; other selects unchanged). */
   searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyText?: string;
 };
 
 /**
@@ -50,6 +52,8 @@ function TerraceSelectField({
   error = false,
   disabled = false,
   searchable = false,
+  searchPlaceholder = "Search",
+  emptyText = "No results found",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -137,10 +141,11 @@ function TerraceSelectField({
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search"
+                placeholder={searchPlaceholder}
                 placeholderTextColor="#9CA3AF"
                 autoCorrect={false}
                 style={styles.searchInput}
+                clearButtonMode="while-editing"
               />
             ) : null}
             <FlatList
@@ -174,6 +179,9 @@ function TerraceSelectField({
                   </TouchableOpacity>
                 );
               }}
+              ListEmptyComponent={
+                <Text style={[styles.optionText, { textAlign: "center", color: "#9CA3AF", paddingVertical: getHeight(12) }]}>{emptyText}</Text>
+              }
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: getHeight(12) }}
               style={{ flexShrink: 1 }}

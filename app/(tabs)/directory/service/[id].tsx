@@ -13,7 +13,8 @@ import { calculateAvgRating, callUser } from "@/lib/utils";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
 import { useUserStore } from "@/store/useUserStore";
 import { useTheme } from "@/theme/theme";
-import { PricingRow, WorkingHour } from "@/types/business.type";
+import { NO_PRICING_TEXT, normalizePricing } from "@/lib/pricing";
+import { WorkingHour } from "@/types/business.type";
 import { Review } from "@/types/common.type";
 import { UserRole } from "@/types/roles";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,7 +60,11 @@ const DetailsCard = memo(
     isProfessionalService,
     pricingRates,
     theme,
-  }: any) => (
+  }: any) => {
+    const pricing = normalizePricing({ pricingRates });
+    // Older entries only carry the single `rate` scalar.
+    const legacyFee = Number(rate) > 0 ? `₹${rate} per visit` : "";
+    return (
     <Card style={styles.detailsCard}>
       {/* Timings */}
       {isProfessionalService && (
@@ -150,8 +155,14 @@ const DetailsCard = memo(
             <Text
               style={[styles.detailValue, { color: theme.colors.textPrimary }]}
             >
-              {rate ? `₹${rate} per visit` : "N/A"}
+              {pricing.length ? "" : legacyFee || NO_PRICING_TEXT}
             </Text>
+            {pricing.map((it, idx) => (
+              <View key={idx} style={{ flexDirection: "row", alignItems: "flex-start", marginTop: 2 }}>
+                {!!it.amount && <Text style={{ fontFamily: "Manrope_700Bold", fontSize: 15, marginRight: 4, color: theme.colors.textPrimary }}>{it.amount}</Text>}
+                {!!it.label && <Text style={{ fontSize: 15, color: theme.colors.textPrimary, flexShrink: 1 }}>{it.label}</Text>}
+              </View>
+            ))}
           </View>
         </View>
       )}
@@ -159,7 +170,8 @@ const DetailsCard = memo(
       {!isProfessionalService && (
         <View style={{ gap: 6 }}>
           <Text>Community Estimates:</Text>
-          {pricingRates.map((it: PricingRow, idx: number) => (
+          {!pricing.length && <Text>{NO_PRICING_TEXT}</Text>}
+          {pricing.map((it, idx) => (
             <View
               style={{
                 flexDirection: "row",
@@ -171,18 +183,19 @@ const DetailsCard = memo(
               <Text
                 style={{  fontFamily: "Manrope_700Bold", fontSize: 15, marginRight: 4 }}
               >
-                ₹{it?.rate}
+                {it.amount}
               </Text>
-              <Text style={{ fontSize: 15, color: theme.colors.textPrimary }}>
-                {it?.subtext}
+              <Text style={{ fontSize: 15, color: theme.colors.textPrimary, flexShrink: 1 }}>
+                {it.label}
               </Text>
             </View>
           ))}
-          <Text>Charges may vary based on workload.</Text>
+          {pricing.length > 0 && <Text>Charges may vary based on workload.</Text>}
         </View>
       )}
     </Card>
-  ),
+    );
+  },
 );
 DetailsCard.displayName = "DetailsCard";
 

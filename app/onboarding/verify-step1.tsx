@@ -6,6 +6,7 @@ import TerraceSelectField from "@/components/inputs/TerraceSelectField";
 import TerraceTextField from "@/components/inputs/TerraceTextField";
 import TerraceStepper from "@/components/onboarding/TerraceStepper";
 import { useImageUploader } from "@/components/image-upload";
+import { getTowerFlats, toFlatOptions, toTowerOptions } from "@/lib/towerFlats";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
 import { getHeight, getWidth } from "@/theme/theme";
@@ -39,10 +40,15 @@ function VerifyStep1Screen() {
   const [flatNo, setFlatNo] = useState<string | null>(isEdit ? ((user?.flatNo as string) ?? null) : null);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; tower?: boolean; flatNo?: boolean }>({});
 
-  const towerOptions = useMemo(
-    () => towerList.map((t) => ({ id: t._id, name: t.name })),
-    [towerList],
+  const towerOptions = useMemo(() => toTowerOptions(towerList), [towerList]);
+
+  // Flats come from the selected tower's backend configuration. A tower with no
+  // configured flats (legacy society) keeps the free-text input as before.
+  const towerFlats = useMemo(
+    () => getTowerFlats(towerList.find((t) => t._id === towerId)),
+    [towerList, towerId],
   );
+  const flatOptions = useMemo(() => toFlatOptions(towerFlats), [towerFlats]);
 
   const replaceDocument = useCallback(async () => {
     setDocBusy(true);
@@ -164,7 +170,7 @@ function VerifyStep1Screen() {
             <TerraceTextField
               label="Tower / Block"
               leftIcon="lock-closed-outline"
-              value={towerOptions.find((o) => o.id === towerId)?.name ?? towerId ?? ""}
+              value={towerList.find((t) => t._id === towerId)?.name ?? towerId ?? ""}
               editable={false}
             />
             <TerraceTextField
@@ -193,7 +199,7 @@ function VerifyStep1Screen() {
                 selectedId={towerId}
                 onChange={(id) => {
                   setTowerId(id);
-                  setFlatNo(null);
+                  if (id !== towerId) setFlatNo(null);
                   setErrors((e) => ({ ...e, tower: false }));
                 }}
                 modalTitle="Select tower / block"
@@ -202,6 +208,27 @@ function VerifyStep1Screen() {
               {errors.tower ? <Text style={styles.fieldErr}>Select your tower / block</Text> : null}
             </View>
             <View {...track("flatNo")}>
+              {towerId && flatOptions.length > 0 ? (
+                <>
+                  <TerraceSelectField
+                    label="Flat / Unit Number"
+                    placeholder="Select flat"
+                    leftIcon="home-outline"
+                    options={flatOptions}
+                    selectedId={flatNo}
+                    onChange={(id) => {
+                      setFlatNo(id);
+                      setErrors((e) => ({ ...e, flatNo: false }));
+                    }}
+                    modalTitle={`Select flat (${flatOptions.length})`}
+                    searchable
+                    searchPlaceholder="Search flat number (e.g. 205)"
+                    emptyText="No flats found"
+                    error={errors.flatNo}
+                  />
+                  {errors.flatNo ? <Text style={styles.fieldErr}>Select your flat</Text> : null}
+                </>
+              ) : (
               <TerraceTextField
                 label="Flat / Unit Number"
                 placeholder={towerId ? "Enter flat number, e.g. 101" : "Select a tower first"}
@@ -215,6 +242,7 @@ function VerifyStep1Screen() {
                 keyboardType="numeric"
                 editable={!!towerId}
               />
+              )}
             </View>
           </>
         )}

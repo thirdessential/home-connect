@@ -22,6 +22,8 @@ let configured = false;
 let registeredForUserId: string | undefined; // dedupe permission/token work per login session
 let registrationInFlightForUserId: string | undefined;
 let registeredToken: string | undefined;
+// Taps already routed (listener and cold-start replay can both deliver one).
+const handledResponses = new Set<string>();
 
 /** Sends one real remote push from a development build to verify the token.
  * Never runs in production; this endpoint does not require an app secret. */
@@ -278,7 +280,10 @@ export function usePushNotifications() {
     });
 
     // Tap (foreground, background, or cold start): record + deep-link.
-    responseSub.current = Notifications.addNotificationResponseReceivedListener((res) => {
+    const handleResponse = (res: NotificationsType.NotificationResponse) => {
+      const key = `${res.notification.request.identifier}:${res.notification.date}`;
+      if (handledResponses.has(key)) return;
+      handledResponses.add(key);
       if (__DEV__) {
         console.log("[Push] notification tapped");
         console.log("[NOTIFICATION DEBUG] Notification response received");
@@ -292,6 +297,12 @@ export function usePushNotifications() {
       });
       void useNotificationStore.getState().fetchAll();
       router.push(notificationRoute(content.data as any));
+    };
+    responseSub.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    // A tap that cold-started the app happens before this listener exists
+    // (it is only attached once the user is signed in), so replay it once.
+    void Notifications.getLastNotificationResponseAsync().then((res) => {
+      if (res) handleResponse(res);
     });
     if (__DEV__) {
       console.log("[Push] listener registered");

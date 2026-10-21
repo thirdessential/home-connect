@@ -5,6 +5,7 @@ import {
 } from "@/assets/mocks/homeDummyData";
 import { usePermissions } from "@/hooks/usePermissions";
 import { formatPostTime, isEventUnjoinable } from "@/lib/dateTime";
+import { isEventFullError } from "@/lib/eventRegistration";
 import { useEventStore } from "@/store/useEventStore";
 import { useFeedsStore } from "@/store/useFeedsStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -118,6 +119,8 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
       userId: idOf(p.userId) ?? undefined,
     })),
     isJoined: participants.some((p) => idOf(p.userId) === currentUserId),
+    // Joined users keep seeing JOINED; everyone else gets the server's status.
+    registrationStatus: participants.some((p) => idOf(p.userId) === currentUserId) ? "JOINED" : f.registrationStatus,
     options: (() => {
       const seen = new Set<string>();
       return (f.options ?? []).map((o: any, index: number) => {
@@ -232,7 +235,10 @@ export function useHomeFeed(): {
         } catch (e: any) {
           // "already joined" from a repeat tap isn't a real failure — still navigate.
           const msg = String(e?.message ?? "").toLowerCase();
-          if (!msg.includes("already")) {
+          // Event filled up meanwhile: the details screen reloads and shows SOLD OUT.
+          if (isEventFullError(e)) {
+            Alert.alert("Event full", "This event is now full.");
+          } else if (!msg.includes("already")) {
             Alert.alert("Join failed", e?.message ?? "Could not join this event.");
             return;
           }

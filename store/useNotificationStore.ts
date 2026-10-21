@@ -15,11 +15,17 @@ type NotificationStore = {
     loading: boolean;
     error: string | null;
     fetchAll: () => Promise<void>;
+    /** Drops every item (logout / account switch) and discards in-flight fetches. */
+    clear: () => void;
     /** Live push arrival — server is still the source of truth on next fetch. */
     add: (n: Omit<AppNotification, "read" | "id"> & { id?: string }) => void;
     markRead: (id: string) => Promise<void>;
     markAllRead: () => Promise<void>;
 };
+
+// Bumped by clear() so a fetch that started under the previous account cannot
+// repopulate the list after logout or an account switch.
+let epoch = 0;
 
 // Backend (GET/PATCH /api/notification/user...) is now the source of truth.
 // `add` only gives immediate UI feedback for a just-arrived push; the next
@@ -29,10 +35,17 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
     loading: false,
     error: null,
 
+    clear: () => {
+        epoch++;
+        set({ items: [], loading: false, error: null });
+    },
+
     fetchAll: async () => {
+        const startedAt = epoch;
         set({ loading: true, error: null });
         try {
             const res = await Get<{ success: boolean; data?: { notifications: any[] }; notifications?: any[] }>("/api/notification/user");
+            if (startedAt !== epoch) return; // account changed mid-flight
             const list = res?.data?.notifications ?? res?.notifications ?? [];
             const items: AppNotification[] = list.map((n: any) => ({
                 id: String(n.id ?? n._id),
@@ -51,6 +64,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
             const pending = get().items.filter((i) => !serverIds.has(i.id) && !i.id.startsWith("local-"));
             set({ items: [...pending, ...recent], loading: false });
         } catch (err: any) {
+            if (startedAt !== epoch) return;
             set({ error: err?.message || "Failed to load notifications", loading: false });
         }
     },

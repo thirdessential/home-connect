@@ -84,7 +84,7 @@ export const TERRACE_AUTH = {
   getStartedSubtitle: "Enter your phone number to continue",
   countryFlag: "🇮🇳",
   countryCode: "+91",
-  phonePlaceholder: "Enter your phone number",
+  phonePlaceholder: "Phone number",
   continueWithPhone: "Continue",
   acceptPre: "I accept the ",
   acceptLink: "Terms and Conditions",
