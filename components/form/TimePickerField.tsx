@@ -85,6 +85,7 @@ export const TimePickerField: React.FC<TimePickerFieldProps> = ({
     () => [
       styles.trigger,
       {
+        borderWidth: error ? 1.5 : 1,
         borderColor: error ? theme.colors.error : theme.colors.border,
         backgroundColor: disabled
           ? theme.colors.surfaceAlt
@@ -138,7 +139,7 @@ export const TimePickerField: React.FC<TimePickerFieldProps> = ({
       ) : null}
 
       {error ? (
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.errorText, { color: theme.colors.error }]}>
           {error}
         </Text>
       ) : null}

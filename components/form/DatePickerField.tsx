@@ -78,7 +78,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
         onPress={() => !disabled && pickerSetShow(true)}
         style={{
           padding: 12,
-          borderWidth: 1,
+          borderWidth: error ? 1.5 : 1,
           borderColor: error ? theme.colors.error : theme.colors.border,
           borderRadius: theme.radii.s,
           backgroundColor: disabled
@@ -109,7 +109,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
         </Text>
       )}
       {error && (
-        <Text style={{ color: theme.colors.error, fontSize: 12, marginTop: 2 }}>
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: theme.colors.error, fontSize: 12, marginTop: 2 }}>
           {error}
         </Text>
       )}

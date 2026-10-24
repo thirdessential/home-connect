@@ -31,9 +31,20 @@ export type EventRecord = {
   maximumParticipants?: number;
   joinedParticipants?: number;
   remainingSlots?: number;
-  registrationStatus?: "OPEN" | "FULL" | "CLOSED" | "STARTED" | "JOINED" | "CANCELLED";
+  registrationStatus?: "OPEN" | "FULL" | "CLOSED" | "STARTED" | "JOINED" | "CANCELLED" | "COMPLETED";
   canJoin?: boolean;
   cancelledCount: number;
+  /** Capacity reached (server: joined >= max). `registrationStatus` still carries the more specific state. */
+  housefull?: boolean;
+  /** Viewer's own join request (server state); null/absent when none. */
+  joinRequest?: { id: number; status: "pending" | "approved" | "rejected"; reason?: string | null; createdAt?: string } | null;
+  /** Lifecycle fields — always sent by the server's serializeEvent (nullable ones are null until set). */
+  reminderOffsets?: number[];
+  delayMinutes?: number;
+  completedAt?: string | null;
+  registrationClosedAt?: string | null;
+  cancelTitle?: string | null;
+  cancelReason?: string | null;
   societyId: number | null;
   commentCount?: number;
   /** Present on the Joined Events list only. */
@@ -85,6 +96,7 @@ export type EventDashboard = {
     expectedRevenue: number;
     registrationDeadline: string | null;
     eventStartAt: string | null;
+    hasStarted?: boolean;
   };
   participants: EventParticipant[];
   cancelledCount: number;
@@ -108,4 +120,29 @@ export type CreateEventPayload = {
   registrationclosesdate?: string;
   registrationclosestime?: string;
   rulesthingstobring?: string;
+};
+
+/** Event-specific report (POST /api/events/:id/reports). Statuses are the server's. */
+export type EventReport = {
+  id: number;
+  eventId: number;
+  eventTitle?: string;
+  eventStatus?: string;
+  title: string;
+  description: string;
+  status: "open" | "in_review" | "resolved" | "dismissed";
+  reporter?: { userId: string; name: string; tower?: string | null; unit?: string | null };
+  createdAt: string;
+  updatedAt?: string;
+};
+
+/** Organizer view of a join request (GET /api/events/:id/join-requests). */
+export type EventJoinRequest = {
+  id: number;
+  eventId: number;
+  status: "pending" | "approved" | "rejected";
+  reason: string | null;
+  user?: { userId: string; name: string; profileImage?: string | null; tower?: string | null; unit?: string | null };
+  createdAt: string;
+  reviewedAt: string | null;
 };

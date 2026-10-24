@@ -4,6 +4,7 @@ import SuccessModal from "@/components/UI/SuccessModal";
 import { useToast } from "@/components/common/Toast";
 import ReportModal from "@/components/modals/ReportModal";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
+import { ReportIssueModal } from "@/components/event/OrganizerLifecycleModals";
 import ActionButton from "@/components/inputs/ActionButton";
 import { useEventStore } from "@/store/useEventStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -32,7 +33,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { manropeFamily } from "@/theme/fonts";
-import { isEventFullError, registrationUi } from "@/lib/eventRegistration";
+import { detailsFooterState, isEventFullError, joinRequestBadge, joinRequestErrorMessage, joinRequestRejectedMessage, registrationUi } from "@/lib/eventRegistration";
+import { isOrganizerJoinError, leaveErrorMessage } from "@/lib/eventLifecycle";
 
 // Event Details runs ~1.5px smaller than the global type scale (size + line height, family/weight untouched).
 const shrink = (typo: any) => {
@@ -147,7 +149,7 @@ export default function EventDetailsScreen() {
   const { showToast } = useToast();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const {
-    getEvent, joinEvent, cancelParticipant, getParticipants, participants, loading,
+    getEvent, joinEvent, requestToJoin, cancelParticipant, getParticipants, participants, loading,
     toggleLike,
   } = useEventStore();
   // The store keeps the last opened event; never render it for a different id
@@ -161,11 +163,16 @@ export default function EventDetailsScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // The footer is absolutely positioned; its real height (pending/rejected/housefull
+  // panels are taller than the button) drives the scroll padding so nothing is covered.
+  const [footerHeight, setFooterHeight] = useState(0);
   const [joinSheetOpen, setJoinSheetOpen] = useState(false);
   const [joinedUsersOpen, setJoinedUsersOpen] = useState(false);
   const [joinedSuccess, setJoinedSuccess] = useState(false);
   const [joining, setJoining] = useState(false);
   const submittingRef = useRef(false);
+  const [requesting, setRequesting] = useState(false);
+  const requestingRef = useRef(false);
 
   // GET /api/events/:id does not return like state, so it is only known after
   // the first toggle — see Remaining notes.
@@ -180,6 +187,24 @@ export default function EventDetailsScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Housefull events: ask the organizer. The server stays the judge (409s re-sync the screen).
+  const handleRequestToJoin = async () => {
+    if (requestingRef.current || !eventId) return;
+    requestingRef.current = true;
+    setRequesting(true);
+    try {
+      await requestToJoin(eventId);
+      showToast("Request sent to the organizer", "success");
+      load();
+    } catch (e: any) {
+      showToast(joinRequestErrorMessage(e), "error");
+      if (e?.status === 409) load();
+    } finally {
+      requestingRef.current = false;
+      setRequesting(false);
+    }
+  };
 
   const handleJoin = async () => {
     if (submittingRef.current || !eventId) return;
@@ -199,9 +224,14 @@ export default function EventDetailsScreen() {
       setJoinedSuccess(true);
       load();
     } catch (e: any) {
-      if (isEventFullError(e)) {
+      if (isOrganizerJoinError(e)) {
+        // Organizers can't join their own event; the footer switches to the organizer state on re-sync.
+        setJoinSheetOpen(false);
+        showToast("You're the organizer of this event, so you can't join it.", "error");
+        load();
+      } else if (isEventFullError(e)) {
         // Someone took the last slot first: close the sheet and re-sync so the
-        // footer flips to SOLD OUT from the server's own status.
+        // footer flips to HOUSEFULL from the server's own status.
         setJoinSheetOpen(false);
         showToast("This event is now full.", "error");
         load();
@@ -215,10 +245,25 @@ export default function EventDetailsScreen() {
   };
 
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+  const [issueVisible, setIssueVisible] = useState(false);
 
+  const leavingRef = useRef(false);
+
+  // ConfirmationModal only shows its success state when this resolves, so on
+  // failure: toast the reason and rethrow (the modal keeps itself open and
+  // logs it); the joined state is only refreshed after the server confirms.
   const confirmLeave = async () => {
-    if (!eventId || !currentUserId) return;
-    await cancelParticipant(eventId, currentUserId);
+    if (!eventId || !currentUserId || leavingRef.current) return;
+    leavingRef.current = true;
+    try {
+      await cancelParticipant(eventId, currentUserId);
+    } catch (err: any) {
+      showToast(leaveErrorMessage(err), "error");
+      if (err?.status === 404 || err?.status === 409) load();
+      throw err;
+    } finally {
+      leavingRef.current = false;
+    }
     load();
   };
 
@@ -288,10 +333,11 @@ export default function EventDetailsScreen() {
       : e.registrationClosed || e.status === "closed" || e.status === "completed"
         ? "REGISTRATION CLOSED"
         : e.remainingCapacity <= 0
-          ? "SOLD OUT"
+          ? "HOUSEFULL"
           : null;
 
   const isCreator = !!currentUserId && e.organizer?.userId === currentUserId;
+  const footerState = detailsFooterState({ ...e, isCreator, blockedReason: joinBlockedReason });
 
   const joinedPreview = Array.isArray(e.joinedPreview) ? e.joinedPreview : [];
   const rawFilledPct = e.maxParticipants > 0 ? Math.min(100, Math.round((e.joinedCount / e.maxParticipants) * 100)) : 0;
@@ -325,13 +371,22 @@ export default function EventDetailsScreen() {
       <Modal transparent visible={menuOpen} animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
           <View style={[styles.menu, { top: insets.top + 60, backgroundColor: t.colors.cardBackground, borderColor: t.colors.border }]}>
-            {e.currentUserJoined && (
+            {e.currentUserJoined && e.status !== "cancelled" && e.status !== "completed" && (
               <Pressable
                 style={styles.menuItem}
                 onPress={() => { setMenuOpen(false); setLeaveConfirmVisible(true); }}
               >
                 <Ionicons name="exit-outline" size={20} color={t.colors.error} />
                 <Text style={[ty.body, { color: t.colors.error, fontFamily: manropeFamily("600") }]}>Leave Event</Text>
+              </Pressable>
+            )}
+            {e.currentUserJoined && !isCreator && e.status !== "cancelled" && (
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => { setMenuOpen(false); setIssueVisible(true); }}
+              >
+                <Ionicons name="alert-circle-outline" size={20} color={t.colors.text} />
+                <Text style={[ty.body, { color: t.colors.text, fontFamily: manropeFamily("600") }]}>Report an issue</Text>
               </Pressable>
             )}
             <Pressable
@@ -344,6 +399,7 @@ export default function EventDetailsScreen() {
           </View>
         </Pressable>
       </Modal>
+      {eventId && <ReportIssueModal visible={issueVisible} eventId={String(eventId)} onClose={() => setIssueVisible(false)} />}
       {eventId && (
         <ReportModal
           visible={reportVisible}
@@ -369,7 +425,7 @@ export default function EventDetailsScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: FOOTER_SPACE + insets.bottom }}
+        contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: Math.max(FOOTER_SPACE + insets.bottom, footerHeight + 16) }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -545,15 +601,73 @@ export default function EventDetailsScreen() {
       {/* <View style={styles.footerShadow}></View> */}
      
       
-      <View style={[styles.footer, { backgroundColor: t.colors.white , borderColor: t.colors.border, paddingBottom: insets.bottom + 16 }]}>
-        {e.currentUserJoined && e.registrationStatus !== "STARTED" ? (
+      <View onLayout={(ev) => setFooterHeight(ev.nativeEvent.layout.height)} style={[styles.footer, { backgroundColor: t.colors.white , borderColor: t.colors.border, paddingBottom: insets.bottom + 16 }]}>
+        {footerState === "organizer" ? (
+          <View style={{ gap: 10 }}>
+            <Pressable
+              onPress={() => router.push({ pathname: "/(shared)/event-dashboard", params: { eventId: String(eventId) } })}
+              style={[styles.joinedBadge, { backgroundColor: t.colors.brandDark }]}
+            >
+              <Ionicons name="people-outline" size={18} color="#fff" />
+              <Text style={[ty.body, { color: "#fff", marginLeft: 6, fontFamily: "Manrope_700Bold" }]}>
+                Event Dashboard
+              </Text>
+            </Pressable>
+          <View style={[styles.joinedBadge, { backgroundColor: t.colors.brandWeak }]}>
+            <Ionicons name="ribbon-outline" size={18} color={t.colors.brandDark} />
+            <Text style={[ty.body, { color: t.colors.brandDark, marginLeft: 6, fontFamily: "Manrope_700Bold" }]}>
+              {e.status === "cancelled"
+                ? "You organized this event · Cancelled"
+                : e.status === "completed"
+                  ? "You organized this event · Completed"
+                  : "You're the organizer of this event"}
+            </Text>
+          </View>
+          </View>
+        ) : footerState === "joined" ? (
           <View style={[styles.joinedBadge, { backgroundColor: t.colors.brandWeak }]}>
             <Ionicons name="checkmark-circle" size={18} color={t.colors.brandDark} />
             <Text style={[ty.body, { color: t.colors.brandDark, marginLeft: 6, fontFamily: "Manrope_700Bold" }]}>
               You've joined this event
             </Text>
           </View>
-        ) : joinBlockedReason ? (
+        ) : footerState === "request_pending" || footerState === "request_rejected" ? (
+          (() => {
+            const pending = footerState === "request_pending";
+            // soft low-opacity tint of dark amber / dark red; text stays readable in both modes
+            const tone = pending
+              ? { bg: t.isDark ? "rgba(217,119,6,0.18)" : "rgba(180,83,9,0.10)", border: t.isDark ? "rgba(251,191,36,0.35)" : "rgba(180,83,9,0.25)", title: t.isDark ? "#FCD34D" : "#92400E", body: t.isDark ? "#FDE68A" : "#78350F" }
+              : { bg: t.isDark ? "rgba(220,38,38,0.18)" : "rgba(153,27,27,0.10)", border: t.isDark ? "rgba(248,113,113,0.35)" : "rgba(153,27,27,0.25)", title: t.isDark ? "#FCA5A5" : "#991B1B", body: t.isDark ? "#FECACA" : "#7F1D1D" };
+            return (
+              <View style={[styles.joinedBadge, { flexDirection: "column", alignItems: "stretch", paddingHorizontal: 16, backgroundColor: tone.bg, borderWidth: 1, borderColor: tone.border }]}>
+                <Text style={[ty.body, { color: tone.title, fontFamily: "Manrope_700Bold", textAlign: "center" }]}>
+                  {joinRequestBadge(e.joinRequest?.status)}
+                </Text>
+                <Text style={[ty.small, { color: tone.body, marginTop: 4, textAlign: "center" }]}>
+                  {pending
+                    ? "Waiting for the organizer to review your request."
+                    : joinRequestRejectedMessage(e.joinRequest?.reason)}
+                </Text>
+              </View>
+            );
+          })()
+        ) : footerState === "event_full" ? (
+          <View>
+            <Text style={[ty.body, { color: t.colors.text, fontFamily: "Manrope_700Bold" }]}>EVENT FULL</Text>
+            <Text style={[ty.small, { color: t.colors.secondaryText, marginVertical: 4 }]}>
+              {e.joinedCount} / {e.maxParticipants} places taken. This event is housefull. If you want to join, request approval from the event creator.
+            </Text>
+            <ActionButton
+              title={requesting ? "Sending…" : "Request to Join"}
+              onPress={handleRequestToJoin}
+              disabled={requesting}
+              variant="primary"
+              size="lg"
+              fullWidth
+              containerStyle={{ backgroundColor: t.colors.brandDark, borderRadius: t.radii.m, opacity: requesting ? 0.6 : 1 }}
+            />
+          </View>
+        ) : footerState === "blocked" ? (
           // The API rejects these cases anyway — say why instead of letting the
           // user tap into a guaranteed error.
           <View style={[styles.joinedBadge, { backgroundColor: t.colors.surfaceAlt }]}>

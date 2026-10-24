@@ -4,23 +4,44 @@ import Heading from "@/components/UI/Heading";
 import Skeleton from "@/components/UI/Skeleton";
 import { useToast } from "@/components/common/Toast";
 import ConfirmationModal from "@/components/modals/ConfirmationModal";
+import {
+  DelayModal,
+  EventReportsModal,
+  JoinRequestsModal,
+  OrganizerAction,
+  OrganizerMenu,
+  RemindersModal,
+} from "@/components/event/OrganizerLifecycleModals";
+import {
+  CANCEL_REASON_MAX,
+  CANCEL_TITLE_MAX,
+  cancelErrorMessage,
+  lifecycleErrorMessage,
+  organizerEventActions,
+  removeParticipantErrorMessage,
+  validateCancelDetails,
+} from "@/lib/eventLifecycle";
 import { useEventStore } from "@/store/useEventStore";
 import { useTheme } from "@/theme/theme";
 import { EventParticipant } from "@/types/event.type";
 import { Ionicons } from "@expo/vector-icons";
+import { joinRequestsEntryLabel } from "@/lib/eventRegistration";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Modal,
   Pressable,
   RefreshControl,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -209,11 +230,16 @@ export default function EventDashboardScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
+  const { eventId, openRequests } = useLocalSearchParams<{ eventId: string; openRequests?: string }>();
   const {
     getDashboard,
+    getJoinRequests,
+    sendReminderNow,
+    startEventNow,
     cancelEvent,
     cancelParticipant,
+    closeRegistration,
+    completeEvent,
     getCancelledParticipants,
     dashboard,
     cancelledParticipants,
@@ -222,6 +248,21 @@ export default function EventDashboardScreen() {
   } = useEventStore();
 
   const [cancelEventModalOpen, setCancelEventModalOpen] = useState(false);
+  const [cancelTitle, setCancelTitle] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelErrors, setCancelErrors] = useState<{ title?: string; reason?: string; form?: string }>({});
+  const [cancelling, setCancelling] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [delayOpen, setDelayOpen] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const [startConfirmOpen, setStartConfirmOpen] = useState(false);
+  const [reminding, setReminding] = useState(false);
+  const remindingRef = useRef(false);
+  const [requestsCountFailed, setRequestsCountFailed] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"close" | "complete" | null>(null);
   const [cancelTarget, setCancelTarget] = useState<EventParticipant | null>(null);
   const [cancelledModalOpen, setCancelledModalOpen] = useState(false);
   const [cancelledLoading, setCancelledLoading] = useState(false);
@@ -235,15 +276,56 @@ export default function EventDashboardScreen() {
     load();
   }, [load]);
 
-  const handleCancelEvent = async () => {
+  // Pending-request count for the menu badge; refreshed whenever the dashboard reloads.
+  // A failed fetch flags the banner for retry instead of showing "0 requests".
+  useEffect(() => { setPendingRequests(0); }, [eventId]);
+  useEffect(() => {
     if (!eventId) return;
+    getJoinRequests(eventId)
+      .then((r) => { setPendingRequests(r.pendingCount); setRequestsCountFailed(false); })
+      .catch(() => setRequestsCountFailed(true));
+  }, [eventId, dashboard]);
+
+  // Opened from a "New join request" notification.
+  useEffect(() => {
+    if (openRequests === "1") setRequestsOpen(true);
+  }, [openRequests]);
+
+  const closeCancelEvent = () => {
+    if (cancelling) return;
+    setCancelEventModalOpen(false);
+    setCancelErrors({});
+  };
+
+  // Keeps the dialog (and the typed text) open on any failure; closes only once
+  // the server has confirmed the cancellation.
+  const handleCancelEvent = async () => {
+    if (!eventId || cancelling) return;
+    const v = validateCancelDetails(cancelTitle, cancelReason);
+    if (!v.valid) {
+      setCancelErrors(v.errors);
+      return;
+    }
+    setCancelErrors({});
+    setCancelling(true);
     try {
-      await cancelEvent(eventId);
+      await cancelEvent(eventId, { title: v.title, reason: v.reason });
       setCancelEventModalOpen(false);
+      setCancelTitle("");
+      setCancelReason("");
       showToast("Event cancelled", "success");
       load();
     } catch (e: any) {
-      showToast(e?.message ?? "Failed to cancel event", "error");
+      const errs = e?.body?.errors;
+      if (e?.body?.errorCode === "CANCEL_DETAILS_INVALID" && errs && (errs.title || errs.reason)) {
+        setCancelErrors({ title: errs.title, reason: errs.reason });
+      } else {
+        setCancelErrors({ form: cancelErrorMessage(e) });
+      }
+      // Event may have changed under us (e.g. already completed): re-sync, keep the dialog.
+      if (e?.status === 409 || e?.status === 404) load();
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -251,12 +333,71 @@ export default function EventDashboardScreen() {
     if (!eventId || !cancelTarget) return;
     try {
       await cancelParticipant(eventId, cancelTarget.userId);
-      setCancelTarget(null);
       showToast("Participation cancelled", "success");
       load();
     } catch (e: any) {
-      showToast(e?.message ?? "Failed to cancel participation", "error");
+      showToast(removeParticipantErrorMessage(e), "error");
+      if (e?.status === 404) load();
+      // Re-throw: ConfirmationModal shows its success state only when this resolves.
+      throw e;
     }
+  };
+
+  // close registration / complete: failures toast once and re-throw so the
+  // confirmation modal never shows a false success; state reloads only on success.
+  const handleLifecycleConfirm = async () => {
+    if (!eventId || !confirmAction) return;
+    const action = confirmAction;
+    try {
+      if (action === "close") await closeRegistration(eventId);
+      else await completeEvent(eventId);
+      showToast(action === "close" ? "Registration closed" : "Event marked as completed", "success");
+      load();
+    } catch (e: any) {
+      showToast(lifecycleErrorMessage(e, action), "error");
+      if (e?.status === 409 || e?.status === 404) load();
+      throw e;
+    }
+  };
+
+  const handleSendReminder = async () => {
+    if (remindingRef.current || !eventId) return;
+    remindingRef.current = true;
+    setReminding(true);
+    try {
+      await sendReminderNow(eventId);
+      showToast("Reminder sent to participants", "success");
+    } catch (e: any) {
+      showToast(lifecycleErrorMessage(e, "remind"), "error");
+      if (e?.status === 409 || e?.status === 404) load();
+    } finally {
+      remindingRef.current = false;
+      setReminding(false);
+    }
+  };
+
+  // Success is shown by the confirmation modal only when this resolves.
+  const handleStartEvent = async () => {
+    if (!eventId) return;
+    try {
+      await startEventNow(eventId);
+      showToast("Event started", "success");
+      load();
+    } catch (e: any) {
+      showToast(lifecycleErrorMessage(e, "start"), "error");
+      if (e?.status === 409 || e?.status === 404) load();
+      throw e;
+    }
+  };
+
+  const onMenuSelect = (a: OrganizerAction) => {
+    setMenuOpen(false);
+    if (a === "close" || a === "complete") setConfirmAction(a);
+    else if (a === "delay") setDelayOpen(true);
+    else if (a === "reminders") setRemindersOpen(true);
+    else if (a === "reports") setReportsOpen(true);
+    else if (a === "requests") setRequestsOpen(true);
+    else setCancelEventModalOpen(true);
   };
 
   const openCancelledModal = () => {
@@ -315,6 +456,13 @@ export default function EventDashboardScreen() {
     ? Math.max(statistics.percentageFilled, statistics.joinedParticipants > 0 ? MIN_VISIBLE_PROGRESS_PCT : 0)
     : 0;
   const deadline = formatCountdown(statistics.registrationDeadline);
+  const organizerOps = organizerEventActions({
+    status: event.status,
+    eventStartAt: statistics.eventStartAt,
+    hasStarted: statistics.hasStarted,
+    joined: statistics.joinedParticipants,
+    min: statistics.minimumParticipants,
+  });
   const isPaid = event.participationType === "paid";
 
   return (
@@ -332,7 +480,7 @@ export default function EventDashboardScreen() {
         <HeaderAction
           icon="ellipsis-vertical"
           label="More"
-          onPress={() => !isCancelled && setCancelEventModalOpen(true)}
+          onPress={() => setMenuOpen(true)}
         />
       </View>
 
@@ -404,9 +552,76 @@ export default function EventDashboardScreen() {
           </View>
         </View>
 
+        {event.status === "closed" && (
+          <View style={[styles.cancelledBadge, { marginBottom: 16, backgroundColor: t.colors.brandWeak }]}>
+            <Text style={{ color: t.colors.brandDark, fontFamily: "Manrope_700Bold" }}>Registration is closed</Text>
+          </View>
+        )}
+        {event.status === "completed" && (
+          <View style={[styles.cancelledBadge, { marginBottom: 16, backgroundColor: t.colors.brandWeak }]}>
+            <Text style={{ color: t.colors.brandDark, fontFamily: "Manrope_700Bold" }}>This event has been completed</Text>
+          </View>
+        )}
+        {!!event.delayMinutes && event.status !== "cancelled" && event.status !== "completed" && (
+          <Text style={[t.typography.small, { color: t.colors.secondaryText, marginBottom: 12 }]}>
+            Delayed by {event.delayMinutes} min in total
+          </Text>
+        )}
         {isCancelled && (
           <View style={[styles.cancelledBadge, { marginBottom: 16 }]}>
             <Text style={{ color: "#B91C1C", fontFamily: "Manrope_700Bold" }}>This event has been cancelled</Text>
+          </View>
+        )}
+
+        <Pressable
+          onPress={() => setRequestsOpen(true)}
+          style={[styles.requestsBanner, { borderColor: t.colors.border, backgroundColor: pendingRequests > 0 ? t.colors.brand : t.colors.surface }]}
+        >
+          <Ionicons name="person-add-outline" size={20} color={pendingRequests > 0 ? t.colors.onBrand : t.colors.textPrimary} />
+          <Text style={{ flex: 1, fontFamily: "Manrope_700Bold", color: pendingRequests > 0 ? t.colors.onBrand : t.colors.textPrimary }}>
+            {joinRequestsEntryLabel(pendingRequests, requestsCountFailed)}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={pendingRequests > 0 ? t.colors.onBrand : t.colors.textSecondary} />
+        </Pressable>
+
+        {(organizerOps.showReminder || organizerOps.showStart || organizerOps.showEnd) && (
+          <View style={{ marginBottom: 16, gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {organizerOps.showReminder && (
+                <Pressable
+                  onPress={handleSendReminder}
+                  disabled={!organizerOps.canSendReminder || reminding}
+                  accessibilityRole="button"
+                  style={[styles.opBtn, { borderColor: t.colors.brandDark, opacity: organizerOps.canSendReminder && !reminding ? 1 : 0.5 }]}
+                >
+                  <Ionicons name="notifications-outline" size={18} color={t.colors.brandDark} />
+                  <Text style={{ fontFamily: "Manrope_700Bold", color: t.colors.brandDark }}>{reminding ? "Sending…" : "Send Reminder"}</Text>
+                </Pressable>
+              )}
+              {organizerOps.showEnd && (
+                <Pressable
+                  onPress={() => setConfirmAction("complete")}
+                  disabled={saving}
+                  accessibilityRole="button"
+                  style={[styles.opBtn, { backgroundColor: "#DC2626", borderColor: "#DC2626", opacity: saving ? 0.5 : 1 }]}
+                >
+                  <Ionicons name="stop-circle-outline" size={18} color="#fff" />
+                  <Text style={{ fontFamily: "Manrope_700Bold", color: "#fff" }}>End Event</Text>
+                </Pressable>
+              )}
+              {organizerOps.showStart && (
+                <Pressable
+                  onPress={() => setStartConfirmOpen(true)}
+                  disabled={!organizerOps.canStart}
+                  accessibilityRole="button"
+                  style={[styles.opBtn, { backgroundColor: t.colors.brandDark, borderColor: t.colors.brandDark, opacity: organizerOps.canStart ? 1 : 0.5 }]}
+                >
+                  <Ionicons name="play-circle-outline" size={18} color="#fff" />
+                  <Text style={{ fontFamily: "Manrope_700Bold", color: "#fff" }}>Start Event</Text>
+                </Pressable>
+              )}
+            </View>
+            {organizerOps.startHint ? <Text style={{ fontSize: 12, color: t.colors.secondaryText }}>{organizerOps.startHint}</Text> : null}
           </View>
         )}
 
@@ -577,15 +792,114 @@ export default function EventDashboardScreen() {
         </View>
       </ScrollView>
 
+      <Modal visible={cancelEventModalOpen} transparent animationType="fade" onRequestClose={closeCancelEvent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.cancelOverlay}
+        >
+          <View style={[styles.cancelDialog, { backgroundColor: t.colors.white }]}>
+            <Text style={{ fontSize: 18, fontFamily: "Manrope_700Bold", color: t.colors.textPrimary }}>
+              Cancel this event?
+            </Text>
+            <Text style={{ fontSize: 14, lineHeight: 22, color: t.colors.textSecondary, marginTop: 8 }}>
+              This will cancel the event for all participants, who will see the title and reason below. This action cannot be undone.
+            </Text>
+
+            <Text style={styles.cancelLabel}>Cancellation title</Text>
+            <TextInput
+              value={cancelTitle}
+              onChangeText={(v) => { setCancelTitle(v); setCancelErrors((x) => ({ ...x, title: undefined, form: undefined })); }}
+              placeholder="e.g. Cancelled due to rain"
+              maxLength={CANCEL_TITLE_MAX + 20}
+              editable={!cancelling}
+              style={[styles.cancelInput, { borderColor: cancelErrors.title ? "#DC2626" : t.colors.border, color: t.colors.textPrimary }]}
+            />
+            <View style={styles.cancelHintRow}>
+              <Text style={styles.cancelError}>{cancelErrors.title ?? ""}</Text>
+              <Text style={[styles.cancelCount, cancelTitle.trim().length > CANCEL_TITLE_MAX && { color: "#DC2626" }]}>
+                {cancelTitle.trim().length}/{CANCEL_TITLE_MAX}
+              </Text>
+            </View>
+
+            <Text style={styles.cancelLabel}>Reason</Text>
+            <TextInput
+              value={cancelReason}
+              onChangeText={(v) => { setCancelReason(v); setCancelErrors((x) => ({ ...x, reason: undefined, form: undefined })); }}
+              placeholder="Tell participants why the event is cancelled"
+              multiline
+              maxLength={CANCEL_REASON_MAX + 20}
+              editable={!cancelling}
+              style={[styles.cancelInput, { height: 96, textAlignVertical: "top", borderColor: cancelErrors.reason ? "#DC2626" : t.colors.border, color: t.colors.textPrimary }]}
+            />
+            <View style={styles.cancelHintRow}>
+              <Text style={styles.cancelError}>{cancelErrors.reason ?? ""}</Text>
+              <Text style={[styles.cancelCount, cancelReason.trim().length > CANCEL_REASON_MAX && { color: "#DC2626" }]}>
+                {cancelReason.trim().length}/{CANCEL_REASON_MAX}
+              </Text>
+            </View>
+
+            {cancelErrors.form ? <Text style={[styles.cancelError, { marginTop: 4 }]}>{cancelErrors.form}</Text> : null}
+
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
+              <Pressable
+                onPress={closeCancelEvent}
+                disabled={cancelling}
+                style={[styles.cancelDialogBtn, { borderWidth: 1, borderColor: t.colors.border }]}
+              >
+                <Text style={{ fontSize: 16, fontFamily: "Manrope_600SemiBold", color: t.colors.textPrimary }}>Keep Event</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleCancelEvent}
+                disabled={cancelling}
+                style={[styles.cancelDialogBtn, { backgroundColor: "#DC2626", opacity: cancelling ? 0.7 : 1 }]}
+              >
+                <Text style={{ fontSize: 16, fontFamily: "Manrope_600SemiBold", color: "#fff" }}>
+                  {cancelling ? "Cancelling…" : "Cancel Event"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <OrganizerMenu pendingRequests={pendingRequests} visible={menuOpen} status={event.status} onClose={() => setMenuOpen(false)} onSelect={onMenuSelect} />
+      <DelayModal visible={delayOpen} eventId={String(eventId)} onClose={() => setDelayOpen(false)} onDone={load} />
+      <RemindersModal
+        visible={remindersOpen}
+        eventId={String(eventId)}
+        current={event.reminderOffsets ?? []}
+        onClose={() => setRemindersOpen(false)}
+        onDone={load}
+      />
+      <JoinRequestsModal visible={requestsOpen} eventId={String(eventId)} onClose={() => setRequestsOpen(false)} onChanged={load} />
+      <EventReportsModal visible={reportsOpen} eventId={String(eventId)} onClose={() => setReportsOpen(false)} />
       <ConfirmationModal
-        visible={cancelEventModalOpen}
-        onClose={() => setCancelEventModalOpen(false)}
-        onConfirm={handleCancelEvent}
-        title="Cancel this event?"
-        message="This will cancel the event for all participants. This action cannot be undone."
-        confirmText="Cancel Event"
-        cancelText="Keep Event"
-        isDangerous
+        visible={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleLifecycleConfirm}
+        title={confirmAction === "close" ? "Close registration?" : "Mark event as completed?"}
+        message={
+          confirmAction === "close"
+            ? "New residents won't be able to join. The event itself stays active and can still be cancelled or completed."
+            : "This ends the event and notifies participants. It can only be done once the event has started."
+        }
+        confirmText={confirmAction === "close" ? "Close registration" : "Mark completed"}
+        cancelText="Back"
+        successTitle={confirmAction === "close" ? "Registration closed" : "Event completed"}
+        successMessage={confirmAction === "close" ? "Residents can no longer join." : "The event is now completed."}
+        isLoading={saving}
+      />
+
+      <ConfirmationModal
+        visible={startConfirmOpen}
+        onClose={() => setStartConfirmOpen(false)}
+        onConfirm={handleStartEvent}
+        title="Start this event now?"
+        message="The event will be marked as started and participants will be notified. This can't be undone."
+        confirmText="Start event"
+        cancelText="Back"
+        successTitle="Event started"
+        successMessage="Participants have been notified."
         isLoading={saving}
       />
 
@@ -646,6 +960,8 @@ export default function EventDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  opBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderRadius: 12, paddingVertical: 12 },
+  requestsBanner: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 16 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12 },
   headerAction: { alignItems: "center", justifyContent: "center" },
@@ -658,6 +974,14 @@ const styles = StyleSheet.create({
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   tag: { flexDirection: "row", alignItems: "center", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
 
+  cancelOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", paddingHorizontal: 16 },
+  cancelDialog: { width: "100%", borderRadius: 12, paddingHorizontal: 20, paddingVertical: 24 },
+  cancelLabel: { fontSize: 13, fontFamily: "Manrope_700Bold", color: "#344054", marginTop: 16, marginBottom: 6 },
+  cancelInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  cancelHintRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
+  cancelError: { color: "#DC2626", fontSize: 12, flex: 1 },
+  cancelCount: { color: "#667085", fontSize: 12 },
+  cancelDialogBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   cancelledBadge: { backgroundColor: "#FEF2F2", padding: 10, borderRadius: 10 },
 
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 16, marginBottom: 16 },

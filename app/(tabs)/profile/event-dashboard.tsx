@@ -5,6 +5,7 @@
 // owns participants, stats and cancellation. No event state is managed here.
 
 import Badge from "@/components/UI/Badge";
+import { joinRequestBadge, joinRequestRejectedMessage } from "@/lib/eventRegistration";
 import NoDataCard from "@/components/common/NoDataCard";
 import UserAvatar from "@/components/UI/UserAvatar";
 import Skeleton from "@/components/UI/Skeleton";
@@ -75,7 +76,12 @@ const EventRow = memo(function EventRow({
 }) {
   const t = useTheme();
   const cover = event.image;
-  const badge = STATUS_BADGE[event.status] ?? { label: event.status, color: t.colors.textSecondary };
+  const requestBadge = joinRequestBadge(event.joinRequest?.status);
+  const badge = requestBadge
+    ? { label: requestBadge, color: event.joinRequest?.status === "rejected" ? "#B91C1C" : t.colors.textSecondary }
+    : joined && event.status === "active"
+      ? { label: "JOINED", color: t.colors.brandDark }
+      : STATUS_BADGE[event.status] ?? { label: event.status, color: t.colors.textSecondary };
 
   return (
     <TouchableOpacity
@@ -110,6 +116,11 @@ const EventRow = memo(function EventRow({
             {event.venue}
           </Text>
         )}
+        {event.joinRequest?.status === "rejected" && (
+          <Text style={[styles.rowMeta, { color: "#B91C1C" }]} numberOfLines={2}>
+            {joinRequestRejectedMessage(event.joinRequest.reason)}
+          </Text>
+        )}
         <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
           {event.joinedCount}
           {event.maxParticipants ? ` / ${event.maxParticipants}` : ""} joined
@@ -138,6 +149,7 @@ export default function MyEventsScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const fetchEventPage = useEventStore((s) => s.fetchEventPage);
+  const getMyJoinRequests = useEventStore((s) => s.getMyJoinRequests);
 
   const [tab, setTab] = useState<Tab>("created");
   const [filter, setFilter] = useState<StatusFilter>("active");
@@ -158,6 +170,14 @@ export default function MyEventsScreen() {
       setBuckets((b) => ({ ...b, [key]: { ...(b[key] ?? EMPTY_BUCKET), loading: true, error: null } }));
       try {
         const res = await fetchEventPage(tb, st, page);
+        // Joined tab, first page of Active: also show the viewer's own pending/rejected requests
+        // (server state — they are not participants and never count towards joinedCount).
+        // A failure here must not hide the real joined list.
+        if (tb === "joined" && st === "active" && page === 1) {
+          const requests = await getMyJoinRequests().catch(() => [] as EventRecord[]);
+          const joinedIds = new Set(res.events.map((e) => String(e.id)));
+          res.events = [...requests.filter((r) => !joinedIds.has(String(r.id))), ...res.events];
+        }
         setBuckets((b) => {
           const prev = b[key] ?? EMPTY_BUCKET;
           const merged = page === 1 ? res.events : [...prev.items, ...res.events];
@@ -175,7 +195,7 @@ export default function MyEventsScreen() {
         inFlight.current.delete(flightKey);
       }
     },
-    [fetchEventPage],
+    [fetchEventPage, getMyJoinRequests],
   );
 
   // Refresh the visible list whenever the screen is focused or the tab/filter

@@ -1,10 +1,14 @@
 import { CACHE_TTL_MS } from "@/assets/constants/common.constant";
 import { Delete, Get, Patch, Post } from "@/lib/httpMethods";
+import { createInFlightGuard } from "@/lib/inFlightGuard";
 import { zustandStorage } from "@/lib/storage";
 import { ReportItem } from "@/types/business.type";
 import { FeedItem, FeedsState, RsvpUser } from "@/types/feeds.type";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+
+// One like request per post at a time: rapid taps on the heart can't fire duplicate toggles.
+const likeGuard = createInFlightGuard();
 
 const pruneExpiredFeeds = (feeds: FeedItem[]) => {
     const cutoff = Date.now() - CACHE_TTL_MS;
@@ -158,7 +162,7 @@ export const useFeedsStore = create<FeedsState>()(
             addFeedOptimistically: (feed: FeedItem) => {
                 set((state) => ({ feeds: [feed, ...state.feeds] }));
             },
-            toggleLike: async (feedId: string, userId: string) => {
+            toggleLike: (feedId: string, userId: string) => likeGuard.run(feedId, async () => {
                 set((state) => ({
                     feeds: state.feeds.map((f) => {
                         if (f._id === feedId) {
@@ -235,7 +239,7 @@ export const useFeedsStore = create<FeedsState>()(
                         error: "Failed to toggle like",
                     }));
                 }
-            },
+            }),
             getFeedById: async (feedId: string) => {
                 set({ loading: true, error: null });
                 try {

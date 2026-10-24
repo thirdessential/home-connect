@@ -43,7 +43,7 @@ function VerifyStep2Screen() {
         return;
       }
       if (!userId) {
-        router.push("/onboarding/verify-confirmation");
+        router.replace("/onboarding/verify-confirmation");
         return;
       }
       setSubmitting(true);
@@ -60,7 +60,9 @@ function VerifyStep2Screen() {
 
         const updatedUser = await submitVerification(verificationData);
         if (updatedUser) setUser(updatedUser);
-        router.push("/onboarding/verify-confirmation");
+        // Replace (not push) so Step 2 is gone from history once submitted;
+        // the confirmation screen then exits the whole flow on Back.
+        router.replace("/onboarding/verify-confirmation");
       } catch (err: any) {
         showToast(err?.message || "Failed to submit verification. Please try again.", "error");
       } finally {

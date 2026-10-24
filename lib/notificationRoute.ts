@@ -6,6 +6,8 @@ export function notificationRoute(data?: Record<string, any>): any {
   const id = data.entityId != null ? String(data.entityId) : undefined;
   switch (data.entityType) {
     case "event":
+      // New join request → organizer lands on the dashboard (opens the requests list).
+      if (data.type === "EVENT_JOIN_REQUEST" && id) return { pathname: "/(shared)/event-dashboard", params: { eventId: id, openRequests: "1" } };
       return id ? { pathname: "/(shared)/event-details", params: { eventId: id } } : "/(shared)/notifications";
     case "admin_request":
       return id ? { pathname: "/profile/admin-request-details", params: { type: data.requestType === "business" ? "business" : "resident", id } } : "/(shared)/notifications";

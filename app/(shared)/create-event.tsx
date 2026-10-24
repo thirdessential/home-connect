@@ -12,12 +12,35 @@ import GlobalInput from "@/components/UI/GlobalInput";
 import { useEventStore } from "@/store/useEventStore";
 import { useTheme } from "@/theme/theme";
 import { formatTime12h } from "@/lib/dateTime";
+import {
+  DEFAULT_END_DAYS_AFTER,
+  DEFAULT_END_HOURS_AFTER,
+  END_DAY_OPTIONS,
+  END_HOUR_OPTIONS,
+  MAX_EVENT_PARTICIPANTS,
+  MIN_EVENT_PARTICIPANTS,
+  STEP_FIELDS,
+  buildCreateEventPayload,
+  computeEnd,
+  firstInvalidField,
+  initialEventFormValues,
+  partsToDate,
+  stepMaxParticipants,
+  stepMinParticipants,
+  stepOfField,
+  validateEventForm,
+  validateEventStep,
+  visibleFieldErrors,
+  type EventFormField,
+  type EventFormValues,
+  type FieldErrors,
+} from "@/lib/createEventForm";
 import { CreateEventPayload, ParticipationType } from "@/types/event.type";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const STEP_LABELS = ["Event Details", "Schedule", "Participation", "Review & Publish"];
@@ -31,25 +54,8 @@ const EVENT_TYPES = [
   { id: "Other", name: "Other", icon: "ellipsis-horizontal" as const },
 ];
 
-
-const DAY_OPTIONS = [1, 2, 3, 7, 14].map((n) => ({ id: String(n), name: n === 1 ? "1 day" : `${n} days` }));
-const HOUR_OPTIONS = [1, 2, 3, 6, 12].map((n) => ({ id: String(n), name: n === 1 ? "1 hour" : `${n} hours` }));
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
-
-// End = start (device-local, same as the other date maths on this screen) + duration.
-function computeEnd(startDate: string, startTime: string, unit: "days" | "hours", value: number) {
-  if (!startDate) return null;
-  const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
-  const [h, mi] = (startTime || "00:00").split(":").map(Number);
-  const end = new Date(y, mo - 1, d, h, mi);
-  if (unit === "days") end.setDate(end.getDate() + value);
-  else end.setTime(end.getTime() + value * 3600 * 1000);
-  return {
-    date: `${end.getFullYear()}-${pad2(end.getMonth() + 1)}-${pad2(end.getDate())}`,
-    time: `${pad2(end.getHours())}:${pad2(end.getMinutes())}`,
-  };
-}
+const DAY_OPTIONS = END_DAY_OPTIONS.map((n) => ({ id: String(n), name: n === 1 ? "1 day" : `${n} days` }));
+const HOUR_OPTIONS = END_HOUR_OPTIONS.map((n) => ({ id: String(n), name: n === 1 ? "1 hour" : `${n} hours` }));
 
 const fmtDateTime = (date: string, time: string) => {
   if (!date) return "";
@@ -81,12 +87,27 @@ function ReviewRow({ label, value }: { label?: string; value?: string | null }) 
 }
 
 const CLOSES_OPTIONS = [
-  { id: "0", name: "Registration closes at event start" },
+  { id: "0", name: "At event start" },
   { id: "3", name: "3 hours before event" },
   { id: "6", name: "6 hours before event" },
   { id: "12", name: "12 hours before event" },
   { id: "24", name: "1 day before event" },
 ];
+
+// Inline validation message under a field (red, announced to screen readers).
+function FieldError({ message }: { message?: string }) {
+  const t = useTheme();
+  if (!message) return null;
+  return (
+    <Text
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={{ color: t.colors.error, fontSize: 12, marginTop: -(t.spacing.l - 4), marginBottom: t.spacing.m }}
+    >
+      {message}
+    </Text>
+  );
+}
 
 export default function CreateEventScreen() {
   const t = useTheme();
@@ -96,29 +117,76 @@ export default function CreateEventScreen() {
   const [step, setStep] = useState(1);
   const [published, setPublished] = useState<{ id: number } | null>(null);
 
+  // New-event defaults are computed once on mount and only SEED the state below; re-renders and
+  // step changes never re-apply them, so user edits are never overwritten.
+  const [initial] = useState(() => initialEventFormValues());
+
   // Step 1
-  const [title, setTitle] = useState("");
-  const [eventType, setEventType] = useState<string | null>(null);
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState<string[]>([]);
+  const [title, setTitle] = useState(initial.title);
+  const [eventType, setEventType] = useState<string | null>(initial.eventType);
+  const [description, setDescription] = useState(initial.description);
+  const [image, setImage] = useState<string[]>(initial.images);
 
   // Step 2
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [durationType, setDurationType] = useState<"days" | "hours">("days");
-  const [daysDuration, setDaysDuration] = useState(1);
-  const [hoursDuration, setHoursDuration] = useState(1);
-  const [venue, setVenue] = useState("");
+  const [startDate, setStartDate] = useState(initial.startDate);
+  const [startTime, setStartTime] = useState(initial.startTime);
+  // End date = start date + N days, end time = start time + N hours (two independent dropdowns).
+  // The end is derived from the start, so it follows start changes while the chosen offsets persist.
+  const [endDaysAfter, setEndDaysAfter] = useState(DEFAULT_END_DAYS_AFTER);
+  const [endHoursAfter, setEndHoursAfter] = useState(DEFAULT_END_HOURS_AFTER);
+  const { endDate, endTime } = computeEnd(startDate, startTime, endDaysAfter, endHoursAfter);
+  const { width: screenWidth } = useWindowDimensions();
+  const stackEnd = screenWidth < 360; // very narrow phones: dropdowns stack instead of sitting side by side
+  const [venue, setVenue] = useState(initial.venue);
   const [openPicker, setOpenPicker] = useState<string | null>(null);
 
   // Step 3
-  const [participationType, setParticipationType] = useState<ParticipationType>("free");
-  const [feeAmount, setFeeAmount] = useState("");
-  const [minParticipants, setMinParticipants] = useState(1);
-  const [maxParticipants, setMaxParticipants] = useState<number | null>(20);
-  const [closesHours, setClosesHours] = useState("3");
-  const [rules, setRules] = useState("");
-  const [agree, setAgree] = useState(false);
+  const [participationType, setParticipationType] = useState<ParticipationType>(initial.participationType);
+  const [feeAmount, setFeeAmount] = useState(initial.feeAmount);
+  const [minParticipants, setMinParticipants] = useState(initial.minParticipants);
+  const [maxParticipants, setMaxParticipants] = useState(initial.maxParticipants);
+  const [closesHours, setClosesHours] = useState(initial.closesHours);
+  const [rules, setRules] = useState(initial.rules);
+  const [agree, setAgree] = useState(initial.agree);
+
+  const values: EventFormValues = {
+    title, eventType, description, images: image,
+    startDate, startTime, endDate, endTime, venue,
+    participationType, feeAmount, minParticipants, maxParticipants, closesHours, rules, agree,
+  };
+
+  // Validation: a failed Next/Publish "flags" every invalid field at once. A flagged field stays red
+  // only while it is still invalid, so fixing it clears the border and message immediately.
+  const [flagged, setFlagged] = useState<EventFormField[]>([]);
+  const stepKey = step as 1 | 2 | 3 | 4;
+  const errors = visibleFieldErrors(flagged, validateEventStep(stepKey, values));
+
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
+  const anchors = useRef<Partial<Record<EventFormField, View | null>>>({});
+  const anchor = (f: EventFormField) => ({
+    ref: (el: View | null) => { anchors.current[f] = el; },
+    collapsable: false as const,
+  });
+  const [scrollTarget, setScrollTarget] = useState<{ field: EventFormField; n: number } | null>(null);
+
+  // Runs after the (possibly new) step has rendered, so the field's position can be measured.
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const id = requestAnimationFrame(() => {
+      const el = anchors.current[scrollTarget.field];
+      const content = contentRef.current;
+      if (!el || !content) return;
+      el.measureLayout(content, (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true }), () => {});
+    });
+    return () => cancelAnimationFrame(id);
+  }, [scrollTarget]);
+
+  const flag = (errs: FieldErrors, onStep: 1 | 2 | 3 | 4) => {
+    setFlagged((prev) => Array.from(new Set([...prev, ...(Object.keys(errs) as EventFormField[])])));
+    const first = firstInvalidField(onStep, errs);
+    if (first) setScrollTarget({ field: first, n: Date.now() });
+  };
 
   const goBack = () => {
     if (step > 1) setStep((s) => s - 1);
@@ -127,82 +195,42 @@ export default function CreateEventScreen() {
 
   const handleClose = () => router.back();
 
-  const next1 = () => {
-    if (title.trim().length > 70) return showToast("Title must be 70 characters or fewer", "error");
-    if (description.trim().length > 300) return showToast("Description must be 300 characters or fewer", "error");
-    if (image.length > 5) return showToast("You can add at most 5 images", "error");
-    if (title.trim().length < 3) return showToast("Enter an event title", "error");
-    if (!eventType) return showToast("Select an event type", "error");
-    if (description.trim().length < 5) return showToast("Add a short description", "error");
-    setStep(2);
+  const goNext = () => {
+    const errs = validateEventStep(stepKey, values);
+    if (Object.keys(errs).length) return flag(errs, stepKey);
+    setFlagged((prev) => prev.filter((f) => stepOfField(f) !== stepKey));
+    setStep(step + 1);
   };
 
-  const next2 = () => {
-    if (!startDate) return showToast("Start date is required", "error");
-    const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
-    const [hh, mi] = (startTime || "00:00").split(":").map(Number);
-    if (new Date(y, mo - 1, d, hh, mi).getTime() < Date.now() + 2 * 3600 * 1000) {
-      return showToast("Event must start at least 2 hours from now", "error");
-    }
-    if (!venue.trim()) return showToast("Venue is required", "error");
-    setStep(3);
+  const onStartDateChange = (d: string) => {
+    setStartDate(d);
+    setOpenPicker(null);
   };
-
-  const next3 = () => {
-    if (participationType === "paid" && (!feeAmount || Number(feeAmount) <= 0)) {
-      return showToast("Enter a valid participation fee", "error");
-    }
-    {
-      const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
-      const [h, mi] = (startTime || "00:00").split(":").map(Number);
-      if (new Date(y, mo - 1, d, h, mi).getTime() - Number(closesHours) * 3600 * 1000 <= Date.now())
-        return showToast("Registration would already be closed — pick a shorter option or a later start", "error");
-    }
-    if (minParticipants < 1) {
-      return showToast("Minimum participants must be at least 1", "error");
-    }
-    if (maxParticipants !== null && maxParticipants < minParticipants) {
-      return showToast("Maximum cannot be less than minimum participants", "error");
-    }
-    setStep(4);
+  const onStartTimeChange = (v: string) => {
+    setStartTime(v);
+    setOpenPicker(null);
   };
 
   // Calculated cutoff for the Review screen (device-local, display only).
   const closesAtLabel = (() => {
-    if (!startDate) return "";
-    const [y, mo, d] = startDate.slice(0, 10).split("-").map(Number);
-    const [h, mi] = (startTime || "00:00").split(":").map(Number);
-    const c = new Date(new Date(y, mo - 1, d, h, mi).getTime() - Number(closesHours) * 3600 * 1000);
+    const start = partsToDate(startDate, startTime);
+    if (!start) return "";
+    const c = new Date(start.getTime() - Number(closesHours) * 3600 * 1000);
     return `${c.toLocaleDateString("en-US", { day: "numeric", month: "short" })}, ${c.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
   })();
 
-  const durationLabel =
-    durationType === "days"
-      ? DAY_OPTIONS.find((o) => o.id === String(daysDuration))?.name ?? `${daysDuration} days`
-      : HOUR_OPTIONS.find((o) => o.id === String(hoursDuration))?.name ?? `${hoursDuration} hours`;
-
-  const calculatedEnd = computeEnd(startDate, startTime, durationType, durationType === "days" ? daysDuration : hoursDuration);
-  const endDate = calculatedEnd?.date ?? "";
-  const endTime = calculatedEnd?.time ?? "";
-
   const handlePublish = async () => {
-    if (!agree) return showToast("Please confirm the details are correct", "error");
-    const payload: CreateEventPayload = {
-      eventtitle: title.trim(),
-      eventtype: eventType!,
-      description: description.trim(),
-      startdate: startDate,
-      ...(startTime ? { starttime: startTime } : {}),
-      ...(endDate ? { enddate: endDate } : {}),
-      ...(endTime ? { endtime: endTime } : {}),
-      venue: venue.trim(),
-      participationtype: participationType,
-      ...(participationType === "paid" ? { participationfeeamount: Number(feeAmount) } : {}),
-      minimumparticipants: minParticipants,
-      ...(maxParticipants !== null ? { maximumparticipants: maxParticipants } : {}),
-      registrationclosesbefore: Number(closesHours),
-      ...(rules.trim() ? { rulesthingstobring: rules.trim() } : {}),
-    };
+    // Re-validate everything: the start may have drifted inside the 2-hour window since step 2.
+    const errs = validateEventForm(values, new Date(), { requireAgree: true });
+    if (Object.keys(errs).length) {
+      const failingStep = ([1, 2, 3, 4] as const).find((s) => STEP_FIELDS[s].some((f) => errs[f])) ?? 4;
+      if (failingStep !== 4) {
+        setStep(failingStep);
+        showToast("Please fix the highlighted fields", "error");
+      }
+      return flag(errs, failingStep);
+    }
+    const payload: CreateEventPayload = buildCreateEventPayload(values);
     try {
       const imgs = image
         .filter((u) => !u.startsWith("http"))
@@ -230,23 +258,35 @@ export default function CreateEventScreen() {
         {STEP_LABELS[step - 1]}
       </Text>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        <View ref={contentRef} collapsable={false}>
         {step === 1 && (
           <View>
-            <GlobalInput label="Event Title *" placeholder="e.g. Weekend Cricket Match" value={title} onChangeText={setTitle} maxLength={70} />
+            <View {...anchor("title")}>
+              <GlobalInput label="Event Title *" placeholder="e.g. Weekend Cricket Match" value={title} onChangeText={setTitle} maxLength={70} error={errors.title} />
+            </View>
             <Text style={{ alignSelf: "flex-end", fontSize: 12, color: t.colors.secondaryText, marginTop: -8, marginBottom: 8 }}>{title.length}/70</Text>
-            <Select label="Event Type *" options={EVENT_TYPES} selectedId={eventType} onChange={setEventType} placeholder="Select event type" leftIcon="pricetag-outline" />
-            <GlobalInput label="Description *" placeholder="Tell your neighbours what this event is about…" value={description} onChangeText={setDescription} maxLength={300} multiline numberOfLines={4} />
+            <View {...anchor("eventType")}>
+              <Select label="Event Type *" options={EVENT_TYPES} selectedId={eventType} onChange={setEventType} placeholder="Select event type" leftIcon="pricetag-outline" error={!!errors.eventType} />
+              <FieldError message={errors.eventType} />
+            </View>
+            <View {...anchor("description")}>
+              <GlobalInput textArea label="Description *" placeholder="Tell your neighbours what this event is about…" value={description} onChangeText={setDescription} maxLength={300} multiline numberOfLines={5} error={errors.description} />
+            </View>
             <Text style={{ alignSelf: "flex-end", fontSize: 12, color: t.colors.secondaryText, marginTop: -8, marginBottom: 8 }}>{description.length}/300</Text>
-            <ImagePickerField
-              label="Event Images (Optional, max 5)"
-              mode="multiple"
-              value={image}
-              onChange={setImage}
-              max={5}
-              aspectRatios={["16:9", "4:5", "1:1", "9:16"]}
-              defaultAspectRatio="16:9"
-            />
+            <View {...anchor("images")}>
+              <ImagePickerField
+                label="Event Images (Optional, max 5)"
+                mode="multiple"
+                value={image}
+                onChange={setImage}
+                max={5}
+                aspectRatios={["16:9", "4:5", "1:1", "9:16"]}
+                defaultAspectRatio="16:9"
+              />
+              <FieldError message={errors.images} />
+            </View>
           </View>
         )}
 
@@ -254,34 +294,32 @@ export default function CreateEventScreen() {
           <View>
             <Heading level={5} style={{ marginBottom: 4 }}>Start Date & Time</Heading>
             <View style={styles.row2}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <DatePickerField label="Start Date *" value={startDate} onChange={(d) => { setStartDate(d); setOpenPicker(null); }} minimumDate={new Date()} show={openPicker === "start"} setShow={(v) => setOpenPicker(v ? "start" : null)} />
+              <View style={{ flex: 1, marginRight: 8 }} {...anchor("startDate")}>
+                <DatePickerField label="Start Date *" value={startDate} onChange={onStartDateChange} minimumDate={new Date()} error={errors.startDate} show={openPicker === "start"} setShow={(v) => setOpenPicker(v ? "start" : null)} />
               </View>
-              <View style={{ flex: 1 }}>
-                <TimePickerField label="Start Time" value={startTime} onChange={(v) => { setStartTime(v); setOpenPicker(null); }} show={openPicker === "startTime"} setShow={(v) => setOpenPicker(v ? "startTime" : null)} />
+              <View style={{ flex: 1 }} {...anchor("startTime")}>
+                <TimePickerField label="Start Time *" value={startTime} onChange={onStartTimeChange} error={errors.startTime} show={openPicker === "startTime"} setShow={(v) => setOpenPicker(v ? "startTime" : null)} />
               </View>
             </View>
 
-            <Heading level={5} style={{ marginTop: 8, marginBottom: 4 }}>End Date & Time (Optional)</Heading>
-            <View style={[styles.durationTabs, { backgroundColor: t.colors.surfaceAlt }]}>
-              {(["days", "hours"] as const).map((k) => {
-                const active = durationType === k;
-                return (
-                  <Pressable key={k} onPress={() => setDurationType(k)} style={[styles.durationTab, active && { backgroundColor: t.colors.brand }]}>
-                    <Text style={[t.typography.body, { color: active ? "#FFFFFF" : t.colors.text, fontFamily: active ? "Manrope_700Bold" : "Manrope_400Regular" }]}>
-                      {k === "days" ? "Days" : "Time"}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+            <Heading level={5} style={{ marginTop: 8, marginBottom: 4 }}>End Date & Time</Heading>
+            <View style={stackEnd ? undefined : styles.row2}>
+              <View style={stackEnd ? undefined : { flex: 1, marginRight: 8 }} {...anchor("endDate")}>
+                <Select label="End after (days)" options={DAY_OPTIONS} selectedId={String(endDaysAfter)} onChange={(id) => setEndDaysAfter(Number(id))} error={!!errors.endDate} />
+                <FieldError message={errors.endDate} />
+              </View>
+              <View style={stackEnd ? undefined : { flex: 1 }} {...anchor("endTime")}>
+                <Select label="End after (hours)" options={HOUR_OPTIONS} selectedId={String(endHoursAfter)} onChange={(id) => setEndHoursAfter(Number(id))} error={!!errors.endTime} />
+                <FieldError message={errors.endTime} />
+              </View>
             </View>
-            {durationType === "days" ? (
-              <Select label="End after (days)" options={DAY_OPTIONS} selectedId={String(daysDuration)} onChange={(id) => setDaysDuration(Number(id))} />
-            ) : (
-              <Select label="End after (hours)" options={HOUR_OPTIONS} selectedId={String(hoursDuration)} onChange={(id) => setHoursDuration(Number(id))} />
-            )}
+            <Text style={{ fontSize: 12, color: t.colors.secondaryText, marginTop: -8, marginBottom: 12 }}>
+              Ends {fmtDateTime(endDate, endTime)}
+            </Text>
 
-            <GlobalInput label="Venue *" placeholder="e.g. Central Ground, Life Republic" value={venue} onChangeText={setVenue} leftIcon="location-outline" />
+            <View {...anchor("venue")}>
+              <GlobalInput label="Venue *" placeholder="e.g. Central Ground, Life Republic" value={venue} onChangeText={setVenue} leftIcon="location-outline" error={errors.venue} />
+            </View>
           </View>
         )}
 
@@ -299,41 +337,90 @@ export default function CreateEventScreen() {
               </Pressable>
             </View>
             {participationType === "paid" ? (
-              <GlobalInput label="Amount (₹) *" placeholder="0" value={feeAmount} onChangeText={setFeeAmount} keyboardType="numeric" />
+              <View {...anchor("feeAmount")}>
+                <GlobalInput label="Amount (₹) *" placeholder="0" value={feeAmount} onChangeText={setFeeAmount} keyboardType="numeric" error={errors.feeAmount} />
+              </View>
             ) : null}
 
-            <Label>Minimum Participants *</Label>
-            <View style={styles.stepperControlRow}>
-              <Pressable style={styles.stepperBtn} onPress={() => setMinParticipants((v) => Math.max(1, v - 1))}><Text style={styles.stepperBtnText}>−</Text></Pressable>
-              <Text style={[t.typography.h4, { color: t.colors.text, width: 48, textAlign: "center" }]}>{minParticipants}</Text>
-              <Pressable style={styles.stepperBtn} onPress={() => setMinParticipants((v) => v + 1)}><Text style={styles.stepperBtnText}>+</Text></Pressable>
-            </View>
-
-            <Label>Maximum Participants (Optional)</Label>
-            {maxParticipants === null ? (
-              <Pressable
-                style={[styles.stepperBtn, { width: "auto", paddingHorizontal: 14 }]}
-                onPress={() => setMaxParticipants(minParticipants)}
-              >
-                <Text style={[t.typography.body, { color: t.colors.secondaryText }]}>No limit — tap to set a maximum</Text>
-              </Pressable>
-            ) : (
+            <View {...anchor("minParticipants")}>
+              <Label>Minimum Participants *</Label>
               <View style={styles.stepperControlRow}>
                 <Pressable
-                  style={styles.stepperBtn}
-                  onPress={() =>
-                    setMaxParticipants((v) => (v !== null && v - 1 < minParticipants ? null : (v as number) - 1))
-                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease minimum participants"
+                  disabled={minParticipants <= MIN_EVENT_PARTICIPANTS}
+                  style={[styles.stepperBtn, errors.minParticipants ? styles.stepperBtnError : null, minParticipants <= MIN_EVENT_PARTICIPANTS && styles.stepperBtnOff]}
+                  onPress={() => setMinParticipants((v) => stepMinParticipants(v, maxParticipants, -1))}
                 >
                   <Text style={styles.stepperBtnText}>−</Text>
                 </Pressable>
-                <Text style={[t.typography.h4, { color: t.colors.text, width: 48, textAlign: "center" }]}>{maxParticipants}</Text>
-                <Pressable style={styles.stepperBtn} onPress={() => setMaxParticipants((v) => (v as number) + 1)}><Text style={styles.stepperBtnText}>+</Text></Pressable>
+                <Text style={[t.typography.h4, { color: t.colors.text, width: 48, textAlign: "center" }]}>{minParticipants}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase minimum participants"
+                  disabled={minParticipants >= Math.min(maxParticipants, MAX_EVENT_PARTICIPANTS)}
+                  style={[styles.stepperBtn, errors.minParticipants ? styles.stepperBtnError : null, minParticipants >= Math.min(maxParticipants, MAX_EVENT_PARTICIPANTS) && styles.stepperBtnOff]}
+                  onPress={() => setMinParticipants((v) => stepMinParticipants(v, maxParticipants, +1))}
+                >
+                  <Text style={styles.stepperBtnText}>+</Text>
+                </Pressable>
               </View>
-            )}
+              <FieldError message={errors.minParticipants} />
+            </View>
 
-            <Select label="Registration closes*" options={CLOSES_OPTIONS} selectedId={closesHours} onChange={setClosesHours} leftIcon="time-outline" />
-            <GlobalInput label="Rules / Things to Bring (Optional)" placeholder="Add any rules, guidelines or things participants should bring…" value={rules} onChangeText={setRules} maxLength={250} multiline numberOfLines={3} />
+            <View {...anchor("maxParticipants")}>
+              <Label>Maximum Participants *</Label>
+              <View style={styles.stepperControlRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease maximum participants"
+                  disabled={maxParticipants <= minParticipants}
+                  style={[styles.stepperBtn, errors.maxParticipants ? styles.stepperBtnError : null, maxParticipants <= minParticipants && styles.stepperBtnOff]}
+                  onPress={() => setMaxParticipants((v) => stepMaxParticipants(v, minParticipants, -1))}
+                >
+                  <Text style={styles.stepperBtnText}>−</Text>
+                </Pressable>
+                <TextInput
+                  accessibilityLabel="Maximum participants"
+                  value={Number.isFinite(maxParticipants) ? String(maxParticipants) : ""}
+                  onChangeText={(txt) => {
+                    const digits = txt.replace(/\D/g, "").slice(0, 3);
+                    setMaxParticipants(digits === "" ? Number.NaN : Number(digits));
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  selectTextOnFocus
+                  style={[
+                    t.typography.h4,
+                    { color: t.colors.text, width: 64, height: 40, marginHorizontal: 4, textAlign: "center", borderWidth: 1.5, borderRadius: 10, borderColor: errors.maxParticipants ? t.colors.error : "#E5E7EB", paddingVertical: 0 },
+                  ]}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase maximum participants"
+                  disabled={maxParticipants >= MAX_EVENT_PARTICIPANTS}
+                  style={[styles.stepperBtn, errors.maxParticipants ? styles.stepperBtnError : null, maxParticipants >= MAX_EVENT_PARTICIPANTS && styles.stepperBtnOff]}
+                  onPress={() => setMaxParticipants((v) => stepMaxParticipants(v, minParticipants, +1))}
+                >
+                  <Text style={styles.stepperBtnText}>+</Text>
+                </Pressable>
+              </View>
+              {errors.maxParticipants ? (
+                <FieldError message={errors.maxParticipants} />
+              ) : (
+                <Text style={{ fontSize: 12, color: t.colors.secondaryText, marginTop: -8, marginBottom: 12 }}>
+                  Between {MIN_EVENT_PARTICIPANTS} and {MAX_EVENT_PARTICIPANTS} participants
+                </Text>
+              )}
+            </View>
+
+            <View {...anchor("closesHours")}>
+              <Select label="Registration closes*" options={CLOSES_OPTIONS} selectedId={closesHours} onChange={setClosesHours} leftIcon="time-outline" error={!!errors.closesHours} />
+              <FieldError message={errors.closesHours} />
+            </View>
+            <View {...anchor("rules")}>
+              <GlobalInput textArea label="Rules / Things to Bring (Optional)" placeholder="Add any rules, guidelines or things participants should bring…" value={rules} onChangeText={setRules} maxLength={250} multiline numberOfLines={3} error={errors.rules} />
+            </View>
           </View>
         )}
 
@@ -351,7 +438,6 @@ export default function CreateEventScreen() {
 
             <ReviewSection title="Schedule">
               <ReviewRow label="Start" value={fmtDateTime(startDate, startTime)} />
-              <ReviewRow label="Duration" value={durationLabel} />
               <ReviewRow label="Ends" value={fmtDateTime(endDate, endTime)} />
               <ReviewRow
                 label="Registration closes"
@@ -365,7 +451,7 @@ export default function CreateEventScreen() {
 
             <ReviewSection title="Participants">
               <ReviewRow label="Minimum" value={String(minParticipants)} />
-              <ReviewRow label="Maximum" value={maxParticipants !== null ? String(maxParticipants) : "No limit"} />
+              <ReviewRow label="Maximum" value={String(maxParticipants)} />
             </ReviewSection>
 
             <ReviewSection title="Pricing">
@@ -388,20 +474,29 @@ export default function CreateEventScreen() {
               </ReviewSection>
             ) : null}
 
-            <Pressable style={styles.agreeRow} onPress={() => setAgree((a) => !a)}>
-              <Ionicons name={agree ? "checkbox" : "square-outline"} size={20} color={t.colors.brandDark} />
-              <Text style={[t.typography.small, { color: t.colors.text, marginLeft: 8, flex: 1 }]}>
-                I confirm that all the details are correct.
-              </Text>
-            </Pressable>
+            <View {...anchor("agree")}>
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agree }}
+                style={[styles.agreeRow, errors.agree ? { borderWidth: 1.5, borderColor: t.colors.error, borderRadius: 10, padding: 8 } : null]}
+                onPress={() => setAgree((a) => !a)}
+              >
+                <Ionicons name={agree ? "checkbox" : "square-outline"} size={20} color={errors.agree ? t.colors.error : t.colors.brandDark} />
+                <Text style={[t.typography.small, { color: t.colors.text, marginLeft: 8, flex: 1 }]}>
+                  I confirm that all the details are correct.
+                </Text>
+              </Pressable>
+              <FieldError message={errors.agree} />
+            </View>
           </View>
         )}
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { borderColor: t.colors.border }]}>
         <ActionButton
           title={step === 4 ? "Publish Event" : `Next: ${STEP_LABELS[step]}`}
-          onPress={step === 1 ? next1 : step === 2 ? next2 : step === 3 ? next3 : handlePublish}
+          onPress={step === 4 ? handlePublish : goNext}
           variant="primary"
           size="lg"
           fullWidth
@@ -410,6 +505,7 @@ export default function CreateEventScreen() {
           containerStyle={{ backgroundColor: t.colors.brandDark, borderRadius: t.radii.medium }}
         />
       </View>
+      </KeyboardAvoidingView>
 
       <SuccessModal
         visible={!!published}
@@ -436,8 +532,6 @@ const styles = StyleSheet.create({
   stepCircle: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   stepLine: { flex: 1, height: 2, marginHorizontal: 4 },
   scroll: { paddingHorizontal: 20, paddingBottom: 24 },
-  durationTabs: { flexDirection: "row", borderRadius: 10, padding: 3, marginBottom: 12 },
-  durationTab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 8 },
   reviewSection: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 },
   reviewThumb: { width: 96, height: 96, borderRadius: 10, marginRight: 8 },
   row2: { flexDirection: "row" },
@@ -445,6 +539,8 @@ const styles = StyleSheet.create({
   feeOption: { flexDirection: "row", alignItems: "center" },
   stepperControlRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   stepperBtn: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB", alignItems: "center", justifyContent: "center" },
+  stepperBtnError: { borderWidth: 1.5, borderColor: "#EF4444" },
+  stepperBtnOff: { opacity: 0.35 },
   stepperBtnText: { fontSize: 20, fontFamily: "Manrope_700Bold" },
   previewCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden", marginBottom: 16 },
   previewImage: { width: "100%", height: 160 },

@@ -4,25 +4,39 @@ import ActionButton from "@/components/inputs/ActionButton";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useCallback } from "react";
+import { leaveCompletedFlow, interceptBackOnConfirmation } from "@/lib/completedFlowNavigation";
+import { router, Stack, useNavigation } from "expo-router";
+import { useCallback, useEffect, useRef } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "@/theme/uiTheme";
 
 export default function VerifyConfirmationScreen() {
   const societyName = useSocietyStore((s) => s.selectedSociety?.name) ?? "your society";
 
+  const navigation = useNavigation();
+  const leaving = useRef(false);
+
   const handleBrowse = useCallback(() => {
-    router.replace("/(tabs)/home");
+    leaving.current = true;
+    leaveCompletedFlow(router, "/(tabs)/home");
   }, []);
+
+  // Back (hardware / header / gesture) must not reveal the submitted steps.
+  useEffect(() => {
+    return navigation.addListener("beforeRemove", (e) => {
+      if (interceptBackOnConfirmation(e, leaving)) handleBrowse();
+    });
+  }, [navigation, handleBrowse]);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <Stack.Screen options={{ gestureEnabled: false }} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <TerraceHeader compact />
 
         <View style={styles.checkCircle}>
-          <Ionicons name="checkmark" size={getWidth(40)} color="#16A34A" />
+          <Ionicons name="checkmark" size={getWidth(40)} color={colors.primary} />
         </View>
 
         <Text style={styles.title}>
@@ -66,7 +80,7 @@ const styles = StyleSheet.create({
     width: getWidth(88),
     height: getWidth(88),
     borderRadius: getWidth(44),
-    backgroundColor: "#DCFCE7",
+    backgroundColor: "#8fd0a851",
     alignItems: "center",
     justifyContent: "center",
     marginTop: getHeight(32),
