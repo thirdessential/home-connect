@@ -19,6 +19,7 @@ export interface FeedsState {
     addFeedOptimistically: (feed: FeedItem) => void;
     updateFeed: (id: string, data: Partial<FeedItem>) => Promise<void>;
     removeFeed: (feedId: string) => Promise<boolean>;
+    pruneFeedLocal: (match: { feedId?: string; eventId?: string | number }) => void;
     getFeedById: (feedId: string) => Promise<void>;
     toggleLike: (feedId: string, userId: string) => Promise<void>;
     addComment: (feedId: string, comment: any) => Promise<void>;
@@ -83,6 +84,10 @@ export type FeedItem = {
     /** Live ISO instants from the events row (server-computed). */
     registrationClosesAt?: string | null;
     eventStartsAt?: string | null;
+    /** Explicit end instant (ISO), null when the event has none. */
+    eventEndsAt?: string | null;
+    /** Server-derived timeline phase: upcoming | ongoing | completed | cancelled. */
+    eventPhase?: "upcoming" | "ongoing" | "completed" | "cancelled";
     /** Server-computed (viewer-agnostic): OPEN | FULL | CLOSED | STARTED | CANCELLED. */
     registrationStatus?: string;
     canJoin?: boolean;

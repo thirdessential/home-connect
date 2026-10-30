@@ -62,10 +62,10 @@ type Actions = {
   createEvent: (payload: CreateEventPayload, image: EventImageFile) => Promise<EventDetail>;
   getEvent: (eventId: number | string) => Promise<EventDetail>;
   getMyEvents: () => Promise<EventRecord[]>;
-  /** One page of "created" or "joined" events for a status. Stateless (does not touch myEvents). */
+  /** One page of "created" or "joined" events for a timeline phase (upcoming|ongoing|completed|cancelled). Stateless (does not touch myEvents). */
   fetchEventPage: (
     kind: "created" | "joined",
-    status: string,
+    phase: string,
     page: number,
     limit?: number,
   ) => Promise<{ events: EventRecord[]; hasMore: boolean; total: number }>;
@@ -75,6 +75,8 @@ type Actions = {
   getDashboard: (eventId: number | string) => Promise<EventDashboard>;
   /** PATCH /cancel — title (<=70) and reason (<=300) are both required by the server. */
   cancelEvent: (eventId: number | string, details: { title: string; reason: string }) => Promise<void>;
+  /** DELETE /api/admin/events/:ref — admin permanent delete of a COMPLETED event; throws on failure. */
+  adminDeleteEvent: (eventRef: number | string) => Promise<void>;
   cancelParticipant: (eventId: number | string, userId: string) => Promise<void>;
   /** PATCH /close — active → closed (registration only; not a cancellation). */
   closeRegistration: (eventId: number | string) => Promise<void>;
@@ -189,10 +191,10 @@ export const useEventStore = create<State & Actions>((set) => ({
     }
   },
 
-  fetchEventPage: async (kind, status, page, limit = 10) => {
+  fetchEventPage: async (kind, phase, page, limit = 10) => {
     const path = kind === "created" ? "my-events" : "joined-events";
     const res = await Get<{ events: EventRecord[]; hasMore?: boolean; total?: number }>(
-      `/api/events/${path}?status=${encodeURIComponent(status)}&page=${page}&limit=${limit}`,
+      `/api/events/${path}?phase=${encodeURIComponent(phase)}&page=${page}&limit=${limit}`,
     );
     return { events: res.events ?? [], hasMore: !!res.hasMore, total: res.total ?? 0 };
   },
@@ -239,6 +241,12 @@ export const useEventStore = create<State & Actions>((set) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  adminDeleteEvent: async (eventRef) => {
+    await Delete(`/api/admin/events/${eventRef}`);
+    // Only after the server confirmed: drop an open details screen's copy.
+    set((st) => (st.currentEvent && String(st.currentEvent.id) === String(eventRef) ? { currentEvent: null } : {}));
   },
 
   cancelEvent: async (eventId, { title, reason }) => {

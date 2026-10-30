@@ -15,6 +15,7 @@ import {
 import { useEventStore } from "@/store/useEventStore";
 import { useTheme } from "@/theme/theme";
 import { EventJoinRequest, EventReport } from "@/types/event.type";
+import { hasEventStarted, type EventPhase } from "@/lib/eventPhase";
 import { canDecideJoinRequest, joinRequestErrorMessage } from "@/lib/eventRegistration";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
@@ -42,6 +43,7 @@ export type OrganizerAction = "requests" | "close" | "complete" | "delay" | "rem
 export function OrganizerMenu({
   visible,
   status,
+  phase,
   onClose,
   onSelect,
   pendingRequests = 0,
@@ -49,13 +51,15 @@ export function OrganizerMenu({
   visible: boolean;
   pendingRequests?: number;
   status?: string;
+  /** Timeline phase: close/delay/reminders only before the start; no cancel once completed. */
+  phase?: EventPhase;
   onClose: () => void;
   onSelect: (a: OrganizerAction) => void;
 }) {
   const t = useTheme();
-  const a = organizerActions(status);
+  const a = organizerActions(status, phase);
   const items: { key: OrganizerAction; label: string; icon: any; show: boolean; danger?: boolean }[] = [
-    { key: "requests", label: pendingRequests ? `Join requests (${pendingRequests})` : "Join requests", icon: "person-add-outline", show: true },
+    { key: "requests", label: pendingRequests ? `Join requests (${pendingRequests})` : "Join requests", icon: "person-add-outline", show: !hasEventStarted(phase) },
     { key: "close", label: "Close registration", icon: "lock-closed-outline", show: a.canClose },
     { key: "delay", label: "Delay event", icon: "time-outline", show: a.canDelay },
     { key: "reminders", label: "Edit reminders", icon: "notifications-outline", show: a.canEditReminders },
@@ -384,11 +388,14 @@ export function JoinRequestsModal({
   eventId,
   onClose,
   onChanged,
+  canDecide = true,
 }: {
   visible: boolean;
   eventId: string;
   onClose: () => void;
   onChanged: () => void;
+  /** False once the event has started: nobody can be admitted any more, so Approve/Reject are not offered. */
+  canDecide?: boolean;
 }) {
   const t = useTheme();
   const { showToast } = useToast();
@@ -437,6 +444,11 @@ export function JoinRequestsModal({
         <Text style={[s.help, { color: t.colors.secondaryText }]}>No pending join requests.</Text>
       ) : (
         <ScrollView>
+          {!canDecide && (
+            <Text style={[s.help, { color: t.colors.secondaryText }]}>
+              This event has started, so these requests can no longer be approved.
+            </Text>
+          )}
           {requests.map((r) => (
             <View key={r.id} style={[s.report, { borderColor: t.colors.border }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -448,7 +460,7 @@ export function JoinRequestsModal({
                 · requested {new Date(r.createdAt).toLocaleString()}
               </Text>
               <Text style={{ fontSize: 12, color: t.colors.secondaryText, marginTop: 2 }}>Status: Pending</Text>
-              {canDecideJoinRequest(r.status) && (
+              {canDecide && canDecideJoinRequest(r.status) && (
                 <View style={s.decisionRow}>
                   <Pressable
                     accessibilityRole="button"

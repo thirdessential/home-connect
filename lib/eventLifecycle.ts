@@ -3,6 +3,8 @@
 // LIFECYCLE_ERRORS, joinEvent). The server stays the authority — these only
 // stop an obviously invalid request and turn its errors into readable text.
 
+import type { EventPhase } from "./eventPhase";
+
 export const CANCEL_TITLE_MAX = 70;
 export const CANCEL_REASON_MAX = 300;
 
@@ -50,6 +52,8 @@ export const cancelErrorMessage = (e: any): string => {
 
 /** User-facing text for a failed leave (PATCH participants/:userId/cancel). */
 export const leaveErrorMessage = (e: any): string => {
+  if (errorCodeOf(e) === "EVENT_STARTED") return "This event has already started, so you can't leave it.";
+  if (errorCodeOf(e) === "EVENT_COMPLETED") return "This event is completed, so your participation can't be changed.";
   if (e?.status === 403) return "You aren't allowed to leave this event.";
   if (e?.status === 404) return "You are no longer registered for this event.";
   if (isNetwork(e)) return "Couldn't reach the server. Check your connection and try again.";
@@ -107,7 +111,9 @@ export const lifecycleErrorMessage = (e: any, action: LifecycleAction): string =
     case "EVENT_NOT_STARTED":
       return "This event hasn't started yet, so it can't be marked completed.";
     case "EVENT_STARTED":
-      return "This event has already started, so its schedule can't be changed.";
+      return action === "close"
+        ? "This event has already started, so registration can't be closed."
+        : "This event has already started, so its schedule can't be changed.";
     case "EVENT_CANCELLED":
       return "This event has been cancelled.";
     case "EVENT_COMPLETED":
@@ -134,8 +140,12 @@ export const lifecycleErrorMessage = (e: any, action: LifecycleAction): string =
   return e?.message || "Something went wrong. Please try again.";
 };
 
+/** A failed participant removal that means the event or the roster changed under the screen: re-sync it. */
+export const shouldResyncAfterParticipantError = (e: any): boolean => e?.status === 404 || e?.status === 409;
+
 /** Participant removal by the organizer (PATCH participants/:userId/cancel). */
 export const removeParticipantErrorMessage = (e: any): string => {
+  if (errorCodeOf(e) === "EVENT_COMPLETED") return "This event is completed, so participants can't be removed.";
   if (e?.status === 403) return "Only the organizer can remove participants.";
   if (e?.status === 404) return "This participant is no longer registered.";
   if (isNetwork(e)) return "Couldn't reach the server. Check your connection and try again.";
@@ -143,14 +153,24 @@ export const removeParticipantErrorMessage = (e: any): string => {
   return e?.message || "Failed to remove participant";
 };
 
-/** What organizer actions make sense for a server-reported status (backend still enforces). */
-export const organizerActions = (status?: string) => ({
-  canClose: status === "active",
-  canComplete: status === "active" || status === "closed",
-  canDelay: status === "active" || status === "closed",
-  canEditReminders: status === "active" || status === "closed",
-  canCancel: status === "active" || status === "closed",
-});
+/**
+ * What organizer actions make sense for a server-reported status and phase
+ * (backend still enforces). Close registration / delay / reminders only make
+ * sense before the start; End Event stays offered while ongoing (and for a
+ * time-ended event nobody marked completed); cancel is gone once completed.
+ * No phase (older server) keeps the status-only behavior.
+ */
+export const organizerActions = (status?: string, phase?: EventPhase) => {
+  const live = status === "active" || status === "closed";
+  const beforeStart = phase === undefined || phase === "upcoming";
+  return {
+    canClose: status === "active" && beforeStart,
+    canComplete: live,
+    canDelay: live && beforeStart,
+    canEditReminders: live && beforeStart,
+    canCancel: live && phase !== "completed",
+  };
+};
 
 /**
  * Send Reminder / Start Event availability for the organizer dashboard, from

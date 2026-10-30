@@ -2,6 +2,8 @@
 // event.service.js getEventRegistrationStatus). The server decides; the app only
 // maps the status to a label — no capacity/time rules live here.
 
+import { phaseUi, type EventPhase, type PhaseTone } from "./eventPhase";
+
 export type RegistrationStatus = "OPEN" | "FULL" | "CLOSED" | "STARTED" | "JOINED" | "CANCELLED" | "COMPLETED";
 
 export type RegistrationUi = { label: string; disabled: boolean; icon: "arrow-forward" | "checkmark-circle" | "lock-closed-outline" };
@@ -71,9 +73,22 @@ export const joinRequestErrorMessage = (e: any): string => {
  * authenticated user.
  */
 export const eventCardCta = (
-  item: { isOwner?: boolean; isJoined?: boolean; registrationStatus?: string | null },
+  item: { isOwner?: boolean; isJoined?: boolean; registrationStatus?: string | null; eventPhase?: EventPhase },
   fallbackLabel = "Join Event",
 ): RegistrationUi & { isOrganizer: boolean } => {
+  // Ongoing/completed: nothing here may start a participation action. The
+  // participant/organizer keep their own label, rendered disabled; the card body
+  // still opens Event Details read-only.
+  if (item.eventPhase === "ongoing" || item.eventPhase === "completed") {
+    if (item.isOwner) return { label: "YOUR EVENT", disabled: true, icon: "arrow-forward", isOrganizer: true };
+    if (item.isJoined) return { label: "Joined", disabled: true, icon: "checkmark-circle", isOrganizer: false };
+    return {
+      label: phaseBlockedReason(item.eventPhase) ?? "",
+      disabled: true,
+      icon: "lock-closed-outline",
+      isOrganizer: false,
+    };
+  }
   if (item.isOwner) return { label: "YOUR EVENT", disabled: false, icon: "arrow-forward", isOrganizer: true };
   if (item.isJoined) return { label: "Joined", disabled: false, icon: "checkmark-circle", isOrganizer: false };
   return { ...registrationUi(item.registrationStatus, fallbackLabel), isOrganizer: false };
@@ -85,6 +100,38 @@ export const canDecideJoinRequest = (status?: string | null) => status === "pend
 /** Organizer-facing label for the dashboard entry point. */
 export const joinRequestsEntryLabel = (pendingCount: number, countFailed: boolean) =>
   countFailed ? "Join Requests (tap to retry)" : `Join Requests (${pendingCount})`;
+
+/** Details-screen lock text for an ongoing/completed event (null otherwise). Time-ended events also report registrationStatus STARTED, so the phase gives the accurate wording. */
+export const phaseBlockedReason = (phase?: EventPhase | null): string | null =>
+  phase === "ongoing" ? "EVENT IN PROGRESS" : phase === "completed" ? "EVENT COMPLETED" : null;
+
+/**
+ * Badge for a My Events row. Precedence: the viewer's own join request, then the
+ * timeline phase (JOINED only while upcoming; a closed upcoming event says so).
+ * Without a phase (older server) the stored-status labels are kept as before.
+ */
+export const eventRowBadge = (
+  e: { status: string; eventPhase?: EventPhase; joinRequest?: { status: string } | null },
+  joined: boolean,
+): { label: string; tone: PhaseTone } => {
+  const request = joinRequestBadge(e.joinRequest?.status);
+  if (request) return { label: request, tone: e.joinRequest?.status === "rejected" ? "danger" : "neutral" };
+  const ui = phaseUi(e.eventPhase);
+  if (ui) {
+    if (ui.label !== "UPCOMING") return { label: ui.label, tone: ui.tone };
+    if (joined) return { label: "JOINED", tone: "brand" };
+    if (e.status === "closed") return { label: "REGISTRATION CLOSED", tone: "neutral" };
+    return { label: ui.label, tone: ui.tone };
+  }
+  if (joined && e.status === "active") return { label: "JOINED", tone: "brand" };
+  const legacy: Record<string, { label: string; tone: PhaseTone }> = {
+    active: { label: "Active", tone: "brand" },
+    cancelled: { label: "Cancelled", tone: "danger" },
+    closed: { label: "Closed", tone: "neutral" },
+    completed: { label: "Completed", tone: "neutral" },
+  };
+  return legacy[e.status] ?? { label: e.status, tone: "neutral" };
+};
 
 export type DetailsFooterState =
   | "organizer" | "joined" | "request_pending" | "request_rejected" | "event_full" | "blocked" | "join";
@@ -101,8 +148,13 @@ export const detailsFooterState = (e: {
   registrationStatus?: string;
   joinRequest?: { status: string } | null;
   blockedReason?: string | null;
+  eventPhase?: EventPhase;
 }): DetailsFooterState => {
   if (e.isCreator) return "organizer";
+  // Ongoing/completed decides first: a cached registrationStatus can be stale, and no
+  // join / request action may be offered. A completed event keeps the joined record.
+  if (e.eventPhase === "ongoing") return "blocked";
+  if (e.eventPhase === "completed") return e.currentUserJoined ? "joined" : "blocked";
   if (e.currentUserJoined && e.registrationStatus !== "STARTED") return "joined";
   const open = e.registrationStatus === "FULL" || e.registrationStatus === "OPEN";
   if (open && e.joinRequest?.status === "pending") return "request_pending";

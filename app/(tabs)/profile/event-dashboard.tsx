@@ -4,8 +4,9 @@
 // a client-supplied id), then hands off to /(shared)/event-dashboard, which
 // owns participants, stats and cancellation. No event state is managed here.
 
-import Badge from "@/components/UI/Badge";
-import { joinRequestBadge, joinRequestRejectedMessage } from "@/lib/eventRegistration";
+import EventPhaseBadge from "@/components/event/EventPhaseBadge";
+import { effectivePhase, isUpcomingListItem, phaseUi } from "@/lib/eventPhase";
+import { eventRowBadge, joinRequestRejectedMessage } from "@/lib/eventRegistration";
 import NoDataCard from "@/components/common/NoDataCard";
 import UserAvatar from "@/components/UI/UserAvatar";
 import Skeleton from "@/components/UI/Skeleton";
@@ -29,13 +30,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  active: { label: "Active", color: "#16A34A" },
-  cancelled: { label: "Cancelled", color: "#DC2626" },
-  closed: { label: "Closed", color: "#6B7280" },
-  completed: { label: "Completed", color: "#2563EB" },
-};
-
 // Reused verbatim from app/(shared)/event-dashboard.tsx so the date/time
 // shown here matches the rest of the event flow (Dashboard/Details/Create).
 function formatDateShort(raw?: string | null): string {
@@ -56,12 +50,13 @@ function formatTime12h(raw?: string | null): string {
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-type StatusFilter = "active" | "completed" | "closed" | "cancelled";
+// Every event lands in exactly one phase, so no event is ever hidden from this list.
+type StatusFilter = "upcoming" | "ongoing" | "completed" | "cancelled";
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: "active", label: "Active" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "ongoing", label: "Ongoing" },
   { key: "completed", label: "Completed" },
-  { key: "closed", label: "Closed" },
   { key: "cancelled", label: "Cancelled" },
 ];
 
@@ -76,12 +71,10 @@ const EventRow = memo(function EventRow({
 }) {
   const t = useTheme();
   const cover = event.image;
-  const requestBadge = joinRequestBadge(event.joinRequest?.status);
-  const badge = requestBadge
-    ? { label: requestBadge, color: event.joinRequest?.status === "rejected" ? "#B91C1C" : t.colors.textSecondary }
-    : joined && event.status === "active"
-      ? { label: "JOINED", color: t.colors.brandDark }
-      : STATUS_BADGE[event.status] ?? { label: event.status, color: t.colors.textSecondary };
+  // Ongoing/completed rows stay tappable (read-only details / organizer dashboard) but are muted.
+  const phase = effectivePhase(event.eventPhase, event.eventStartsAt, event.eventEndsAt);
+  const badge = eventRowBadge({ status: event.status, eventPhase: phase, joinRequest: event.joinRequest }, joined);
+  const dim = phaseUi(phase)?.muted ? styles.dim : null;
 
   return (
     <TouchableOpacity
@@ -90,50 +83,52 @@ const EventRow = memo(function EventRow({
       activeOpacity={0.7}
     >
       {cover ? (
-        <Image source={{ uri: cover }} style={styles.thumb} />
+        <Image source={{ uri: cover }} style={[styles.thumb, dim]} />
       ) : (
-          <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: t.colors.white }]}>
+          <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: t.colors.white }, dim]}>
           <Ionicons name="calendar-outline" size={22} color={t.colors.textSecondary} />
         </View>
       )}
 
       <View style={styles.rowBody}>
         <View style={styles.rowTitleLine}>
-          <Text style={[styles.rowTitle, { color: t.colors.textPrimary }]} numberOfLines={1}>
+          <Text style={[styles.rowTitle, { color: t.colors.textPrimary }, dim]} numberOfLines={1}>
             {event.title || "Untitled event"}
           </Text>
-          <Badge label={badge.label} color={badge.color} size="xs" />
+          <EventPhaseBadge label={badge.label} tone={badge.tone} size="xs" />
         </View>
-        {!!(event.startDate || event.startTime) && (
-          <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
-            {[formatDateShort(event.startDate), event.startTime ? formatTime12h(event.startTime) : null]
-              .filter(Boolean)
-              .join(" • ")}
-          </Text>
-        )}
-        {!!event.venue && (
-          <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
-            {event.venue}
-          </Text>
-        )}
-        {event.joinRequest?.status === "rejected" && (
-          <Text style={[styles.rowMeta, { color: "#B91C1C" }]} numberOfLines={2}>
-            {joinRequestRejectedMessage(event.joinRequest.reason)}
-          </Text>
-        )}
-        <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
-          {event.joinedCount}
-          {event.maxParticipants ? ` / ${event.maxParticipants}` : ""} joined
-          {!joined ? ` • ${event.commentCount ?? 0} comments` : ""}
-        </Text>
-        {joined && event.organizer ? (
-          <View style={styles.organizerLine}>
-            <UserAvatar uri={event.organizer.profileImage} name={event.organizer.name} size={18} />
-            <Text style={[styles.rowMeta, { color: t.colors.textSecondary, marginTop: 0 }]} numberOfLines={1}>
-              {event.organizer.name}
+        <View style={dim}>
+          {!!(event.startDate || event.startTime) && (
+            <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
+              {[formatDateShort(event.startDate), event.startTime ? formatTime12h(event.startTime) : null]
+                .filter(Boolean)
+                .join(" • ")}
             </Text>
-          </View>
-        ) : null}
+          )}
+          {!!event.venue && (
+            <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
+              {event.venue}
+            </Text>
+          )}
+          {event.joinRequest?.status === "rejected" && (
+            <Text style={[styles.rowMeta, { color: "#B91C1C" }]} numberOfLines={2}>
+              {joinRequestRejectedMessage(event.joinRequest.reason)}
+            </Text>
+          )}
+          <Text style={[styles.rowMeta, { color: t.colors.textSecondary }]} numberOfLines={1}>
+            {event.joinedCount}
+            {event.maxParticipants ? ` / ${event.maxParticipants}` : ""} joined
+            {!joined ? ` • ${event.commentCount ?? 0} comments` : ""}
+          </Text>
+          {joined && event.organizer ? (
+            <View style={styles.organizerLine}>
+              <UserAvatar uri={event.organizer.profileImage} name={event.organizer.name} size={18} />
+              <Text style={[styles.rowMeta, { color: t.colors.textSecondary, marginTop: 0 }]} numberOfLines={1}>
+                {event.organizer.name}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       <Ionicons name="chevron-forward" size={20} color={t.colors.textSecondary} />
@@ -152,7 +147,7 @@ export default function MyEventsScreen() {
   const getMyJoinRequests = useEventStore((s) => s.getMyJoinRequests);
 
   const [tab, setTab] = useState<Tab>("created");
-  const [filter, setFilter] = useState<StatusFilter>("active");
+  const [filter, setFilter] = useState<StatusFilter>("upcoming");
   // One bucket per tab+status, so Created and Joined data can never mix.
   const [buckets, setBuckets] = useState<Record<string, Bucket>>({});
   const inFlight = useRef<Set<string>>(new Set());
@@ -170,13 +165,17 @@ export default function MyEventsScreen() {
       setBuckets((b) => ({ ...b, [key]: { ...(b[key] ?? EMPTY_BUCKET), loading: true, error: null } }));
       try {
         const res = await fetchEventPage(tb, st, page);
-        // Joined tab, first page of Active: also show the viewer's own pending/rejected requests
+        // Joined tab, first page of Upcoming: also show the viewer's own pending/rejected requests
         // (server state — they are not participants and never count towards joinedCount).
         // A failure here must not hide the real joined list.
-        if (tb === "joined" && st === "active" && page === 1) {
+        if (tb === "joined" && st === "upcoming" && page === 1) {
           const requests = await getMyJoinRequests().catch(() => [] as EventRecord[]);
           const joinedIds = new Set(res.events.map((e) => String(e.id)));
-          res.events = [...requests.filter((r) => !joinedIds.has(String(r.id))), ...res.events];
+          // A request on an event that has started, finished or been cancelled is moot: it is not "Upcoming".
+          res.events = [
+            ...requests.filter((r) => !joinedIds.has(String(r.id)) && isUpcomingListItem(r)),
+            ...res.events,
+          ];
         }
         setBuckets((b) => {
           const prev = b[key] ?? EMPTY_BUCKET;
@@ -236,7 +235,7 @@ export default function MyEventsScreen() {
 
   const empty = () => {
     // Overall-empty (no events at all) vs. empty only for this status.
-    const isActiveFilter = filter === "active";
+    const isActiveFilter = filter === "upcoming";
     if (tab === "created") {
       return (
         <View style={styles.emptyWrap}>
@@ -391,4 +390,5 @@ const styles = StyleSheet.create({
   rowTitleLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   rowTitle: { fontSize: 15, fontFamily: "Manrope_600SemiBold", marginBottom: 2, flexShrink: 1 },
   rowMeta: { fontSize: 12, marginTop: 1 },
+  dim: { opacity: 0.55 },
 });

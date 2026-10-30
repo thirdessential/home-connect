@@ -1,4 +1,4 @@
-import { Get, Post } from "@/lib/httpMethods";
+import { Delete, Get, Post } from "@/lib/httpMethods";
 import { DailyHelper, DailyHelperStore, ReportItem } from "@/types/business.type";
 import { Review } from "@/types/common.type";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +19,15 @@ export const useDailyHelperStore = create<DailyHelperStore>()(
             _hasHydrated: false,
 
             setDailyHelper: (service) => set({ dailyHelper: service }),
+            // Admin delete (backend enforces role + society scope). Throws on failure; the list
+            // changes only after the server confirmed.
+            adminDeleteService: async (id: string) => {
+                await Delete(`/api/admin/directory/${id}`);
+                set((state) => ({
+                    dailyHelperList: (state.dailyHelperList || []).filter((s) => s._id !== id),
+                    dailyHelper: state.dailyHelper?._id === id ? null : state.dailyHelper,
+                }));
+            },
             createDailyHelper: async (service: Partial<DailyHelper>) => {
                 set({ loading: true, error: null });
                 try {

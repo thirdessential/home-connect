@@ -4,6 +4,9 @@ import VerificationGateModal from "@/components/common/VerificationGateModal";
 import { useToast } from "@/components/common/Toast";
 import NoDataCard from "@/components/common/NoDataCard";
 import { useVerificationGate } from "@/hooks/useVerificationGate";
+import { usePermissions } from "@/hooks/usePermissions";
+import { UserRole } from "@/types/roles";
+import { getFeedMenuOptions } from "@/lib/feedMenu";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedActions, HomeFeedItem } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,12 +29,6 @@ type Props = {
   contentPaddingBottom?: number;
 };
 
-const MORE_OPTIONS = [
-  { key: "report-post", label: "Report Post", icon: "flag-outline" },
-  { key: "report-user", label: "Report User", icon: "person-outline" },
-  { key: "hide", label: "Hide from feed", icon: "eye-off-outline" },
-] as const;
-
 /** Virtualized Home feed. Card selection + sheet plumbing only. */
 function FeedList({
   items,
@@ -44,6 +41,8 @@ function FeedList({
   const t = useTheme();
   const { showToast } = useToast();
   const { requireVerified, gate, closeGate } = useVerificationGate();
+  const { hasAnyRole } = usePermissions();
+  const isAdmin = hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const [attendeesFor, setAttendeesFor] = useState<string | null>(null);
   const [moreFor, setMoreFor] = useState<string | null>(null);
@@ -59,21 +58,8 @@ function FeedList({
   );
 
   const activeMoreItem = moreFor ? byId[moreFor] : null;
-  // Scoped to post/poll only — event deletion isn't part of this feature.
-  const canDeleteActive =
-    !!activeMoreItem?.isOwner &&
-    (activeMoreItem.kind === "post" || activeMoreItem.kind === "poll");
-  const menuOptions = canDeleteActive && activeMoreItem
-    ? [
-        ...MORE_OPTIONS,
-        {
-          key: "delete",
-          label: activeMoreItem.kind === "poll" ? "Delete Poll" : "Delete Post",
-          icon: "trash-outline" as const,
-          danger: true,
-        },
-      ]
-    : MORE_OPTIONS;
+  // Visibility rules live in lib/feedMenu.ts; the backend re-checks role and society scope.
+  const menuOptions = useMemo(() => getFeedMenuOptions(activeMoreItem, isAdmin), [activeMoreItem, isAdmin]);
 
   const handleMoreSelect = useCallback(
     (key: string) => {
@@ -93,9 +79,8 @@ function FeedList({
         return;
       }
       setMoreFor(null);
-      if (key === "hide") showToast("Hidden from your feed", "info");
     },
-    [showToast, activeMoreItem],
+    [activeMoreItem],
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -235,8 +220,7 @@ function FeedList({
         >
           <View style={styles.moreWrap}>
             {menuOptions.map((o) => {
-              const danger = "danger" in o && o.danger;
-              const color = danger ? "#DC2626" : t.colors.textPrimary;
+              const color = o.danger ? "#DC2626" : t.colors.textPrimary;
               return (
                 <TouchableOpacity
                   key={o.key}
@@ -259,12 +243,16 @@ function FeedList({
         }}
         onConfirm={handleConfirmDelete}
         isLoading={deleting}
-        title="Are you sure?"
-        message={`Are you sure you want to delete this ${deleteTarget?.kind === "poll" ? "poll" : "post"}?`}
+        title={`Delete ${deleteTarget?.kind === "poll" ? "Poll" : deleteTarget?.kind === "event" ? "Event" : "Post"}?`}
+        message={
+          deleteTarget?.kind === "event"
+            ? "Are you sure you want to delete this event? Registered participants will be notified. This action cannot be undone."
+            : `Are you sure you want to delete this ${deleteTarget?.kind === "poll" ? "poll" : "post"}? This action cannot be undone.`
+        }
         confirmText="Delete"
         cancelText="Cancel"
         isDangerous
-        successTitle={deleteTarget?.kind === "poll" ? "Poll Deleted" : "Post Deleted"}
+        successTitle={deleteTarget?.kind === "poll" ? "Poll Deleted" : deleteTarget?.kind === "event" ? "Event Deleted" : "Post Deleted"}
         successMessage="It has been removed from the feed."
         autoCloseDelay={900}
       />

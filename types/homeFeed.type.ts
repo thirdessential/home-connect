@@ -64,6 +64,8 @@ export type HomeFeedItem = {
   attendees?: HomeFeedAttendee[];
   isJoined?: boolean;
   registrationStatus?: string;
+  /** Effective timeline phase (server phase, advanced if a cached card has since started/ended). */
+  eventPhase?: "upcoming" | "ongoing" | "completed" | "cancelled";
 
   // Poll only
   options?: HomeFeedOption[];

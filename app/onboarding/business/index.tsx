@@ -2,7 +2,7 @@ import VerificationRouteGuard from "@/components/verification/VerificationRouteG
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import TerraceHeader from "@/components/auth/TerraceHeader";
 import { useToast } from "@/components/common/Toast";
-import CountdownFillButton from "@/components/UI/CountdownFillButton";
+import SuccessModal from "@/components/UI/SuccessModal";
 import ActionButton from "@/components/inputs/ActionButton";
 import ImagePickerField from "@/components/form/ImagePickerField";
 import TerraceSelectField from "@/components/inputs/TerraceSelectField";
@@ -426,6 +426,9 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
     else setShowDiscard(true);
   }, [step]);
 
+  // Success exits the whole wizard: dismissTo pops it so Back can't reveal the form.
+  const goHome = useCallback(() => router.dismissTo("/(tabs)/home"), []);
+
   const confirmDiscard = useCallback(async () => {
     try {
       await s.discardDraft();
@@ -630,7 +633,7 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <KeyboardAwareScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, step === 7 && styles.scrollDone]}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         enableOnAndroid
@@ -824,18 +827,6 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
           </View>
         )}
 
-        {step === 7 && (
-          <View style={styles.center}>
-            <View style={styles.doneBadge}>
-              <Ionicons name="shield-checkmark" size={getWidth(40)} color="#fff" />
-            </View>
-            <Text style={styles.title}>You&apos;re almost live!</Text>
-            <Text style={styles.doneSub}>
-              Your business is submitted and pending admin approval. We&apos;ll notify you once it&apos;s verified.
-            </Text>
-            <View style={styles.doneBtn}><CountdownFillButton label="Go to Home" durationMs={3000} onComplete={() => router.dismissTo("/(tabs)/home")} /></View>
-          </View>
-        )}
       </KeyboardAwareScrollView>
 
       {step <= 6 ? (
@@ -866,16 +857,22 @@ function BusinessWizard({ onSubmitted }: { onSubmitted: () => void }) {
         successMessage="Your business draft was discarded."
         autoCloseDelay={600}
       />
+      {/* Only registered, not approved — the copy says so (status stays pending). */}
+      <SuccessModal
+        visible={step === 7}
+        onClose={goHome}
+        title="Business Registered Successfully!"
+        subtitle="Your business is submitted and pending admin approval. We'll notify you once it's verified."
+        secondaryActionLabel="Back to Home"
+        secondaryCountdownMs={3000}
+        onSecondaryAction={goHome}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TERRACE_COLORS.screenBg },
-  center: { alignItems: "center", justifyContent: "center", width: "100%" },
-  // Success step: let the content group sit vertically centered in the free area.
-  scrollDone: { flexGrow: 1, justifyContent: "center", paddingBottom: getHeight(48) },
-  doneBtn: { width: "100%", marginTop: getHeight(24) },
   scroll: { paddingHorizontal: getWidth(20), paddingTop: getHeight(8), paddingBottom: getHeight(24) },
   stepperWrap: { marginTop: getHeight(12), marginBottom: getHeight(8) },
   title: {
@@ -946,23 +943,6 @@ const styles = StyleSheet.create({
     marginTop: getHeight(12),
   },
   rejectedText: { flex: 1, fontSize: getWidth(13), lineHeight: getHeight(19), color: "#B42318" },
-  doneBadge: {
-    width: getWidth(80),
-    height: getWidth(80),
-    borderRadius: getWidth(40),
-    backgroundColor: TERRACE_COLORS.orange,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: getHeight(20),
-  },
-  doneSub: {
-    fontSize: getWidth(15),
-    lineHeight: getHeight(22),
-    color: TERRACE_COLORS.textMuted,
-    textAlign: "center",
-    paddingHorizontal: getWidth(16),
-    marginBottom: getHeight(24),
-  },
 });
 
 const phoneStyles = StyleSheet.create({

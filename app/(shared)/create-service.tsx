@@ -30,6 +30,7 @@ export default function CreateServiceScreen() {
       pathname: "/(tabs)/directory/all-services",
       params: { type: createdType },
     });
+  const goHome = () => router.dismissTo("/(tabs)/home");
 
   // Same payload/status logic as the old Services popup (createPostModal.tsx
   // onServiceSubmit) — reused as-is so the existing /api/daily-service/create
@@ -72,11 +73,13 @@ export default function CreateServiceScreen() {
       <SuccessModal
         visible={successVisible}
         onClose={goToDirectory}
-        title="Service added"
-        subtitle="Your service is available in directory."
+        title="Service Created Successfully!"
+        subtitle="Your service has been submitted."
         primaryActionLabel="View in Directory"
         onPrimaryAction={goToDirectory}
-        centered
+        secondaryActionLabel="Back to Home"
+        secondaryCountdownMs={3000}
+        onSecondaryAction={goHome}
       />
     </SafeAreaView>
   );

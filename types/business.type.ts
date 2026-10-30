@@ -196,6 +196,7 @@ export interface DailyHelperStore {
     _hasHydrated: boolean;
     setDailyHelper: (service: DailyHelper | null) => void;
     createDailyHelper: (service: Partial<DailyHelper>) => Promise<void>;
+    adminDeleteService: (id: string) => Promise<void>;
     getAllApprovedDailyServices: (societyId: string) => Promise<void>;
     getHelperById: (helperId: string) => Promise<void>;
     reportService: (

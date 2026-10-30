@@ -13,6 +13,16 @@ export function leaveCompletedFlow(router: FlowRouter, destination: any) {
 }
 
 /**
+ * Same goal as `leaveCompletedFlow`, for a flow that lives on a *tab* screen
+ * (the Create tab). `dismissTo` dispatches POP_TO, which only stack navigators
+ * handle: aimed at a tab navigator it is swallowed as a silent no-op, so the
+ * user never leaves. Switching tabs is a navigate.
+ */
+export function leaveCompletedTabFlow(router: { navigate: (href: any) => void }, destination: any) {
+  router.navigate(destination);
+}
+
+/**
  * Confirmation screens sit on top of the form steps. Any Back attempt on them
  * must exit the flow instead of revealing a completed step. Returns true when
  * the removal was intercepted (caller should then leave the flow).

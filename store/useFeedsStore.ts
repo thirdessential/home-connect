@@ -1,5 +1,6 @@
 import { CACHE_TTL_MS } from "@/assets/constants/common.constant";
 import { Delete, Get, Patch, Post } from "@/lib/httpMethods";
+import { isFeedCacheFresh, pruneExpiredFeeds as pruneFeedsByAge } from "@/lib/feedCache";
 import { createInFlightGuard } from "@/lib/inFlightGuard";
 import { zustandStorage } from "@/lib/storage";
 import { ReportItem } from "@/types/business.type";
@@ -10,20 +11,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // One like request per post at a time: rapid taps on the heart can't fire duplicate toggles.
 const likeGuard = createInFlightGuard();
 
-const pruneExpiredFeeds = (feeds: FeedItem[]) => {
-    const cutoff = Date.now() - CACHE_TTL_MS;
-    const seen = new Set<string>();
-    return feeds.filter((feed) => {
-        const timestamp = feed.createdAt || feed.updatedAt;
-        const isRecent =
-            !timestamp ||
-            Number.isNaN(new Date(timestamp).getTime()) ||
-            new Date(timestamp).getTime() >= cutoff;
-        if (!isRecent || !feed?._id || seen.has(feed._id)) return false;
-        seen.add(feed._id);
-        return true;
-    });
-};
+// Event items are exempt from the age rule (the server's feed query decides which
+// events show, so ongoing/completed ones stay) — see lib/feedCache.ts.
+const pruneExpiredFeeds = (feeds: FeedItem[]) => pruneFeedsByAge(feeds, CACHE_TTL_MS);
 
 const mergeFeeds = (cached: FeedItem[], latest: FeedItem[]) => {
     const byId = new Map<string, FeedItem>();
@@ -51,7 +41,9 @@ export const useFeedsStore = create<FeedsState>()(
                 const { cachedSocietyId, feeds } = get();
                 if (!cachedSocietyId || feeds.length === 0) return false;
                 if (cachedSocietyId !== societyId) return false;
-                return pruneExpiredFeeds(feeds).length > 0;
+                // Validity keeps the plain age rule: events never expire from the list, but a
+                // cache with no recent item still has to be refetched.
+                return isFeedCacheFresh(feeds, CACHE_TTL_MS);
             },
 
             fetchFeedsBySociety: async (societyId: string, force = false) => {
@@ -71,8 +63,9 @@ export const useFeedsStore = create<FeedsState>()(
                     );
                     if (response?.code === 200) {
                         set({
-                            // Cache = last successful API response (closed/past
-                            // events are filtered at Home render, not here).
+                            // Cache = last successful API response (cancelled events and
+                            // registration-closed upcoming ones are excluded by the server;
+                            // ongoing/completed events are kept and shown disabled).
                             feeds: pruneExpiredFeeds(Array.isArray(response.feeds) ? response.feeds : []),
                             loading: false,
                             lastFetchedAt: Date.now(),   // ← stamp the cache
@@ -271,6 +264,17 @@ export const useFeedsStore = create<FeedsState>()(
                     console.error("Feed update error:", error);
                     set({ error: "Failed to update feed", loading: false });
                 }
+            },
+            // Local-only removal (no API call) for items the server already deleted/cancelled
+            // through another endpoint (events); also prunes the persisted cache.
+            pruneFeedLocal: ({ feedId, eventId }: { feedId?: string; eventId?: string | number }) => {
+                const hit = (f: FeedItem) =>
+                    (feedId != null && f._id === feedId) ||
+                    (eventId != null && String(f.mysqlEventId) === String(eventId));
+                set((state) => ({
+                    feeds: state.feeds.filter((f) => !hit(f)),
+                    feedsByUser: state.feedsByUser.filter((f) => !hit(f)),
+                }));
             },
             removeFeed: async (feedId: string) => {
                 try {

@@ -1,7 +1,9 @@
 import { COMMON_CONSTANTS } from "@/assets/constants/common.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
 import { usePermissions } from "@/hooks/usePermissions";
+import EventPhaseBadge from "@/components/event/EventPhaseBadge";
 import { formatPostTime } from "@/lib/dateTime";
+import { effectivePhase, phaseUi } from "@/lib/eventPhase";
 import { capitalizeWords, getTruncatedDescription } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
 import { useWholesaleDealStore } from "@/store/useWholesaleDealStore";
@@ -273,6 +275,13 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete, r
       ? currentUser?._id === productDetails.user
       : currentUser?._id === productDetails.user?._id;
 
+  // Timeline phase for event items (profile of another user). Ongoing/completed
+  // events stay visible but muted; "View Event Details" remains the read-only way in.
+  const phaseView = phaseUi(
+    isEvent ? effectivePhase(productDetails?.eventPhase, productDetails?.eventStartsAt, productDetails?.eventEndsAt) : undefined,
+  );
+  const muted = !!phaseView?.muted;
+
   if (loading) {
     return <ProductCardSkeleton style={style} />;
   }
@@ -378,6 +387,12 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete, r
   // ---- participants, deadline/price, Join Event CTA, social row ------------------
   const renderEventBody = () => (
     <>
+      {!!phaseView && !hasHeroImage && (
+        <View style={styles.phasePill}>
+          <EventPhaseBadge label={phaseView.label} tone={phaseView.tone} size="sm" />
+        </View>
+      )}
+      <View style={muted ? styles.mutedContent : undefined}>
       {productDetails?.title && !hasHeroImage && (
         <Text
           style={[styles.titleText, { color: t.colors.textPrimary }]}
@@ -535,6 +550,8 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete, r
         </View>
       )}
 
+      </View>
+
       {productDetails?.title && (
         <View style={styles.joinEventWrapper}>
           <ActionButton
@@ -601,7 +618,7 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete, r
         <View style={[styles.hero, { backgroundColor: t.colors.surfaceAlt }]}>
           <Image
             source={{ uri: productDetails.images[0] }}
-            style={styles.heroImage}
+            style={[styles.heroImage, muted && styles.mutedMedia]}
             resizeMode="cover"
           />
           <LinearGradient
@@ -612,6 +629,11 @@ function ProductCard({ productDetails, style, type, loading = false, onDelete, r
           />
           <View style={styles.heroTop}>{cardHeader}</View>
           <View style={styles.heroTitleWrapper} pointerEvents="none">
+            {!!phaseView && (
+              <View style={styles.phasePill}>
+                <EventPhaseBadge label={phaseView.label} tone={phaseView.tone} size="sm" solid />
+              </View>
+            )}
             <Text style={styles.heroTitleText} numberOfLines={2} ellipsizeMode="tail">
               {capitalizedTitle}
             </Text>
@@ -800,6 +822,10 @@ const styles = StyleSheet.create({
 
   // Descriptions
   dealDescription: { fontSize: 14, color: "#4B5563", lineHeight: 20 },
+  // Ongoing/completed: dim the photo and the info block, never the pill or the read-only CTA.
+  mutedMedia: { opacity: 0.5 },
+  mutedContent: { opacity: 0.6 },
+  phasePill: { marginBottom: 8 },
   eventDescription: { fontSize: 14, color: "#414141", lineHeight: 20, marginBottom: 8 },
 
   // Date / time / location metadata row (events)

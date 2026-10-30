@@ -1,4 +1,6 @@
+import EventPhaseBadge from "@/components/event/EventPhaseBadge";
 import UserAvatar from "@/components/UI/UserAvatar";
+import { phaseUi } from "@/lib/eventPhase";
 import { eventCardCta } from "@/lib/eventRegistration";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedItem } from "@/types/homeFeed.type";
@@ -50,6 +52,11 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
   const displayPct = capacity > 0 ? Math.max(pct, MIN_VISIBLE_PROGRESS_PCT) : 0;
   const reg = eventCardCta(item, capacity > 0 ? "Join Event" : "RSVP");
   const closed = reg.disabled;
+  // Ongoing/completed cards stay visible but muted; the card body still opens the
+  // read-only details. The status pill and the Like/Comment/Share footer stay at
+  // full strength (the footer is not a participation action).
+  const phase = phaseUi(item.eventPhase);
+  const muted = !!phase?.muted;
   const stillNeeded = Math.max(0, (item.minParticipants ?? 0) - joined);
 
   return (
@@ -60,13 +67,13 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
     >
       <View style={styles.hero}>
         {hasHero ? (
-          <Image source={{ uri: item.image }} style={styles.heroImage} resizeMode="cover" />
+          <Image source={{ uri: item.image }} style={[styles.heroImage, muted && styles.mutedMedia]} resizeMode="cover" />
         ) : (
           // Default visual for events without an image — matches the Event
           // Details screen so the card and details page look consistent.
           <LinearGradient
             colors={[t.colors.brand, t.colors.brandDark]}
-            style={styles.heroImage}
+            style={[styles.heroImage, muted && styles.mutedMedia]}
           >
             <View style={styles.heroFallbackIcon}>
               <Ionicons name="calendar-outline" size={40} color={t.colors.onBrand} />
@@ -94,6 +101,11 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
             onMorePress={onMore}
           />
           <View>
+            {!!phase && (
+              <View style={styles.phasePill}>
+                <EventPhaseBadge label={phase.label} tone={phase.tone} size="sm" solid />
+              </View>
+            )}
             <Text style={styles.heroTitle} numberOfLines={2}>
               {item.title}
             </Text>
@@ -107,77 +119,79 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
       </View>
 
       <View style={styles.body}>
-        <View style={styles.metaRow}>
-          {!!item.eventDate && (
-            <MetaChip icon="calendar-clear-outline" label={item.eventDate} tinted={hasHero} />
+        <View style={[styles.bodyContent, muted && styles.mutedContent]}>
+          <View style={styles.metaRow}>
+            {!!item.eventDate && (
+              <MetaChip icon="calendar-clear-outline" label={item.eventDate} tinted={hasHero} />
+            )}
+            {!!item.eventTime && (
+              <MetaChip icon="time-outline" label={item.eventTime} tinted={hasHero} />
+            )}
+            {!!item.location && (
+              <MetaChip icon="location-outline" label={item.location} tinted={hasHero} />
+            )}
+          </View>
+
+          {!!item.description && (
+            <Text
+              style={[styles.description, { color: t.colors.textSecondary }]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {item.description}
+            </Text>
           )}
-          {!!item.eventTime && (
-            <MetaChip icon="time-outline" label={item.eventTime} tinted={hasHero} />
+
+          {capacity > 0 && (
+            <View style={styles.progressBlock}>
+              <View style={styles.progressHeader}>
+                <Text style={[styles.spotsText, { color: t.colors.textPrimary }]}>
+                  <Text style={[styles.spotsCount, { color: t.colors.brand }]}>{joined}</Text>
+                  {` of ${capacity} spots filled`}
+                </Text>
+                {stillNeeded > 0 && (
+                  <Text style={[styles.progressHint, { color: t.colors.textSecondary }]}>
+                    {stillNeeded} more needed to unlock event
+                  </Text>
+                )}
+              </View>
+              <View style={[styles.track, { backgroundColor: t.colors.surfaceAlt }]}>
+                <View
+                  style={[styles.fill, { width: `${displayPct}%`, backgroundColor: t.colors.brand }]}
+                />
+              </View>
+            </View>
           )}
-          {!!item.location && (
-            <MetaChip icon="location-outline" label={item.location} tinted={hasHero} />
+
+          {!!item.attendees?.length && (
+            <View style={styles.attendeeRow}>
+              <View style={styles.avatarStack}>
+                {item.attendees.slice(0, 2).map((a, i) => (
+                  <UserAvatar
+                    key={a.id}
+                    uri={a.avatarUrl}
+                    name={a.name}
+                    userId={a.userId}
+                    size={24}
+                    style={[{ borderWidth: 2, borderColor: t.colors.surface }, i > 0 && styles.overlap]}
+                  />
+                ))}
+              </View>
+              <Text
+                style={[styles.attendeeText, { color: t.colors.textSecondary }]}
+                numberOfLines={2}
+              >
+                {item.attendees.slice(0, 2).map((a) => a.name).join(", ")}
+                {item.attendees.length > 2
+                  ? ` and ${(item.joined ?? item.attendees.length) - 2} neighbours are attending.`
+                  : " are attending."}
+              </Text>
+              <TouchableOpacity onPress={onSeeAll} hitSlop={6}>
+                <Text style={[styles.seeAll, { color: t.colors.brand }]}>See all</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
-
-        {!!item.description && (
-          <Text
-            style={[styles.description, { color: t.colors.textSecondary }]}
-            numberOfLines={2}
-            ellipsizeMode="tail"
-          >
-            {item.description}
-          </Text>
-        )}
-
-        {capacity > 0 && (
-          <View style={styles.progressBlock}>
-            <View style={styles.progressHeader}>
-              <Text style={[styles.spotsText, { color: t.colors.textPrimary }]}>
-                <Text style={[styles.spotsCount, { color: t.colors.brand }]}>{joined}</Text>
-                {` of ${capacity} spots filled`}
-              </Text>
-              {stillNeeded > 0 && (
-                <Text style={[styles.progressHint, { color: t.colors.textSecondary }]}>
-                  {stillNeeded} more needed to unlock event
-                </Text>
-              )}
-            </View>
-            <View style={[styles.track, { backgroundColor: t.colors.surfaceAlt }]}>
-              <View
-                style={[styles.fill, { width: `${displayPct}%`, backgroundColor: t.colors.brand }]}
-              />
-            </View>
-          </View>
-        )}
-
-        {!!item.attendees?.length && (
-          <View style={styles.attendeeRow}>
-            <View style={styles.avatarStack}>
-              {item.attendees.slice(0, 2).map((a, i) => (
-                <UserAvatar
-                  key={a.id}
-                  uri={a.avatarUrl}
-                  name={a.name}
-                  userId={a.userId}
-                  size={24}
-                  style={[{ borderWidth: 2, borderColor: t.colors.surface }, i > 0 && styles.overlap]}
-                />
-              ))}
-            </View>
-            <Text
-              style={[styles.attendeeText, { color: t.colors.textSecondary }]}
-              numberOfLines={2}
-            >
-              {item.attendees.slice(0, 2).map((a) => a.name).join(", ")}
-              {item.attendees.length > 2
-                ? ` and ${(item.joined ?? item.attendees.length) - 2} neighbours are attending.`
-                : " are attending."}
-            </Text>
-            <TouchableOpacity onPress={onSeeAll} hitSlop={6}>
-              <Text style={[styles.seeAll, { color: t.colors.brand }]}>See all</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         <TouchableOpacity
           onPress={onOpen}
@@ -264,6 +278,11 @@ const styles = StyleSheet.create({
 
   plainHeader: { paddingHorizontal: 16, paddingTop: 16 },
   body: { padding: 16, gap: 14 },
+  bodyContent: { gap: 14 },
+  // Ongoing/completed: dim the photo and the info block, never the pill, CTA or footer.
+  mutedMedia: { opacity: 0.5 },
+  mutedContent: { opacity: 0.6 },
+  phasePill: { marginBottom: 8 },
   plainTitle: { fontSize: 20, fontFamily: "Manrope_700Bold", lineHeight: 28 },
 
   metaRow: { flexDirection: "row", flexWrap: "wrap", rowGap: 6, columnGap: 16 },

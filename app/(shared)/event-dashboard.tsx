@@ -19,12 +19,14 @@ import {
   lifecycleErrorMessage,
   organizerEventActions,
   removeParticipantErrorMessage,
+  shouldResyncAfterParticipantError,
   validateCancelDetails,
 } from "@/lib/eventLifecycle";
 import { useEventStore } from "@/store/useEventStore";
 import { useTheme } from "@/theme/theme";
 import { EventParticipant } from "@/types/event.type";
 import { Ionicons } from "@expo/vector-icons";
+import { effectivePhase, hasEventStarted } from "@/lib/eventPhase";
 import { joinRequestsEntryLabel } from "@/lib/eventRegistration";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -337,7 +339,8 @@ export default function EventDashboardScreen() {
       load();
     } catch (e: any) {
       showToast(removeParticipantErrorMessage(e), "error");
-      if (e?.status === 404) load();
+      // 404 / 409: the roster or the event changed under us (e.g. it just completed) — refresh the rows.
+      if (shouldResyncAfterParticipantError(e)) load();
       // Re-throw: ConfirmationModal shows its success state only when this resolves.
       throw e;
     }
@@ -452,6 +455,9 @@ export default function EventDashboardScreen() {
 
   const { event, statistics, participants, cancelledCount } = dashboard;
   const isCancelled = event.status === "cancelled";
+  // Timeline phase (server phase, advanced if this payload has since started/ended): once completed
+  // the participant list is a record — no removing people (the server rejects it too).
+  const phase = effectivePhase(event.eventPhase, event.eventStartsAt, event.eventEndsAt);
   const displayFillPct = statistics.maximumParticipants > 0
     ? Math.max(statistics.percentageFilled, statistics.joinedParticipants > 0 ? MIN_VISIBLE_PROGRESS_PCT : 0)
     : 0;
@@ -573,6 +579,8 @@ export default function EventDashboardScreen() {
           </View>
         )}
 
+        {/* Admitting people only makes sense before the start: no requests entry once ongoing/completed. */}
+        {!hasEventStarted(phase) && (
         <Pressable
           onPress={() => setRequestsOpen(true)}
           style={[styles.requestsBanner, { borderColor: t.colors.border, backgroundColor: pendingRequests > 0 ? t.colors.brand : t.colors.surface }]}
@@ -583,6 +591,7 @@ export default function EventDashboardScreen() {
           </Text>
           <Ionicons name="chevron-forward" size={18} color={pendingRequests > 0 ? t.colors.onBrand : t.colors.textSecondary} />
         </Pressable>
+        )}
 
         {(organizerOps.showReminder || organizerOps.showStart || organizerOps.showEnd) && (
           <View style={{ marginBottom: 16, gap: 8 }}>
@@ -726,7 +735,7 @@ export default function EventDashboardScreen() {
             renderItem={({ item }) => (
               <ParticipantRow
                 item={item}
-                showCancel={!isCancelled}
+                showCancel={!isCancelled && phase !== "completed"}
                 onCancel={() => setCancelTarget(item)}
               />
             )}
@@ -767,6 +776,7 @@ export default function EventDashboardScreen() {
               </View>
             </Pressable>
 
+            {!hasEventStarted(phase) && (
             <Pressable
               style={[styles.actionCard, styles.inviteAction, { borderColor: t.colors.border }]}
               onPress={onInviteParticipants}
@@ -781,6 +791,7 @@ export default function EventDashboardScreen() {
                 </Text>
               </View>
             </Pressable>
+            )}
           </View>
         )}
 
@@ -862,7 +873,7 @@ export default function EventDashboardScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <OrganizerMenu pendingRequests={pendingRequests} visible={menuOpen} status={event.status} onClose={() => setMenuOpen(false)} onSelect={onMenuSelect} />
+      <OrganizerMenu pendingRequests={pendingRequests} visible={menuOpen} status={event.status} phase={phase} onClose={() => setMenuOpen(false)} onSelect={onMenuSelect} />
       <DelayModal visible={delayOpen} eventId={String(eventId)} onClose={() => setDelayOpen(false)} onDone={load} />
       <RemindersModal
         visible={remindersOpen}
@@ -871,7 +882,7 @@ export default function EventDashboardScreen() {
         onClose={() => setRemindersOpen(false)}
         onDone={load}
       />
-      <JoinRequestsModal visible={requestsOpen} eventId={String(eventId)} onClose={() => setRequestsOpen(false)} onChanged={load} />
+      <JoinRequestsModal visible={requestsOpen} eventId={String(eventId)} onClose={() => setRequestsOpen(false)} onChanged={load} canDecide={!hasEventStarted(phase)} />
       <EventReportsModal visible={reportsOpen} eventId={String(eventId)} onClose={() => setReportsOpen(false)} />
       <ConfirmationModal
         visible={!!confirmAction}

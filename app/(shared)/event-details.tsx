@@ -33,7 +33,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { manropeFamily } from "@/theme/fonts";
-import { detailsFooterState, isEventFullError, joinRequestBadge, joinRequestErrorMessage, joinRequestRejectedMessage, registrationUi } from "@/lib/eventRegistration";
+import { effectivePhase, isPhaseInteractive, phaseUi } from "@/lib/eventPhase";
+import { detailsFooterState, isEventFullError, joinRequestBadge, joinRequestErrorMessage, joinRequestRejectedMessage, phaseBlockedReason, registrationUi } from "@/lib/eventRegistration";
+import EventPhaseBadge from "@/components/event/EventPhaseBadge";
 import { isOrganizerJoinError, leaveErrorMessage } from "@/lib/eventLifecycle";
 
 // Event Details runs ~1.5px smaller than the global type scale (size + line height, family/weight untouched).
@@ -189,8 +191,13 @@ export default function EventDetailsScreen() {
   }, [load]);
 
   // Housefull events: ask the organizer. The server stays the judge (409s re-sync the screen).
+  // Ongoing/completed events accept no join or request — checked before any API call.
+  const phaseOf = (ev?: { eventPhase?: any; eventStartsAt?: string | null; eventEndsAt?: string | null } | null) =>
+    ev ? effectivePhase(ev.eventPhase, ev.eventStartsAt, ev.eventEndsAt) : undefined;
+  const participationClosed = () => !isPhaseInteractive(phaseOf(useEventStore.getState().currentEvent));
+
   const handleRequestToJoin = async () => {
-    if (requestingRef.current || !eventId) return;
+    if (requestingRef.current || !eventId || participationClosed()) return;
     requestingRef.current = true;
     setRequesting(true);
     try {
@@ -207,7 +214,7 @@ export default function EventDetailsScreen() {
   };
 
   const handleJoin = async () => {
-    if (submittingRef.current || !eventId) return;
+    if (submittingRef.current || !eventId || participationClosed()) return;
     submittingRef.current = true;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setJoining(true);
@@ -324,20 +331,26 @@ export default function EventDetailsScreen() {
   // Server status first; the checks below only cover an older backend that
   // doesn't send `registrationStatus` yet.
   const reg = registrationUi(e.registrationStatus);
-  const joinBlockedReason = e.registrationStatus
-    ? reg.disabled
-      ? reg.label
-      : null
-    : e.status === "cancelled"
-      ? "EVENT CANCELLED"
-      : e.registrationClosed || e.status === "closed" || e.status === "completed"
-        ? "REGISTRATION CLOSED"
-        : e.remainingCapacity <= 0
-          ? "HOUSEFULL"
-          : null;
+  // Timeline phase (server phase, advanced if this payload has since started/ended). An
+  // ongoing/completed event names its own state; time-ended events still report STARTED.
+  const phase = effectivePhase(e.eventPhase, e.eventStartsAt, e.eventEndsAt);
+  const phaseView = phaseUi(phase);
+  const joinBlockedReason =
+    phaseBlockedReason(phase) ??
+    (e.registrationStatus
+      ? reg.disabled
+        ? reg.label
+        : null
+      : e.status === "cancelled"
+        ? "EVENT CANCELLED"
+        : e.registrationClosed || e.status === "closed" || e.status === "completed"
+          ? "REGISTRATION CLOSED"
+          : e.remainingCapacity <= 0
+            ? "HOUSEFULL"
+            : null);
 
   const isCreator = !!currentUserId && e.organizer?.userId === currentUserId;
-  const footerState = detailsFooterState({ ...e, isCreator, blockedReason: joinBlockedReason });
+  const footerState = detailsFooterState({ ...e, eventPhase: phase, isCreator, blockedReason: joinBlockedReason });
 
   const joinedPreview = Array.isArray(e.joinedPreview) ? e.joinedPreview : [];
   const rawFilledPct = e.maxParticipants > 0 ? Math.min(100, Math.round((e.joinedCount / e.maxParticipants) * 100)) : 0;
@@ -371,7 +384,7 @@ export default function EventDetailsScreen() {
       <Modal transparent visible={menuOpen} animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
           <View style={[styles.menu, { top: insets.top + 60, backgroundColor: t.colors.cardBackground, borderColor: t.colors.border }]}>
-            {e.currentUserJoined && e.status !== "cancelled" && e.status !== "completed" && (
+            {e.currentUserJoined && e.status !== "cancelled" && e.status !== "completed" && isPhaseInteractive(phase) && (
               <Pressable
                 style={styles.menuItem}
                 onPress={() => { setMenuOpen(false); setLeaveConfirmVisible(true); }}
@@ -471,6 +484,11 @@ export default function EventDetailsScreen() {
         )}
 
         <View style={{ gap: 4 }}>
+          {!!phaseView && (
+            <View style={{ alignSelf: "flex-start", marginBottom: 4 }}>
+              <EventPhaseBadge label={phaseView.label} tone={phaseView.tone} size="sm" />
+            </View>
+          )}
           <Heading level={1} style={{ fontSize: t.typography.h1.fontSize - 1.5, lineHeight: t.typography.h1.lineHeight - 1.5 }}>{e.title}</Heading>
           {!!e.description && <Text style={[ty.body, { color: t.colors.secondaryText }]}>{e.description}</Text>}
         </View>

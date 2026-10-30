@@ -130,3 +130,48 @@ test("server hasStarted wins over a skewed client clock", () => {
   const a = organizerEventActions({ status: "active", eventStartAt: future, hasStarted: true, joined: 1, min: 1 });
   assert.equal(a.showStart, false);
 });
+
+test("organizerActions with a phase: close/delay/reminders only before the start", () => {
+  const pre = organizerActions("active", "upcoming");
+  assert.deepEqual(pre, { canClose: true, canComplete: true, canDelay: true, canEditReminders: true, canCancel: true });
+  const live = organizerActions("active", "ongoing");
+  assert.deepEqual(live, { canClose: false, canComplete: true, canDelay: false, canEditReminders: false, canCancel: true });
+  assert.equal(organizerActions("closed", "ongoing").canComplete, true);
+});
+test("organizerActions: End Event stays offered while ongoing, cancel is gone once the phase is completed", () => {
+  assert.equal(organizerActions("active", "ongoing").canComplete, true);
+  const ended = organizerActions("active", "completed");
+  assert.equal(ended.canCancel, false);
+  assert.equal(ended.canClose, false);
+  assert.equal(ended.canComplete, true); // a time-ended event never marked completed can still be finalized
+});
+test("organizerActions without a phase is exactly today's behavior (older server)", () => {
+  assert.deepEqual(organizerActions("active", undefined), { canClose: true, canComplete: true, canDelay: true, canEditReminders: true, canCancel: true });
+});
+
+test("leave/remove errors explain the new started/completed 409s by errorCode", () => {
+  assert.match(leaveErrorMessage({ status: 409, body: { errorCode: "EVENT_STARTED" } }), /already started/);
+  assert.match(leaveErrorMessage({ status: 409, body: { errorCode: "EVENT_COMPLETED" } }), /completed/);
+  assert.match(removeParticipantErrorMessage({ status: 409, body: { errorCode: "EVENT_COMPLETED" } }), /completed/);
+  // unrelated statuses keep their messages
+  assert.match(leaveErrorMessage({ status: 403 }), /aren't allowed/);
+  assert.match(removeParticipantErrorMessage({ status: 403 }), /organizer/);
+});
+
+test("close registration on a started event says registration, not the schedule", () => {
+  const started = { status: 409, body: { errorCode: "EVENT_STARTED" } };
+  assert.match(lifecycleErrorMessage(started, "close"), /registration can't be closed/);
+  assert.doesNotMatch(lifecycleErrorMessage(started, "close"), /schedule/);
+  // the other actions keep the schedule wording
+  for (const a of ["delay", "reminders", "start"] as const) assert.match(lifecycleErrorMessage(started, a), /schedule can't be changed/);
+});
+
+import { shouldResyncAfterParticipantError } from "../eventLifecycle";
+
+test("after a failed participant removal the dashboard re-syncs on 404 and 409, not on other failures", () => {
+  assert.equal(shouldResyncAfterParticipantError({ status: 404 }), true);
+  assert.equal(shouldResyncAfterParticipantError({ status: 409, body: { errorCode: "EVENT_COMPLETED" } }), true);
+  for (const e of [{ status: 403 }, { status: 500 }, { status: undefined }, new Error("x"), null, undefined]) {
+    assert.equal(shouldResyncAfterParticipantError(e), false);
+  }
+});

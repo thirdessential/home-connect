@@ -78,9 +78,9 @@ function FeedActions({
           <Ionicons
             name={isLiked ? "heart" : "heart-outline"}
             size={ICON_LARGE}
-            color={isLiked ? t.colors.brand : muted}
+            color={isLiked ? "#c1121f" : muted}
           />
-          <Text style={[styles.label, { color: isLiked ? t.colors.brand : muted }]}>
+          <Text style={[styles.label, { color: isLiked ? "#000" : muted }]}>
             {likeCount}
           </Text>
         </TouchableOpacity>

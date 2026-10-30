@@ -33,6 +33,11 @@ export type EventRecord = {
   remainingSlots?: number;
   registrationStatus?: "OPEN" | "FULL" | "CLOSED" | "STARTED" | "JOINED" | "CANCELLED" | "COMPLETED";
   canJoin?: boolean;
+  /** Server-derived timeline phase (additive to `status`); absent on an older server. */
+  eventPhase?: "upcoming" | "ongoing" | "completed" | "cancelled";
+  /** ISO instants the phase is derived from (`eventEndsAt` is null when the event has no explicit end). */
+  eventStartsAt?: string | null;
+  eventEndsAt?: string | null;
   cancelledCount: number;
   /** Capacity reached (server: joined >= max). `registrationStatus` still carries the more specific state. */
   housefull?: boolean;

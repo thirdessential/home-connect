@@ -1,6 +1,8 @@
 import { useToast } from "@/components/common/Toast";
 import { useImageUploader } from "@/components/image-upload";
+import SuccessModal from "@/components/UI/SuccessModal";
 import { uploadToBackend } from "@/lib/backendUpload";
+import { leaveCompletedTabFlow } from "@/lib/completedFlowNavigation";
 import { useFeedsStore } from "@/store/useFeedsStore";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -63,6 +65,7 @@ export default function CreatePostScreen() {
   const [lengthError, setLengthError] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const [image, setImage] = useState<{ localUri: string; status: ImgStatus; url?: string } | null>(null);
 
   // One universal flow: source sheet → crop (1:1 / 4:5 / 16:9) → preview →
@@ -97,6 +100,15 @@ export default function CreatePostScreen() {
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/home");
+  }, []);
+
+  // Create is a tab screen, not a stacked one: it is neither popped nor
+  // unmounted when Home takes focus, so the success modal has to be closed
+  // here or it would stay on top of Home. Tabs switch with navigate — dismissTo
+  // (POP_TO) is a silent no-op on a tab navigator.
+  const goHome = useCallback(() => {
+    setSuccessVisible(false);
+    leaveCompletedTabFlow(router, "/(tabs)/home");
   }, []);
 
   const handleSelectOption = useCallback(
@@ -173,9 +185,7 @@ export default function CreatePostScreen() {
       setLengthError(false);
       setImage(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      showToast("Post created successfully.", "success");
-      // Land on Home with Create removed from history, not just back().
-      router.dismissTo("/(tabs)/home");
+      setSuccessVisible(true);
     } catch (err: any) {
       showToast(err?.message || "Failed to create post. Please try again.", "error");
     } finally {
@@ -360,6 +370,16 @@ export default function CreatePostScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <SuccessModal
+        visible={successVisible}
+        onClose={goHome}
+        title="Post Created Successfully!"
+        subtitle="Your post is now live in your society feed."
+        secondaryActionLabel="Back to Home"
+        secondaryCountdownMs={3000}
+        onSecondaryAction={goHome}
+      />
     </View>
   );
 }

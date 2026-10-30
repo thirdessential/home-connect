@@ -8,6 +8,8 @@ import { CustomerReview } from "@/components/reviews/CustomerReview";
 import { Card } from "@/components/UI/Card";
 import InfoBanner from "@/components/UI/InfoBanner";
 import { usePermissions } from "@/hooks/usePermissions";
+import ConfirmationModal from "@/components/modals/ConfirmationModal";
+import { useToast } from "@/components/common/Toast";
 import { buildImageUrl, getInitials } from "@/lib/imageUtils";
 import { calculateAvgRating, callUser } from "@/lib/utils";
 import { useDailyHelperStore } from "@/store/useDailyHelper";
@@ -202,7 +204,7 @@ DetailsCard.displayName = "DetailsCard";
 export default function ServiceProfileScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { hasOnly } = usePermissions();
+  const { hasOnly, hasAnyRole } = usePermissions();
   const isGuest = hasOnly([UserRole.GUEST]);
 
   const { id } = useLocalSearchParams();
@@ -234,6 +236,10 @@ export default function ServiceProfileScreen() {
   }, [selectedService?.phone]);
 
   const router = useRouter();
+  const { showToast } = useToast();
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  // UI gate only: the backend re-checks the role and that the service belongs to the admin's society.
+  const isAdmin = hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]);
   // Same pattern as directory/business/[id].tsx's handleBackPress — works
   // regardless of entry point (Directory carousel, All Services list, etc.)
   // since it just pops this screen off whatever stack pushed it.
@@ -561,8 +567,49 @@ export default function ServiceProfileScreen() {
             <Ionicons name="person-outline" size={24} color="#374151" />
             <Text style={styles.optionText}>Report User</Text>
           </TouchableOpacity>
+          {isAdmin ? (
+            <TouchableOpacity
+              onPress={() => {
+                setOptionsModalVisible(false);
+                setDeleteVisible(true);
+              }}
+              style={styles.optionItem}
+            >
+              <Ionicons name="trash-outline" size={24} color="#DC2626" />
+              <Text style={[styles.optionText, { color: "#DC2626" }]}>Delete Service</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </FormSheetModal>
+
+      <ConfirmationModal
+        visible={deleteVisible}
+        onClose={() => setDeleteVisible(false)}
+        onConfirm={async () => {
+          try {
+            await useDailyHelperStore.getState().adminDeleteService(String(selectedService?._id));
+            router.back();
+          } catch (e: any) {
+            showToast(
+              e?.status === 403
+                ? "You don't have permission to delete this."
+                : e?.status === 404
+                  ? "This service no longer exists."
+                  : e?.message || "Failed to delete service.",
+              "error",
+            );
+            throw e; // keep the dialog open; the service stays in the list
+          }
+        }}
+        title="Delete Service?"
+        message="Are you sure you want to delete this service? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous
+        successTitle="Service Deleted"
+        successMessage="The service has been removed."
+        autoCloseDelay={900}
+      />
 
       {/* Add Review Modal */}
       <AddReviewModal

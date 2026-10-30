@@ -66,11 +66,13 @@ export default function CreatePollScreen() {
       <SuccessModal
         visible={successVisible}
         onClose={goHome}
-        title="Poll created successfully"
+        title="Poll Created Successfully!"
         subtitle="Your poll has been created."
         primaryActionLabel="View Poll"
         onPrimaryAction={goHome}
-        centered
+        secondaryActionLabel="Back to Home"
+        secondaryCountdownMs={3000}
+        onSecondaryAction={goHome}
       />
     </SafeAreaView>
   );

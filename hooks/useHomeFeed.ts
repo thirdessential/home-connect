@@ -4,7 +4,8 @@ import {
   useHomeDummyStore,
 } from "@/assets/mocks/homeDummyData";
 import { usePermissions } from "@/hooks/usePermissions";
-import { formatPostTime, isEventUnjoinable } from "@/lib/dateTime";
+import { formatPostTime } from "@/lib/dateTime";
+import { effectivePhase, isHiddenFromHome, isPhaseInteractive } from "@/lib/eventPhase";
 import { isEventFullError } from "@/lib/eventRegistration";
 import { useEventStore } from "@/store/useEventStore";
 import { useFeedsStore } from "@/store/useFeedsStore";
@@ -121,6 +122,8 @@ function toHomeFeedItem(f: FeedItem, currentUserId?: string): HomeFeedItem {
     isJoined: participants.some((p) => idOf(p.userId) === currentUserId),
     // Joined users keep seeing JOINED; everyone else gets the server's status.
     registrationStatus: participants.some((p) => idOf(p.userId) === currentUserId) ? "JOINED" : f.registrationStatus,
+    // Server phase, advanced if this cached card has since started/ended. Undefined on an older server.
+    eventPhase: kind === "event" ? effectivePhase(f.eventPhase, f.eventStartsAt, f.eventEndsAt) : undefined,
     options: (() => {
       const seen = new Set<string>();
       return (f.options ?? []).map((o: any, index: number) => {
@@ -197,8 +200,17 @@ export function useHomeFeed(): {
         // guard below), so it's filtered out of Home rather than shown as a
         // dead card. Posts/polls are untouched.
         .filter((f) => f.type !== "event" || f.mysqlEventId != null)
-        // Cached events can outlive their registration window / start time.
-        .filter((f) => f.type !== "event" || !isEventUnjoinable(f.registrationClosesAt, f.eventStartsAt))
+        // Ongoing and completed events stay (shown disabled). Only cancelled events and
+        // upcoming ones past their registration cutoff are dropped from a cached list.
+        .filter(
+          (f) =>
+            f.type !== "event" ||
+            !isHiddenFromHome({
+              eventPhase: effectivePhase(f.eventPhase, f.eventStartsAt, f.eventEndsAt),
+              registrationClosesAt: f.registrationClosesAt,
+              eventStartsAt: f.eventStartsAt,
+            }),
+        )
         .map((f) => toHomeFeedItem(f, user?._id))
         .map((item) => (isGuest ? anonymizeForGuest(item) : item)),
     [feeds, user?._id, isGuest],
@@ -220,6 +232,8 @@ export function useHomeFeed(): {
       toggleRsvp: async (id) => {
         const item = realItems.find((i) => i.id === id);
         if (!item) return;
+        // Ongoing/completed events accept no participation action — no API call.
+        if (!isPhaseInteractive(item.eventPhase)) return;
 
         if (!item.mysqlEventId) {
           // Predates the Event API migration — same guard ProductCard uses.
@@ -249,6 +263,22 @@ export function useHomeFeed(): {
         if (user?._id) await addCommentApi(id, { userId: user._id, text, parentCommentId });
       },
       deleteItem: async (id) => {
+        const item = realItems.find((i) => i.id === id);
+        if (item?.kind === "event") {
+          // Admin-only path (FeedList gates it; the backend re-checks role + society). Upcoming/ongoing
+          // keep the existing cancel flow (participants are notified there); completed events use the
+          // admin permanent delete. The card leaves the store only after the server confirmed.
+          if (item.mysqlEventId == null) throw new Error("This event cannot be deleted from here.");
+          const ev = useEventStore.getState();
+          if (item.eventPhase === "completed") await ev.adminDeleteEvent(item.mysqlEventId);
+          else
+            await ev.cancelEvent(item.mysqlEventId, {
+              title: "Event cancelled by admin",
+              reason: "This event was removed by a society admin.",
+            });
+          useFeedsStore.getState().pruneFeedLocal({ feedId: id });
+          return;
+        }
         const ok = await removeFeedApi(id);
         if (!ok) {
           throw new Error(useFeedsStore.getState().error || "Failed to delete. Please try again.");
