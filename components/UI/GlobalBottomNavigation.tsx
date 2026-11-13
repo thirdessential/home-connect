@@ -1,4 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { FC } from "react";
+import type { SvgProps } from "react-native-svg";
+import { IC_Create_Plusicon, IC_Deals, IC_Directory, IC_Home, IC_Profile } from "@/assets/images";
 import { memo, useEffect, useRef } from "react";
 import {
   AccessibilityInfo,
@@ -14,7 +17,6 @@ import { useUiTheme } from "./useUiTheme";
 export type NavItem = {
   key: string;
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
 };
 
@@ -27,6 +29,14 @@ type Props = {
 
 const ANIM_MS = 200;
 
+// Tab key -> existing SVG icon (assets/images/index.ts).
+const TAB_ICONS: Record<string, FC<SvgProps>> = {
+  home: IC_Home,
+  business: IC_Deals,
+  directory: IC_Directory,
+  profile: IC_Profile,
+};
+
 function TabItem({
   item,
   active,
@@ -36,39 +46,11 @@ function TabItem({
 }) {
   const t = useUiTheme();
 
-  const progress = useRef(
-    new Animated.Value(active ? 1 : 0)
-  ).current;
-
-  const reduceMotion = useRef(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled?.().then(
-      (value) => {
-        reduceMotion.current = value;
-      }
-    );
-  }, []);
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: active ? 1 : 0,
-      duration: reduceMotion.current ? 0 : ANIM_MS,
-      useNativeDriver: true,
-    }).start();
-  }, [active, progress]);
-
-  const scale = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.08],
-  });
-
-  const translateY = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -2],
-  });
-
-  const color = active ? t.colors.primary : t.colors.textMuted;
+  // Spec colors in light mode; dark mode keeps the theme tokens so the icons stay visible.
+  const color = t.isDark
+    ? active ? t.colors.textPrimary : t.colors.textSecondary
+    : active ? "#000000" : "#666666b2";
+  const Icon = TAB_ICONS[item.key];
 
   // Light press feedback (scale) on top of the active-tab lift.
   const press = useRef(new Animated.Value(1)).current;
@@ -86,26 +68,20 @@ function TabItem({
       style={{
         flex: 1,
         alignItems: "center",
+        justifyContent: "center",
       }}
     >
-      <Animated.View
-        style={{
-          transform: [{ scale: Animated.multiply(scale, press) }, { translateY }],
-        }}
-      >
-        <Ionicons
-          name={item.icon}
-          size={t.dimensions.iconMd}
-          color={color}
-        />
+      {/* Press feedback only: active state changes color, never size or position. */}
+      <Animated.View style={{ transform: [{ scale: press }]  }}>
+        {Icon ? <Icon width={24} height={24} color={color} /> : null}
       </Animated.View>
 
       <Text
         style={{
           ...t.typography.caption,
           color,
-          fontFamily: active ? "Manrope_700Bold" : undefined,
-          marginTop: 2,
+          fontFamily: "Manrope_700Bold",
+          marginTop: 4,
         }}
       >
         {item.label}
@@ -123,7 +99,7 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
   const t = useUiTheme();
   const insets = useSafeAreaInsets();
 
-  const CENTER_SIZE = 56;
+  const CENTER_SIZE = 48;
 
   const pressScale = useRef(
     new Animated.Value(1)
@@ -183,59 +159,45 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
   const bottomGap = Math.max(insets.bottom, 10);
 
   return (
-    <View style={{ backgroundColor: "transparent" }}>
-      <View
-        onLayout={(e) => bottomNavFootprint.setValue(e.nativeEvent.layout.height)}
-        style={{
-          backgroundColor: t.colors.surface,
-          borderTopWidth: 1,
-          borderLeftWidth: 1,
-          borderRightWidth: 1,
-          borderColor: t.colors.border,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          width: "100%",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.08,
-          shadowRadius: 12,
-          elevation: 12,
-        }}
-      >
-      {/* Tab items */}
+    <View
+      onLayout={(e) => bottomNavFootprint.setValue(e.nativeEvent.layout.height)}
+      // Overlay with no background of its own: only the pill is visible and screen
+      // content shows behind it. Empty areas stay touch-through.
+      pointerEvents="box-none"
+      style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: "transparent", paddingHorizontal: 16 }}
+    >
+      {/* Floating pill */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-around",
-          paddingTop: 16,
-          minHeight: 64,
+          minHeight: CENTER_SIZE + 30,
+          paddingHorizontal: 8,
+          borderRadius: 999,
+          backgroundColor: t.colors.surface,
+          // Soft shadow mostly along the TOP edge (negative y offset) so the pill blends into the
+          // content scrolling behind it; no extra container is added above the pill.
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: t.isDark ? 0.5 : 0.1,
+          shadowRadius: 14,
+          elevation: 8,
         }}
       >
         {[left, right].map((item) => (
-          <TabItem
-            key={item.key}
-            item={item}
-            active={activeKey === item.key}
-          />
+          <TabItem key={item.key} item={item} active={activeKey === item.key} />
         ))}
 
         {/* CENTER CREATE */}
-        <View
-          style={{
-            width: CENTER_SIZE,
-            alignItems: "center",
-          }}
-        >
-          <Animated.View
-            style={{
-              transform: [{ scale: pressScale }],
-            }}
-          >
+        <View style={{ width: CENTER_SIZE + 16, alignItems: "center" }}>
+          <Animated.View style={{ transform: [{ scale: pressScale }] }}>
             <Pressable
               onPress={onCenterPress}
               onPressIn={onPressIn}
               onPressOut={onPressOut}
+              accessibilityRole="button"
+              accessibilityLabel="Create"
               style={{
                 width: CENTER_SIZE,
                 height: CENTER_SIZE,
@@ -243,67 +205,28 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
                 backgroundColor: t.colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
-                position: "absolute",
-                top: -CENTER_SIZE * 0.55,
-                alignSelf: "center",
-                borderWidth: 4,
-                borderColor: t.colors.surface,
-                shadowColor: t.colors.primary,
-                shadowOffset: {
-                  width: 0,
-                  height: 4,
-                },
-                shadowOpacity: 0.35,
-                shadowRadius: 8,
-                elevation: 6,
               }}
             >
-              {/* Same PLUS icon — smoothly rotates 45deg */}
-              <Animated.View
-                style={{
-                  transform: [
-                    {
-                      rotate: centerRotate,
-                    },
-                  ],
-                }}
-              >
-                <Ionicons
-                  name="add"
-                  size={t.dimensions.iconLg}
-                  color={t.colors.white}
-                />
+              {/* PLUS icon — smoothly rotates 45deg into a close (x) */}
+              <Animated.View style={{ transform: [{ rotate: centerRotate }] }}>
+                <IC_Create_Plusicon width={24} height={24} color={t.colors.white} />
               </Animated.View>
             </Pressable>
           </Animated.View>
-
-          <Text
-            style={{
-              ...t.typography.caption,
-              color: t.colors.primary,
-              fontFamily: "Manrope_700Bold",
-              marginTop: CENTER_SIZE * 0.55 + 4,
-            }}
-          >
-            Create
-          </Text>
         </View>
 
         {[right1, right2].map((item) => (
-          <TabItem
-            key={item.key}
-            item={item}
-            active={activeKey === item.key}
-          />
+          <TabItem key={item.key} item={item} active={activeKey === item.key} />
         ))}
       </View>
 
-      {/* Offline banner: BELOW the tab items, above the system area. Height is
-          0 when online (no reserved space) and animates with the strip. */}
+      {/* Offline banner: below the pill, height is 0 when online (no reserved space). */}
       <Animated.View
         style={{
           height: offlineStripInset,
           overflow: "hidden",
+          borderRadius: 12,
+          marginTop: 6,
           backgroundColor: banner.online ? "#15803D" : "#B91C1C",
           alignItems: "center",
           justifyContent: "center",
@@ -323,9 +246,8 @@ const GlobalBottomNavigation = memo(function GlobalBottomNavigation({
         ) : null}
       </Animated.View>
 
-      {/* System area (gesture bar / 3-button bar / home indicator): the real inset, nothing else. */}
+      {/* System area (gesture bar / home indicator): the real inset. */}
       <View style={{ height: bottomGap }} />
-      </View>
     </View>
   );
 });

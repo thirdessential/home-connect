@@ -7,20 +7,23 @@ import BoxedOTP from "@/components/inputs/BoxedOTP";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
+import { manropeFamily } from "@/theme/fonts";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Keyboard,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 function formatPhone(phone: string) {
   const clean = (phone || "").replace(/\D/g, "").slice(-10);
@@ -37,7 +40,15 @@ function formatTimer(seconds: number) {
 }
 
 export default function VerifyOtpScreen() {
-  const { showToast } = useToast();
+  const { showStatusToast } = useToast();
+  const insets = useSafeAreaInsets();
+  const showToast = useCallback(
+    (message: string, type: "error" | "success") => {
+      if (type === "error") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      showStatusToast({ title: type === "error" ? "Verification" : "Success", message, tone: type });
+    },
+    [showStatusToast],
+  );
   const keyboardHeight = useKeyboardHeight();
   const params = useLocalSearchParams<{ phone?: string }>();
   const phone = typeof params.phone === "string" ? params.phone : "";
@@ -53,6 +64,21 @@ export default function VerifyOtpScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittingRef = useRef(false);
   const navigatedRef = useRef(false);
+
+  const shift = useRef(new Animated.Value(0)).current;
+  const logoOpacity = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const open = keyboardHeight > 0;
+    Animated.parallel([
+      Animated.timing(shift, {
+        toValue: open ? -(keyboardHeight + getHeight(30)) : 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, { toValue: open ? 0 : 1, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [keyboardHeight, shift, logoOpacity]);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -76,6 +102,7 @@ export default function VerifyOtpScreen() {
   }, [startTimer]);
 
   const goBack = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (router.canGoBack()) router.back();
     else router.replace("/(auth)/login");
   }, []);
@@ -86,6 +113,7 @@ export default function VerifyOtpScreen() {
     // Guard against duplicate taps / double navigation.
     if (submittingRef.current) return;
     Keyboard.dismiss();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (code.length !== AUTH_PAGE.OTP_LENGTH) {
       setError(true);
       showToast(TERRACE_AUTH.invalidOtp, "error");
@@ -94,6 +122,7 @@ export default function VerifyOtpScreen() {
     submittingRef.current = true;
     try {
       await verifyOtp(phone, code);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       showToast(TERRACE_AUTH.verifiedToast, "success");
       // Guard against navigating twice even if a success handler were ever
       // triggered more than once (e.g. a duplicate resolved promise).
@@ -131,6 +160,7 @@ export default function VerifyOtpScreen() {
 
   const handleResend = useCallback(async () => {
     if (secondsLeft > 0 || isSendingOtp) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setOtp("");
     setError(false);
     try {
@@ -145,159 +175,188 @@ export default function VerifyOtpScreen() {
   const canResend = secondsLeft === 0;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: getHeight(24) + keyboardHeight }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <TerraceHeader compact onBack={goBack} />
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <View style={styles.flex}>
+        <Animated.View style={[styles.top, { opacity: logoOpacity }]}>
+          <TerraceHeader onBack={goBack} />
+        </Animated.View>
 
-        <Text style={styles.title}>{TERRACE_AUTH.otpTitle}</Text>
+        <HeroImage />
+    
 
-        <Text style={styles.sentText}>{TERRACE_AUTH.otpSentPre}</Text>
-        <View style={styles.phoneRow}>
-          <Text style={styles.phoneText}>
-            {TERRACE_AUTH.countryCode} {formatPhone(phone)}
-          </Text>
-          <Pressable onPress={goBack} hitSlop={10} accessibilityLabel="Edit number">
-            <Ionicons
-              name="pencil"
-              size={getWidth(18)}
-              color={TERRACE_COLORS.orange}
-              style={{ marginLeft: getWidth(8) }}
+        <Animated.View style={[styles.cardWrap, { transform: [{ translateY: shift }] }]}>
+          <View style={[styles.card, { paddingBottom: insets.bottom + getHeight(20) }]}>
+            <Text style={styles.title}>Verify Your Number</Text>
+            <Text style={styles.sentText}>
+              We've sent a 6-digit verification code to your mobile number.
+            </Text>
+
+            <View style={styles.phonePill}>
+              <Ionicons name="call" size={getWidth(16)} color={TERRACE_COLORS.orange} />
+              <Text style={styles.phoneText}>
+                {TERRACE_AUTH.countryCode} {formatPhone(phone)}
+              </Text>
+              <Pressable
+                onPress={goBack}
+                hitSlop={10}
+                style={styles.editBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Edit number"
+              >
+                <Ionicons name="pencil" size={getWidth(14)} color={TERRACE_COLORS.orange} />
+                <Text style={styles.editText}>Edit</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.otpWrap}>
+              <BoxedOTP value={otp} onChange={handleOtpChange} error={error} />
+            </View>
+
+            <Text style={styles.didnt}>Didn't receive the code?</Text>
+            <View style={styles.resendRow}>
+              {!canResend ? (
+                <View style={styles.timerPill}>
+                  <Ionicons name="timer-outline" size={getWidth(14)} color={TERRACE_COLORS.textDark} />
+                  <Text style={styles.timerText}>Resend code in {formatTimer(secondsLeft)}</Text>
+                </View>
+              ) : null}
+              <Text
+                style={[styles.resendCta, canResend && styles.resendCtaOn]}
+                onPress={canResend ? handleResend : undefined}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !canResend }}
+              >
+                {TERRACE_AUTH.resendCta}
+              </Text>
+            </View>
+
+            <ActionButton
+              title="Verify"
+              onPress={() => handleVerify()}
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={isVerifyingOtp}
+              disabled={isVerifyingOtp}
+              containerStyle={styles.verifyBtn}
             />
-          </Pressable>
-        </View>
-
-        <View style={styles.otpWrap}>
-          <BoxedOTP value={otp} onChange={handleOtpChange} autoFocus error={error} />
-        </View>
-
-        <Image
-          source={images.OtpBgimage}
-          style={styles.hero}
-          contentFit="cover"
-          transition={200}
-        />
-
-        <ActionButton
-          title={TERRACE_AUTH.continue}
-          onPress={() => handleVerify()}
-          variant="primary"
-          size="lg"
-          fullWidth
-          loading={isVerifyingOtp}
-          disabled={otp.length !== AUTH_PAGE.OTP_LENGTH || isVerifyingOtp}
-          containerStyle={styles.continueBtn}
-        />
-
-        <View style={styles.resendRow}>
-          <Text style={styles.resendMuted}>{TERRACE_AUTH.didntReceive} </Text>
-          {canResend ? (
-            <Text
-              style={styles.resendCta}
-              onPress={handleResend}
-              accessibilityRole="button"
-            >
-              {TERRACE_AUTH.resendCta}
-            </Text>
-          ) : (
-            <Text style={styles.resendCta}>
-              {TERRACE_AUTH.resendIn} {formatTimer(secondsLeft)}
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.footer}>
-          <Ionicons
-            name="shield-checkmark-outline"
-            size={getWidth(16)}
-            color={TERRACE_COLORS.textMuted}
-          />
-          <Text style={styles.footerText}>{TERRACE_AUTH.safeFooter}</Text>
-        </View>
-      </ScrollView>
+          </View>
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
 
+// Memoised so typing / timer ticks never re-render the image.
+const HeroImage = React.memo(function HeroImage() {
+  return (
+    <View style={styles.heroWrap}>
+      <Image
+        source={images.OtpBgimage}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        contentPosition="top"
+        transition={200}
+        cachePolicy="memory-disk"
+      />
+    </View>
+  );
+});
+
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
+  safe: { flex: 1, overflow: "hidden", backgroundColor: TERRACE_COLORS.screenBg },
+  flex: { flex: 1 },
+  top: {
+    paddingHorizontal: getWidth(24),
+    paddingTop: getHeight(8),
+    paddingBottom: getHeight(10),
     backgroundColor: TERRACE_COLORS.screenBg,
   },
-  scroll: {
-    flexGrow: 1,
+  heroWrap: { flex:1, minHeight: 0, overflow: "hidden", backgroundColor: "#EDE7DD"},
+  cardWrap: { marginTop: -getHeight(28), flexShrink: 0 },
+  card: {
+    backgroundColor: TERRACE_COLORS.screenBg,
+    borderTopLeftRadius: getWidth(32),
+    borderTopRightRadius: getWidth(32),
     paddingHorizontal: getWidth(24),
-    paddingTop: getHeight(12),
-    paddingBottom: getHeight(24),
+    paddingTop: getHeight(22),
   },
   title: {
-    fontSize: getWidth(26),
-    fontFamily: "Manrope_600SemiBold",
+    fontSize: getWidth(24),
+    lineHeight: getWidth(28),
+    fontFamily: manropeFamily("700"),
     color: TERRACE_COLORS.textDark,
     textAlign: "center",
-    marginTop: getHeight(24),
   },
   sentText: {
-    fontSize: getWidth(15),
+    fontSize: getWidth(10),
+    lineHeight: getWidth(15),
+    fontFamily: manropeFamily("500"),
     color: TERRACE_COLORS.textMuted,
     textAlign: "center",
-    marginTop: getHeight(12),
+    marginTop: getHeight(6),
   },
-  phoneRow: {
+  phonePill: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: getHeight(4),
+    alignSelf: "center",
+    backgroundColor: "#E5E5E532",
+    borderRadius: 999,
+    paddingVertical: getHeight(8),
+    paddingHorizontal: getWidth(16),
+    marginTop: getHeight(12),
   },
   phoneText: {
-    fontSize: getWidth(18),
-    fontFamily: "Manrope_600SemiBold",
+    fontSize: getWidth(14),
+    fontFamily: manropeFamily("700"),
     color: TERRACE_COLORS.textDark,
+    marginLeft: getWidth(8),
   },
-  otpWrap: {
-    marginTop: getHeight(28),
+  editBtn: { flexDirection: "row", alignItems: "center", marginLeft: getWidth(14) },
+  editText: {
+    fontSize: getWidth(14),
+    fontFamily: manropeFamily("700"),
+    color: TERRACE_COLORS.orange,
+    marginLeft: getWidth(4),
   },
-  hero: {
-    height: getHeight(300),
-    marginTop: getHeight(28),
-    // Edge-to-edge: break out of the scroll container's horizontal padding.
-    marginHorizontal: -getWidth(24),
-    backgroundColor: "#EDE7DD",
-  },
-  continueBtn: {
-    marginTop: getHeight(24),
-    borderRadius: getWidth(14),
-    paddingVertical: getHeight(16),
+  otpWrap: { marginTop: getHeight(16) },
+  didnt: {
+    fontSize: getWidth(12),
+    fontFamily: manropeFamily("500"),
+    color: TERRACE_COLORS.textMuted,
+    textAlign: "center",
+    marginTop: getHeight(10),
   },
   resendRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: getHeight(18),
+    marginTop: getHeight(8),
   },
-  resendMuted: {
-    fontSize: getWidth(14),
+  timerPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F0F060",
+    borderRadius: 999,
+    paddingVertical: getHeight(6),
+    paddingHorizontal: getWidth(10),
+    marginRight: getWidth(12),
+  },
+  timerText: {
+    fontSize: getWidth(11),
+    fontFamily: manropeFamily("600"),
     color: TERRACE_COLORS.textDark,
-    fontFamily: "Manrope_600SemiBold",
+    marginLeft: getWidth(4),
   },
   resendCta: {
     fontSize: getWidth(14),
-    color: TERRACE_COLORS.orange,
-    fontFamily: "Manrope_700Bold",
+    fontFamily: manropeFamily("600"),
+    color: "#B5B9C0",
   },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: getHeight(20),
-  },
-  footerText: {
-    fontSize: getWidth(13),
-    color: TERRACE_COLORS.textMuted,
-    marginLeft: getWidth(8),
+  resendCtaOn: { color: TERRACE_COLORS.orange, fontFamily: manropeFamily("700") },
+  verifyBtn: {
+    marginTop: getHeight(18),
+    borderRadius: 999,
+    paddingVertical: getHeight(15),
   },
 });

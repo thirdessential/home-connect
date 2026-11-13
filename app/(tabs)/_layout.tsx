@@ -73,18 +73,6 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     [isPending],
   );
 
-  // Memoize tab icons
-  const tabIcons = useMemo(
-    () =>
-      [
-        state.index === 0 ? "home" : "home-outline",
-        state.index === 1 ? "business" : "business-outline",
-        state.index === 2 ? "apps" : "apps-outline",
-        state.index === 3 ? "person" : "person-outline",
-      ] as const,
-    [state.index],
-  );
-
   const handleCloseUnverifiedModal = useCallback(() => {
     setUnverifiedModalVisible(false);
   }, []);
@@ -141,10 +129,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           centerIcon={modalOpen || activeKey === "create" ? "close" : "add"}
           onCenterPress={handleCenterPress}
           items={[
-            { key: "home", label: tabLabels[0], icon: tabIcons[0], onPress: handleHomePress },
-            { key: "business", label: tabLabels[1], icon: tabIcons[1], onPress: handleBusinessPress },
-            { key: "directory", label: tabLabels[2], icon: tabIcons[2], onPress: handleDirectoryPress },
-            { key: "profile", label: tabLabels[3], icon: tabIcons[3], onPress: handleProfilePress },
+            { key: "home", label: tabLabels[0], onPress: handleHomePress },
+            { key: "business", label: tabLabels[1], onPress: handleBusinessPress },
+            { key: "directory", label: tabLabels[2], onPress: handleDirectoryPress },
+            { key: "profile", label: tabLabels[3], onPress: handleProfilePress },
           ]}
         />
       )}

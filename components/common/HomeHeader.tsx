@@ -3,6 +3,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useSocietyStore } from "@/store/useSocietyStore";
 import { useTheme } from "@/theme/theme";
 import { UserRole } from "@/types/roles";
+import { IC_LocationHome, IC_NotificationBell } from "@/assets/images";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -22,7 +23,10 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
   const { hasAnyRole } = usePermissions();
   const canChangeSociety = hasAnyRole([UserRole.SUPER_ADMIN, UserRole.GUEST]);
   const selectedSocietyName = useSocietyStore((s) => s.selectedSociety?.name);
-  const displayName = selectedSocietyName ?? "Guest";
+  const selectedCity = useSocietyStore((s) => s.selectedSociety?.city);
+  // Display only: the stored society name is untouched. Max 15 chars including "...".
+  const rawName = selectedSocietyName ?? "Guest";
+  const displayName = rawName.length > 15 ? `${rawName.slice(0, 12).trimEnd()}...` : rawName;
 
   const handleSocietyPress = () => {
     router.push("/onboarding/select-society");
@@ -42,59 +46,59 @@ export default function HomeHeader({ onBellPress, hasUnread }: Props) {
     >
       
       <View style={styles.headerRow}>
-       
+        {/* Left: society icon, name (+ dropdown) and city below it */}
+        {(() => {
+          const body = (
+            <>
+              <IC_LocationHome width={32} height={32} />
+              <View style={styles.societyText}>
+                <View style={styles.nameRow}>
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[styles.societyName, { color: t.colors.textPrimary }]}
+                  >
+                    {displayName}
+                  </Text>
+                  {canChangeSociety ? (
+                    <Ionicons
+                      name="chevron-down"
+                      size={20}
+                      color={t.colors.textPrimary}
+                      style={styles.chevron}
+                    />
+                  ) : null}
+                </View>
+                {selectedCity ? (
+                  <Text numberOfLines={1} style={[styles.societyCity, { color: t.colors.textSecondary }]}>
+                    {selectedCity}
+                  </Text>
+                ) : null}
+              </View>
+            </>
+          );
+          return canChangeSociety ? (
+            <TouchableOpacity onPress={handleSocietyPress} style={styles.societyButton}>
+              {body}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.societyButton}>{body}</View>
+          );
+        })()}
 
-        {canChangeSociety ? (
-          <TouchableOpacity
-            onPress={handleSocietyPress}
-            style={styles.societyButton}
-          >
-            <Text
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              style={[styles.societyName, { color: t.colors.brand }]}
-            >
-              {displayName}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={20}
-              color={t.colors.brand}
-              style={styles.chevron}
-            />
-          </TouchableOpacity>
-        ) : (
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={[styles.societyName, styles.societyNameFull, { color: t.colors.brand }]}
-          >
-            {displayName}
-          </Text>
-        )}
-
-        <View style={styles.iconRow}>
-        
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={onBellPress}
-            style={styles.iconButton}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={t.colors.textSecondary}
-            />
-            {hasUnread ? (
-              <View style={[styles.unreadDot, { borderColor: t.colors.surface }]} />
-            ) : null}
-          </TouchableOpacity>
-        </View>
+        {/* Right: notification bell with unread dot */}
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+          onPress={onBellPress}
+          style={[styles.iconButton, { backgroundColor: t.colors.surfaceAlt }]}
+        >
+          <IC_NotificationBell width={22} height={22} />
+          {hasUnread ? (
+            <View style={[styles.unreadDot, { borderColor: t.colors.surfaceAlt }]} />
+          ) : null}
+        </TouchableOpacity>
       </View>
-
-      
-
     </View>
   );
 }
@@ -124,41 +128,39 @@ const styles = StyleSheet.create({
   societyButton: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-    minWidth: 0, // required for numberOfLines truncation to respect flex, not content width
+    gap: 10,
+    flexShrink: 1, // hug the content (icon + name + arrow); never stretch across the row
+    minWidth: 0,
     marginRight: 8,
   },
+  societyText: { flexShrink: 1, minWidth: 0 },
+  nameRow: { flexDirection: "row", alignItems: "center" },
   societyName: {
     fontSize: 20,
-    fontFamily: "Manrope_800ExtraBold",
+    fontFamily: "Manrope_700Bold",
     flexShrink: 1,
   },
-  societyNameFull: {
-    flex: 1,
-    marginRight: 8,
+  societyCity: {
+    fontSize: 14,
+    fontFamily: "Manrope_500Medium",
+    marginTop: 1,
   },
   chevron: {
-    marginLeft: 2,
+    marginLeft: 4,
     flexShrink: 0,
-  },
-  iconRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
-    marginLeft: 50
   },
   iconButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   unreadDot: {
     position: "absolute",
-    top: 4,
-    right: 4,
+    top: 10,
+    right: 11,
     width: 9,
     height: 9,
     borderRadius: 5,

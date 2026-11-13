@@ -1,6 +1,7 @@
 import { useToast } from "@/components/common/Toast";
+import { hapticLight } from "@/lib/haptics";
 import { useTheme } from "@/theme/theme";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Heart, MessageSquare, Share2 } from "lucide-react-native";
 import { memo, useCallback } from "react";
 import { Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -15,15 +16,6 @@ type Props = {
   /** The card draws its own full-width divider instead. */
   noDivider?: boolean;
 };
-
-const ICON = 18;
-// Heart and comment are the primary actions, ~21% larger than the 18 they had (measured on device).
-// The Feather message-circle outline fills less of its box than the heart does, so it needs 23.
-const ICON_LARGE = 22;
-const ICON_COMMENT = 23;
-// Every action is ICON_COMMENT tall, so +11 above and below gives a 45pt-tall tap area; the 8pt side
-// slop on each of two neighbours exactly fills the 16pt gap between actions (no overlap).
-const HIT_SLOP = { top: 11, bottom: 11, left: 8, right: 8 };
 
 /**
  * The one Like / Comment / Share footer used by Event, Post and Poll cards, so
@@ -44,6 +36,7 @@ function FeedActions({
   const muted = t.colors.textSecondary;
 
   const handleShare = useCallback(async () => {
+    hapticLight();
     try {
       // Dismissing the sheet resolves normally; only a real failure throws.
       await Share.share({
@@ -66,46 +59,43 @@ function FeedActions({
           : { borderTopWidth: 1, borderTopColor: t.colors.border },
       ]}
     >
-      <View style={styles.group}>
-        <TouchableOpacity
-          style={styles.action}
-          onPress={onLike}
-          hitSlop={HIT_SLOP}
-          accessibilityRole="button"
-          accessibilityLabel={`${isLiked ? "Unlike" : "Like"}, ${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
-          accessibilityState={{ selected: isLiked }}
-        >
-          <Ionicons
-            name={isLiked ? "heart" : "heart-outline"}
-            size={ICON_LARGE}
-            color={isLiked ? "#c1121f" : muted}
-          />
-          <Text style={[styles.label, { color: isLiked ? "#000" : muted }]}>
-            {likeCount}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.action}
-          onPress={onComment}
-          hitSlop={HIT_SLOP}
-          accessibilityRole="button"
-          accessibilityLabel={`Comments, ${commentCount}`}
-        >
-          <Feather name="message-circle" size={ICON_COMMENT} color={muted} />
-          <Text style={[styles.label, { color: muted }]}>{commentCount}</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={[styles.action, styles.actionStart]}
+        onPress={onLike}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`${isLiked ? "Unlike" : "Like"}, ${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
+        accessibilityState={{ selected: isLiked }}
+      >
+        <Heart
+          size={24}
+          strokeWidth={1.75}
+          color={isLiked ? "#c1121f" : t.colors.textPrimary}
+          fill={isLiked ? "#c1121f" : "none"}
+        />
+        <Text style={[styles.label, { color: t.colors.textPrimary }]}>{likeCount}</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.action}
+        style={[styles.action, styles.actionCenter]}
+        onPress={onComment}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Comments, ${commentCount}`}
+      >
+        <MessageSquare size={24} strokeWidth={1.75} color={t.colors.textPrimary} />
+        <Text style={[styles.label, { color: t.colors.textPrimary }]}>{commentCount}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.action, styles.actionEnd]}
         onPress={handleShare}
-        hitSlop={HIT_SLOP}
+        hitSlop={8}
         accessibilityRole="button"
         accessibilityLabel="Share"
       >
-        <Ionicons name="share-social-outline" size={ICON} color={muted} />
-        <Text style={[styles.label, { color: muted }]}>Share</Text>
+        <Share2 size={24} strokeWidth={1.75} color={t.colors.textPrimary} />
+        <Text style={[styles.label, { color: t.colors.textPrimary }]}>Share</Text>
       </TouchableOpacity>
     </View>
   );
@@ -122,7 +112,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   rowFlush: { paddingTop: 0, marginTop: 0 },
-  group: { flexDirection: "row", alignItems: "center", gap: 16 },
-  action: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: ICON_COMMENT },
-  label: { fontSize: 14, fontFamily: "Manrope_500Medium", lineHeight: 15 },
+  action: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 28 },
+  actionStart: { justifyContent: "flex-start" },
+  actionCenter: { justifyContent: "center" },
+  actionEnd: { justifyContent: "flex-end" },
+  label: { fontSize: 16, fontFamily: "Manrope_500Medium" },
 });

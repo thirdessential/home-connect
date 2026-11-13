@@ -1,6 +1,6 @@
 import { CACHE_TTL_MS } from "@/assets/constants/common.constant";
 import { Delete, Get, Patch, Post } from "@/lib/httpMethods";
-import { isFeedCacheFresh, pruneExpiredFeeds as pruneFeedsByAge } from "@/lib/feedCache";
+import { dedupeFeeds, isFeedCacheFresh } from "@/lib/feedCache";
 import { createInFlightGuard } from "@/lib/inFlightGuard";
 import { zustandStorage } from "@/lib/storage";
 import { ReportItem } from "@/types/business.type";
@@ -11,9 +11,29 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // One like request per post at a time: rapid taps on the heart can't fire duplicate toggles.
 const likeGuard = createInFlightGuard();
 
+// Persisting the whole feed list on every tap (twice per like: optimistic + server result) blocked
+// the JS thread with a large JSON.stringify + storage write. Coalesce writes: latest state wins.
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingPersist: { name: string; value: string } | null = null;
+const flushPersist = () => {
+    persistTimer = null;
+    const job = pendingPersist;
+    pendingPersist = null;
+    if (job) void zustandStorage.setItem(job.name, job.value);
+};
+const debouncedFeedStorage: typeof zustandStorage = {
+    ...zustandStorage,
+    setItem: (name, value) => {
+        pendingPersist = { name, value };
+        if (persistTimer) clearTimeout(persistTimer);
+        persistTimer = setTimeout(flushPersist, 1500);
+    },
+};
+
 // Event items are exempt from the age rule (the server's feed query decides which
 // events show, so ongoing/completed ones stay) — see lib/feedCache.ts.
-const pruneExpiredFeeds = (feeds: FeedItem[]) => pruneFeedsByAge(feeds, CACHE_TTL_MS);
+// Posts never expire by age; the cache only de-duplicates (see lib/feedCache.ts).
+const pruneExpiredFeeds = (feeds: FeedItem[]) => dedupeFeeds(feeds);
 
 const mergeFeeds = (cached: FeedItem[], latest: FeedItem[]) => {
     const byId = new Map<string, FeedItem>();
@@ -38,12 +58,11 @@ export const useFeedsStore = create<FeedsState>()(
             cachedSocietyId: null,
 
             isCacheValid: (societyId: string) => {
-                const { cachedSocietyId, feeds } = get();
+                const { cachedSocietyId, feeds, lastFetchedAt } = get();
                 if (!cachedSocietyId || feeds.length === 0) return false;
                 if (cachedSocietyId !== societyId) return false;
-                // Validity keeps the plain age rule: events never expire from the list, but a
-                // cache with no recent item still has to be refetched.
-                return isFeedCacheFresh(feeds, CACHE_TTL_MS);
+                // Only decides whether to refetch (based on fetch time); never hides old posts.
+                return isFeedCacheFresh(lastFetchedAt, CACHE_TTL_MS);
             },
 
             fetchFeedsBySociety: async (societyId: string, force = false) => {
@@ -298,11 +317,35 @@ export const useFeedsStore = create<FeedsState>()(
                 }
             },
             addComment: async (feedId, comment) => {
+                // Optimistic: the comment shows immediately as a temp row, then is swapped for the
+                // server's list. On failure the temp row is removed and the error is rethrown so the
+                // composer can restore the draft.
+                const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                const userId = comment?.userId ?? comment?.user?._id;
+                const tempComment = {
+                    _id: tempId,
+                    user: comment?.user ?? { _id: userId },
+                    text: comment?.text,
+                    parentCommentId: comment?.parentCommentId ?? null,
+                    createdAt: new Date().toISOString(),
+                    pending: true,
+                };
+                set((state) => ({
+                    feeds: state.feeds.map((f) =>
+                        f._id === feedId ? { ...f, comments: [...(f.comments || []), tempComment] } : f,
+                    ),
+                }));
+                const dropTemp = () =>
+                    set((state) => ({
+                        feeds: state.feeds.map((f) =>
+                            f._id === feedId ? { ...f, comments: (f.comments || []).filter((c: any) => c._id !== tempId) } : f,
+                        ),
+                    }));
                 try {
                     const response = await Post<{ success: boolean; comments: any[] }>(
                         `/api/feed/comment/${feedId}`,
                         {
-                            userId: comment?.userId ?? comment?.user?._id,
+                            userId,
                             text: comment?.text,
                             ...(comment?.parentCommentId ? { parentCommentId: comment.parentCommentId } : {}),
                         },
@@ -313,8 +356,12 @@ export const useFeedsStore = create<FeedsState>()(
                                 f._id === feedId ? { ...f, comments: response.comments } : f,
                             ),
                         }));
+                    } else {
+                        dropTemp();
+                        throw new Error("Failed to add comment");
                     }
                 } catch (error) {
+                    dropTemp();
                     console.error("Failed to add comment:", error);
                     set({ error: "Failed to add comment" });
                     throw error;
@@ -637,7 +684,7 @@ export const useFeedsStore = create<FeedsState>()(
             name: "feeds-store",
             // Use the shared adapter, not AsyncStorage directly — it guards the
             // `window is not defined` throw on web/SSR.
-            storage: createJSONStorage(() => zustandStorage),
+            storage: createJSONStorage(() => debouncedFeedStorage),
             partialize: (state) => ({
                 feeds: state.feeds,
                 lastFetchedAt: state.lastFetchedAt,

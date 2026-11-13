@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { pruneExpiredFeeds } from "../feedCache";
+import { dedupeFeeds } from "../feedCache";
 import { effectivePhase, isHiddenFromHome, phaseUi } from "../eventPhase";
 import { eventCardCta } from "../eventRegistration";
 
 // The original requirement, end to end through the app's pure steps: every past event stays in the
 // Home feed however old its post is, ongoing/completed ones render disabled, and nothing else changes.
 const DAY = 86_400_000;
-const TTL = 2 * DAY;
 const NOW = Date.parse("2030-03-01T12:00:00.000Z");
 const iso = (ms: number) => new Date(ms).toISOString();
 const feed = (_id: string, type: string, postedDaysAgo: number, o: any = {}): any => ({
@@ -33,13 +32,13 @@ const response = [
 
 // Same steps the Home feed takes: store prune, then useHomeFeed's visibility rule.
 const home = (now = NOW) =>
-  pruneExpiredFeeds(response, TTL, now).filter(
+  dedupeFeeds(response).filter(
     (f: any) => f.type !== "event" || !isHiddenFromHome({ eventPhase: effectivePhase(f.eventPhase, f.eventStartsAt, f.eventEndsAt, now), registrationClosesAt: f.registrationClosesAt, eventStartsAt: f.eventStartsAt }, now),
   );
 const ids = (xs: any[]) => xs.map((x) => x._id);
 
-test("all past and ongoing events stay on Home however old their post is; only what the server/age rules drop is gone", () => {
-  assert.deepEqual(ids(home()), ["completed-stored", "completed-time-ended", "ongoing-multiday", "ongoing-no-end", "upcoming-open", "fresh-post"]);
+test("all past and ongoing events stay on Home however old their post is; posts and polls too (no age rule); only the server/phase rules drop events", () => {
+  assert.deepEqual(ids(home()), ["completed-stored", "completed-time-ended", "ongoing-multiday", "ongoing-no-end", "upcoming-open", "old-post", "old-poll", "fresh-post"]);
 });
 
 test("they are still there years later (no expiry for events)", () => {

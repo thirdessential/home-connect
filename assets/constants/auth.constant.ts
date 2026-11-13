@@ -80,14 +80,17 @@ export const TERRACE_AUTH = {
     "Terrace is your community platform to share, support and unlock great deals together.",
   loginImage:
     "https://images.pexels.com/photos/1153369/pexels-photo-1153369.jpeg?auto=compress&cs=tinysrgb&w=1200",
-  getStartedTitle: "Let's get started",
+  getStartedTitle: "Your community,\nconnected.",
+  loginOrSignUp: "LOG IN OR SIGN UP",
   getStartedSubtitle: "Enter your phone number to continue",
   countryFlag: "🇮🇳",
   countryCode: "+91",
-  phonePlaceholder: "Phone number",
+  phonePlaceholder: "Enter your number",
   continueWithPhone: "Continue",
-  acceptPre: "I accept the ",
-  acceptLink: "Terms and Conditions",
+  acceptPre: "I agree to the ",
+  acceptLink: "Terms & Conditions",
+  acceptMid: ", estate bylaws, and ",
+  acceptPrivacy: "Privacy Policy",
   safeFooter: "Safe. Verified. For your community.",
 
   // OTP
@@ -107,7 +110,7 @@ export const TERRACE_AUTH = {
 
   // Validation messages
   invalidMobile: "Please enter a valid 10-digit mobile number",
-  checkTerms: "Please check Terms & Conditions",
+  checkTerms: "Please check the Terms & Conditions.",
   invalidOtp: "Incorrect OTP. Please try again.",
   verifiedToast: "Phone verified successfully",
   otpSendFailed: "Failed to send OTP. Please try again.",

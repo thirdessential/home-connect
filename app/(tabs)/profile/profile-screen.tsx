@@ -1,3 +1,4 @@
+import { useBottomNavInset } from "@/hooks/useBottomNavInset";
 import { verificationStatus } from "@/assets/enums/common.enum";
 import Badge from "@/components/UI/Badge";
 import { Card } from "@/components/UI/Card";
@@ -128,6 +129,7 @@ export default function ProfileScreen() {
   const t = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const navInset = useBottomNavInset();
   // Narrow selectors to avoid full-store subscriptions
   const user = useUserStore((s) => s.user);
   const updateUser = useUserStore((s) => s.updateUser);
@@ -350,7 +352,7 @@ export default function ProfileScreen() {
     <>
       <ScrollView
         // style={{ backgroundColor: t.colors.white }}
-        contentContainerStyle={staticStyles.scrollContent}
+        contentContainerStyle={[staticStyles.scrollContent, { paddingBottom: 32 + navInset }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={profileRefreshing} onRefresh={onProfileRefresh} />}
       >

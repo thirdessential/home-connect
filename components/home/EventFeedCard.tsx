@@ -4,12 +4,14 @@ import { phaseUi } from "@/lib/eventPhase";
 import { eventCardCta } from "@/lib/eventRegistration";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedItem } from "@/types/homeFeed.type";
-import { Ionicons } from "@expo/vector-icons";
+import { ArrowRight, CalendarDays, CircleCheck, Clock, Heart, Lock, MessageSquare, Navigation, Settings, Share2 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import FeedActions from "./FeedActions";
+import { memo, useCallback } from "react";
+import { Image, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useToast } from "@/components/common/Toast";
+import { hapticLight } from "@/lib/haptics";
 import FeedCardHeader from "./FeedCardHeader";
+import { Ionicons } from "@expo/vector-icons";
 
 // Even at 0/24 the bar should read as "a progress bar", not an empty line — a
 // small minimum fill communicates that without changing the real numbers.
@@ -26,15 +28,11 @@ type Props = {
   onOpen: () => void;
 };
 
-const MetaChip = ({ icon, label, tinted }: { icon: any; label: string; tinted: boolean }) => {
+const MetaChip = ({ icon: Icon, label }: { icon: any; label: string }) => {
   const t = useTheme();
   return (
     <View style={styles.metaItem}>
-      <Ionicons
-        name={icon}
-        size={16}
-        color={tinted ? t.colors.brand : t.colors.textSecondary}
-      />
+      <Icon size={18} strokeWidth={1.75} color={t.colors.textSecondary} />
       <Text style={[styles.metaText, { color: t.colors.textSecondary }]} numberOfLines={1}>
         {label}
       </Text>
@@ -58,6 +56,19 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
   const phase = phaseUi(item.eventPhase);
   const muted = !!phase?.muted;
   const stillNeeded = Math.max(0, (item.minParticipants ?? 0) - joined);
+  const { showToast } = useToast();
+  const handleShare = useCallback(async () => {
+    hapticLight();
+    try {
+      await Share.share({
+        title: item.title || "HomeConnect",
+        message: [item.title, item.description, "Shared via HomeConnect"].filter(Boolean).join("\n\n"),
+      });
+    } catch {
+      showToast("Couldn't open the share sheet. Please try again.", "error");
+    }
+  }, [item.title, item.description, showToast]);
+
 
   return (
     <TouchableOpacity
@@ -76,7 +87,7 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
             style={[styles.heroImage, muted && styles.mutedMedia]}
           >
             <View style={styles.heroFallbackIcon}>
-              <Ionicons name="calendar-outline" size={40} color={t.colors.onBrand} />
+              <CalendarDays size={40} strokeWidth={1.75} color={t.colors.onBrand} />
             </View>
           </LinearGradient>
         )}
@@ -92,23 +103,27 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
           pointerEvents="none"
         />
         <View style={styles.heroInner}>
-          <FeedCardHeader
-            author={item.author}
-            meta={item.meta}
-            isPublic={item.isPublic}
-            badge="EVENT"
-            onImage
-            onMorePress={onMore}
-          />
+          {/* Top-left: status pill */}
           <View>
             {!!phase && (
               <View style={styles.phasePill}>
                 <EventPhaseBadge label={phase.label} tone={phase.tone} size="sm" solid />
+
+                
               </View>
             )}
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
+          </View>
+          {/* Bottom: author (left) and category pill (right) */}
+          <View style={styles.heroBottom}>
+            <View style={styles.heroAuthor}>
+              <FeedCardHeader
+                author={item.author}
+                meta={item.meta}
+                isPublic={false}
+                onImage
+                showMore={false}
+              />
+            </View>
             {!!item.category && (
               <View style={styles.categoryPill}>
                 <Text style={styles.categoryText}>{item.category}</Text>
@@ -116,23 +131,30 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
             )}
           </View>
         </View>
+        <TouchableOpacity
+          onPress={onMore}
+          hitSlop={8}
+          style={styles.heroMore}
+          accessibilityRole="button"
+          accessibilityLabel="More options"
+        >
+          <Ionicons name="ellipsis-vertical" size={18} color="rgba(255,255,255,0.85)" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.body}>
         <View style={[styles.bodyContent, muted && styles.mutedContent]}>
+          <Text style={[styles.title, { color: t.colors.textPrimary }]} numberOfLines={2}>
+            {item.title}
+          </Text>
+
           <View style={styles.metaRow}>
-            {!!item.eventDate && (
-              <MetaChip icon="calendar-clear-outline" label={item.eventDate} tinted={hasHero} />
-            )}
-            {!!item.eventTime && (
-              <MetaChip icon="time-outline" label={item.eventTime} tinted={hasHero} />
-            )}
-            {!!item.location && (
-              <MetaChip icon="location-outline" label={item.location} tinted={hasHero} />
-            )}
+            {!!item.eventDate && <MetaChip icon={CalendarDays} label={item.eventDate} />}
+            {!!item.eventTime && <MetaChip icon={Clock} label={item.eventTime} />}
+            {!!item.location && <MetaChip icon={Navigation} label={item.location} />}
           </View>
 
-          {!!item.description && (
+          {/* {!!item.description && (
             <Text
               style={[styles.description, { color: t.colors.textSecondary }]}
               numberOfLines={2}
@@ -140,24 +162,23 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
             >
               {item.description}
             </Text>
-          )}
+          )} */}
 
           {capacity > 0 && (
             <View style={styles.progressBlock}>
               <View style={styles.progressHeader}>
                 <Text style={[styles.spotsText, { color: t.colors.textPrimary }]}>
-                  <Text style={[styles.spotsCount, { color: t.colors.brand }]}>{joined}</Text>
-                  {` of ${capacity} spots filled`}
+                  {`${joined} spots filled`}
                 </Text>
                 {stillNeeded > 0 && (
-                  <Text style={[styles.progressHint, { color: t.colors.textSecondary }]}>
-                    {stillNeeded} more needed to unlock event
+                  <Text style={[styles.progressHint, { color: t.colors.textPrimary }]}>
+                    {stillNeeded} More to Unlock
                   </Text>
                 )}
               </View>
               <View style={[styles.track, { backgroundColor: t.colors.surfaceAlt }]}>
                 <View
-                  style={[styles.fill, { width: `${displayPct}%`, backgroundColor: t.colors.brand }]}
+                  style={[styles.fill, { width: `${displayPct}%`, backgroundColor: t.isDark ? t.colors.textPrimary : "#000000" }]}
                 />
               </View>
             </View>
@@ -214,36 +235,59 @@ function EventFeedCard({ item, onLike, onComment, onRsvp, onSeeAll, onMore, onOp
           >
             {reg.label}
           </Text>
-          <Ionicons
-            name={
-              reg.isOrganizer
-                ? "settings-outline"
-                : item.isJoined
-                  ? "checkmark-circle"
+          {(() => {
+            const ctaColor = item.isJoined || reg.isOrganizer || closed ? t.colors.textPrimary : t.colors.onBrand;
+            const CtaIcon = reg.isOrganizer
+              ? Settings
+              : item.isJoined
+                ? CircleCheck
                 : closed
-                  ? "lock-closed-outline"
+                  ? Lock
                   : capacity > 0
-                    ? "arrow-forward"
-                    : "checkmark-circle-outline"
-            }
-            size={18}
-            color={item.isJoined || reg.isOrganizer || closed ? t.colors.textPrimary : t.colors.onBrand}
-          />
+                    ? ArrowRight
+                    : CircleCheck;
+            return <CtaIcon size={22} strokeWidth={2} color={ctaColor} />;
+          })()}
         </TouchableOpacity>
       </View>
 
       {item.canInteract !== false && (
         <View style={[styles.footer, { borderTopColor: t.colors.border }]}>
-          <FeedActions
-            noDivider
-            likeCount={item.likeCount}
-            isLiked={item.isLiked}
-            commentCount={item.commentCount}
-            shareTitle={item.title}
-            shareBody={item.description}
-            onLike={onLike}
-            onComment={onComment}
-          />
+          <TouchableOpacity
+            style={[styles.action, styles.actionStart]}
+            onPress={onLike}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.isLiked ? "Unlike" : "Like"}, ${item.likeCount} ${item.likeCount === 1 ? "like" : "likes"}`}
+            accessibilityState={{ selected: item.isLiked }}
+          >
+            <Heart
+              size={24}
+              strokeWidth={1.75}
+              color={item.isLiked ? "#c1121f" : t.colors.textPrimary}
+              fill={item.isLiked ? "#c1121f" : "none"}
+            />
+            <Text style={[styles.actionCount, { color: t.colors.textPrimary }]}>{item.likeCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.action, styles.actionCenter]}
+            onPress={onComment}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Comments, ${item.commentCount}`}
+          >
+            <MessageSquare size={24} strokeWidth={1.75} color={t.colors.textPrimary} />
+            <Text style={[styles.actionCount, { color: t.colors.textPrimary }]}>{item.commentCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.action, styles.actionEnd]}
+            onPress={handleShare}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Share"
+          >
+            <Share2 size={24} strokeWidth={1.75} color={t.colors.textPrimary} />
+          </TouchableOpacity>
         </View>
       )}
     </TouchableOpacity>
@@ -254,7 +298,7 @@ export default memo(EventFeedCard);
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     marginBottom: 15,
     borderWidth: 1,
@@ -265,16 +309,18 @@ const styles = StyleSheet.create({
   heroImage: { ...StyleSheet.absoluteFill, width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   heroFallbackIcon: { alignItems: "center", justifyContent: "center" },
   heroInner: { ...StyleSheet.absoluteFill, padding: 16, justifyContent: "space-between" },
+  heroMore: { position: "absolute", top: 12, right: 12, padding: 4 },
   heroTitle: { color: "#FFFFFF", fontSize: 20,  fontFamily: "Manrope_700Bold", lineHeight: 28 },
+  heroBottom: { flexDirection: "row", alignItems: "center", gap: 8 },
+  heroAuthor: { flex: 1, minWidth: 0 },
   categoryPill: {
-    alignSelf: "flex-start",
-    marginTop: 8,
-    backgroundColor: "#ffffff35",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
   },
-  categoryText: { fontSize: 14,  fontFamily: "Manrope_600SemiBold", color: "#ffffff" },
+  categoryText: { fontSize: 14, fontFamily: "Manrope_700Bold", color: "#111111" },
+  title: { fontSize: 22, fontFamily: "Manrope_800ExtraBold", lineHeight: 30 },
 
   plainHeader: { paddingHorizontal: 16, paddingTop: 16 },
   body: { padding: 16, gap: 14 },
@@ -293,11 +339,11 @@ const styles = StyleSheet.create({
 
   progressBlock: { gap: 8 },
   progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  spotsText: { fontSize: 12, fontFamily: "Manrope_400Regular", lineHeight: 16 },
+  spotsText: { fontSize: 18, fontFamily: "Manrope_700Bold", lineHeight: 24 },
   spotsCount: { fontSize: 14, fontFamily: "Manrope_700Bold" },
-  progressHint: { fontSize: 12, fontFamily: "Manrope_400Regular",  flexShrink: 1, textAlign: "right" },
-  track: { width: "100%", height: 8, borderRadius: 999, overflow: "hidden" },
-  fill: { height: 8, borderRadius: 999 },
+  progressHint: { fontSize: 13, fontFamily: "Manrope_500Medium", flexShrink: 1, textAlign: "right" },
+  track: { width: "100%", height: 10, borderRadius: 999, overflow: "hidden" },
+  fill: { height: 10, borderRadius: 999 },
 
   attendeeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   avatarStack: { flexDirection: "row" },
@@ -309,8 +355,8 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 12,  fontFamily: "Manrope_600SemiBold" },
 
   cta: {
-    height: 45,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -318,5 +364,16 @@ const styles = StyleSheet.create({
   },
   ctaText: { fontSize: 18,  fontFamily: "Manrope_600SemiBold" },
 
-  footer: { paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1 },
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  action: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 28 },
+  actionStart: { justifyContent: "flex-start" },
+  actionCenter: { justifyContent: "center" },
+  actionEnd: { justifyContent: "flex-end" },
+  actionCount: { fontSize: 16, fontFamily: "Manrope_500Medium" },
 });

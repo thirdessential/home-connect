@@ -9,7 +9,9 @@ import { UserRole } from "@/types/roles";
 import { getFeedMenuOptions } from "@/lib/feedMenu";
 import { useTheme } from "@/theme/theme";
 import { HomeFeedActions, HomeFeedItem } from "@/types/homeFeed.type";
-import { Ionicons } from "@expo/vector-icons";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { createInFlightGuard } from "@/lib/inFlightGuard";
+import { Flag, Trash2, User } from "lucide-react-native";
 import { router } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -101,10 +103,12 @@ function FeedList({
       const common = {
         onLike: () => {
           if (!requireVerified("action")) return;
+          hapticLight();
           actions.toggleLike(item.id);
         },
         onComment: () => {
           if (!requireVerified("action")) return;
+          hapticLight();
           setCommentsFor(item.id);
         },
         onMore: () => {
@@ -121,7 +125,9 @@ function FeedList({
               // Join Event must never call the join API for a guest/unverified
               // user — block before any store/API call happens.
               if (!requireVerified("action")) return;
-              actions.toggleRsvp(item.id);
+              // Immediate feedback + one join request per event at a time.
+              hapticMedium();
+              void joinGuard.run(item.id, () => Promise.resolve(actions.toggleRsvp(item.id)));
             }}
             onSeeAll={() => setAttendeesFor(item.id)}
             onOpen={() => {
@@ -215,19 +221,20 @@ function FeedList({
         <FormSheetModal
           visible={!!moreFor}
           onClose={() => setMoreFor(null)}
-          title=""
-          subtitle=""
+          title={activeMoreItem?.kind === "event" ? "Event Options" : activeMoreItem?.kind === "poll" ? "Poll Options" : "Post Options"}
+          compactHeader
+          scroll={false}
         >
           <View style={styles.moreWrap}>
-            {menuOptions.map((o) => {
+            {menuOptions.map((o, i) => {
               const color = o.danger ? "#DC2626" : t.colors.textPrimary;
               return (
                 <TouchableOpacity
                   key={o.key}
                   onPress={() => handleMoreSelect(o.key)}
-                  style={[styles.moreItem, { borderBottomColor: t.colors.border }]}
+                  style={[styles.moreItem, i < menuOptions.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border }]}
                 >
-                  <Ionicons name={o.icon} size={22} color={color} />
+                  {(() => { const I = MENU_ICONS[o.key]; return <I size={22} strokeWidth={1.75} color={color} />; })()}
                   <Text style={[styles.moreLabel, { color }]}>{o.label}</Text>
                 </TouchableOpacity>
               );
@@ -264,15 +271,19 @@ function FeedList({
 
 export default memo(FeedList);
 
+const joinGuard = createInFlightGuard();
+
+const MENU_ICONS = { "report-post": Flag, "report-user": User, delete: Trash2 } as const;
+
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 5, flexGrow: 1 },
-  moreWrap: { paddingHorizontal: 16, paddingVertical: 8 },
+  moreWrap: { paddingHorizontal: 8, paddingBottom: 4 },
   moreItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    minHeight: 56,
+    paddingVertical: 14,
   },
-  moreLabel: { fontSize: 15 },
+  moreLabel: { fontSize: 16, fontFamily: "Manrope_600SemiBold" },
 });

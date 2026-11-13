@@ -7,6 +7,7 @@ import ActionButton from "@/components/inputs/ActionButton";
 import { manropeFamily } from "@/theme/fonts";
 import { getHeight, getWidth } from "@/theme/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
   Dimensions,
@@ -80,6 +81,15 @@ export default function TermsSheet({ visible, onClose, onAgree }: Props) {
 
   if (!mounted) return null;
 
+  const tapClose = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    onClose();
+  };
+  const tapAgree = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    onAgree();
+  };
+
   return (
     <Modal
       transparent
@@ -90,7 +100,7 @@ export default function TermsSheet({ visible, onClose, onAgree }: Props) {
     >
       <View style={styles.root}>
         <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={tapClose} />
         </Animated.View>
 
         <Animated.View
@@ -106,7 +116,7 @@ export default function TermsSheet({ visible, onClose, onAgree }: Props) {
               <View style={styles.headerRow}>
                 <Text style={styles.title}>{TERRACE_AUTH.termsTitle}</Text>
                 <Pressable
-                  onPress={onClose}
+                  onPress={tapClose}
                   hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Close"
@@ -133,7 +143,7 @@ export default function TermsSheet({ visible, onClose, onAgree }: Props) {
           <View style={styles.footer}>
             <ActionButton
               title={TERRACE_AUTH.iAgree}
-              onPress={onAgree}
+              onPress={tapAgree}
               variant="primary"
               size="lg"
               fullWidth
@@ -208,7 +218,7 @@ const styles = StyleSheet.create({
     borderTopColor: TERRACE_COLORS.inputBorder,
   },
   agreeBtn: {
-    borderRadius: getWidth(10),
+    borderRadius: getWidth(50),
     paddingVertical: getHeight(15),
     fontFamily: manropeFamily('700'), 
   },

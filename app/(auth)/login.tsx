@@ -1,7 +1,6 @@
 import {
   TERRACE_AUTH,
   TERRACE_COLORS,
-  TERRACE_FEATURES,
 } from "@/assets/constants/auth.constant";
 import { images } from "@/assets/images";
 import TermsSheet from "@/components/auth/TermsSheet";
@@ -12,15 +11,16 @@ import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useAuthStore } from "@/store/useAuthStore";
 import { manropeFamily } from "@/theme/fonts";
 import { getHeight, getWidth } from "@/theme/theme";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
+  Animated,
+  Easing,
   Keyboard,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -28,34 +28,32 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-function FeatureColumn({ item }: { item: (typeof TERRACE_FEATURES)[number] }) {
+// Memoised so keystrokes / validation / keyboard state never re-render the image.
+const HeroImage = React.memo(function HeroImage() {
   return (
-    <View style={styles.feature}>
-      <View style={[styles.featureIcon, { backgroundColor: item.tint }]}>
-        {item.lib === "mci" ? (
-          <MaterialCommunityIcons
-            name={item.icon as any}
-            size={getWidth(24)}
-            color={item.color}
-          />
-        ) : (
-          <Ionicons name={item.icon as any} size={getWidth(24)} color={item.color} />
-        )}
-      </View>
-      <Text style={[styles.featureTitle, {
-        color: item.color
-      }]}>{item.title}</Text>
-      <Text style={[styles.featureDesc]}>{item.desc}</Text>
+    <View style={styles.heroWrap}>
+      <Image
+        source={images.LoginBgimage}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        contentPosition="top"
+        transition={200}
+        cachePolicy="memory-disk"
+      />
     </View>
   );
-}
+});
 
 export default function LoginScreen() {
-  const { showToast } = useToast();
+  const { showStatusToast } = useToast();
+  const showError = useCallback(
+    (message: string) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      showStatusToast({ title: "Login", message, tone: "error" });
+    },
+    [showStatusToast],
+  );
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollY = useRef(0);
-  const inputRowRef = useRef<View>(null);
   const keyboardHeight = useKeyboardHeight();
   const sendOtp = useAuthStore((s) => s.sendOtp);
   const isSendingOtp = useAuthStore((s) => s.isSendingOtp);
@@ -68,40 +66,22 @@ export default function LoginScreen() {
   const inputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
 
-  // Window isn't resized on Android edge-to-edge, so the page extends under the
-  // keyboard. When it opens, scroll by exactly the amount that lifts the phone
-  // row's bottom edge to just above the keyboard (leaving room for part of the
-  // Continue button) — measured against the real keyboard top, so it adapts to
-  // any screen/keyboard height. Bottom padding (= keyboard height) gives the
-  // scroll view room to get there; closing the keyboard drops it again.
+  const shift = useRef(new Animated.Value(0)).current;
+  // Extra lift while the keyboard is open. Done with the native transform
+  // (not an animated paddingBottom) so the card never changes the layout and
+  // the flex:1 hero image is not resized/re-rendered on every frame.
+  const extraLift = getHeight(30);
   useEffect(() => {
-    if (keyboardHeight <= 0) return;
-    let cancelled = false;
-    // After the padding above has been laid out, so the scroll isn't clamped.
-    const raf = requestAnimationFrame(() => {
-      const row = inputRowRef.current;
-      if (cancelled || !row || !inputRef.current?.isFocused()) return;
-      row.measureInWindow((_x, y, _w, h) => {
-        if (cancelled) return;
-        const keyboardTop =
-          Keyboard.metrics()?.screenY ?? Dimensions.get("screen").height - keyboardHeight;
-        const shortfall = y + h - (keyboardTop - getHeight(100));
-        if (shortfall > 0) {
-          scrollRef.current?.scrollTo({ y: scrollY.current + shortfall, animated: true });
-        }
-      });
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-    };
-  }, [keyboardHeight]);
+    const open = keyboardHeight > 0;
+    Animated.timing(shift, {
+      toValue: open ? -(keyboardHeight + extraLift) : 0,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [keyboardHeight, shift, extraLift]);
 
-  const isValidMobile = mobile.length === 10;
-  const canContinue = useMemo(
-    () => isValidMobile && accepted,
-    [isValidMobile, accepted],
-  );
+  // const isValidMobile = /^[6-9]\d{9}$/.test(mobile);
 
   const handleMobileChange = useCallback((value: string) => {
     const cleaned = value.replace(/\D/g, "").slice(0, 10);
@@ -113,28 +93,32 @@ export default function LoginScreen() {
   const handleContinue = useCallback(async () => {
     if (submittingRef.current) return;
     Keyboard.dismiss();
-    if (!isValidMobile) {
-      setMobileError(TERRACE_AUTH.invalidMobile);
-      showToast(TERRACE_AUTH.invalidMobile, "error");
-      return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (mobile.length === 0) {
+      setMobileError("Please enter your mobile number.");
+      return showError("Please enter your mobile number.");
     }
-    if (!accepted) {
-      showToast(TERRACE_AUTH.checkTerms, "info");
-      return;
-    }
+    // if (!isValidMobile) {
+    //   setMobileError("Please enter a valid mobile number.");
+    //   return showError("Please enter a valid mobile number.");
+    // }
+    if (!accepted) return showError(TERRACE_AUTH.checkTerms);
 
     submittingRef.current = true;
     try {
       await sendOtp(mobile);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.push({ pathname: "/(auth)/verify-otp", params: { phone: mobile } });
     } catch (err: any) {
       const message =
         err?.message || TERRACE_AUTH.otpSendFailed || "Failed to send OTP. Please try again.";
-      showToast(message, "error");
+      showError(message);
     } finally {
       submittingRef.current = false;
     }
-  }, [accepted, isValidMobile, mobile, sendOtp, showToast]);
+  }, [accepted, 
+    // isValidMobile, 
+    mobile, sendOtp, showError]);
 
   const handleAgree = useCallback(() => {
     setAccepted(true);
@@ -143,49 +127,26 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingBottom: keyboardHeight }]}
-        onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
-        scrollEventThrottle={16}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        {/* Branding + marketing (padded) */}
-        <View style={styles.top}>
+      <View style={styles.scroll}>
+        <Animated.View style={[styles.top]}>
           <TerraceHeader />
+        </Animated.View>
 
-          <Text style={styles.headline}>
-            {TERRACE_AUTH.headlinePre}
-            <Text style={styles.headlineAccent}>{TERRACE_AUTH.headlineAccent}</Text>
-          </Text>
+        {/* Hero — edge to edge, keeps the asset's aspect ratio */}
+        <HeroImage />
 
-          <View style={styles.featureRow}>
-            {TERRACE_FEATURES.map((item, i) => (
-              <React.Fragment key={item.key}>
-                {i > 0 ? <View style={styles.divider} /> : null}
-                <FeatureColumn item={item} />
-              </React.Fragment>
-            ))}
-          </View>
-        </View>
-
-        {/* Hero — edge to edge */}
-        <Image
-          source={images.LoginBgimage}
-          style={styles.hero}
-          contentFit="cover"
-          transition={200}
-        />
-
-        {/* Bottom card — edge to edge */}
-        <View style={[styles.card, { paddingBottom: insets.bottom + getHeight(14) }]}>
+        {/* Bottom card — overlaps hero with rounded top corners */}
+        <Animated.View style={[styles.cardWrap, { transform: [{ translateY: shift }] }]}>
+        <View style={[styles.card, { paddingBottom: insets.bottom + getHeight(20) }]}>
           <Text style={styles.cardTitle}>{TERRACE_AUTH.getStartedTitle}</Text>
-          <Text style={styles.cardSubtitle}>{TERRACE_AUTH.getStartedSubtitle}</Text>
+
+          <View style={styles.separator}>
+            <View style={styles.sepLine} />
+            <Text style={styles.sepText}>{TERRACE_AUTH.loginOrSignUp}</Text>
+            <View style={styles.sepLine} />
+          </View>
 
           <Pressable
-            ref={inputRowRef}
             style={[
               styles.inputRow,
               focused && { borderColor: TERRACE_COLORS.orange },
@@ -194,13 +155,8 @@ export default function LoginScreen() {
             onPress={() => inputRef.current?.focus()}
           >
             <View style={styles.ccWrap}>
-              <Text style={styles.flag}>{TERRACE_AUTH.countryFlag}</Text>
+              <Image source={images.LoginINDFlag} style={styles.flag} contentFit="contain" />
               <Text style={styles.ccText}>{TERRACE_AUTH.countryCode}</Text>
-              <Ionicons
-                name="chevron-down"
-                size={getWidth(16)}
-                color={TERRACE_COLORS.textMuted}
-              />
             </View>
             <TextInput
               ref={inputRef}
@@ -221,35 +177,14 @@ export default function LoginScreen() {
           </Pressable>
           {mobileError ? <Text style={styles.errorText}>{mobileError}</Text> : null}
 
-          <ActionButton
-            title={TERRACE_AUTH.continueWithPhone}
-            onPress={handleContinue}
-            variant="primary"
-            size="lg"
-            fullWidth
-            disabled={!canContinue || isSendingOtp}
-            loading={isSendingOtp}
-            leftIcon={
-              <Ionicons
-                name="call"
-                size={getWidth(18)}
-                color={canContinue ? "#fff" : "#9CA3AF"}
-              />
-            }
-            containerStyle={styles.continueBtn}
-          />
-
           <View style={styles.tcBox}>
             <Pressable
-              onPress={() => setAccepted((a) => !a)}
+              onPress={() => {
+                if (!accepted) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                setAccepted((a) => !a);
+              }}
               hitSlop={8}
-              style={[
-                styles.checkbox,
-                accepted && {
-                  backgroundColor: TERRACE_COLORS.orange,
-                  borderColor: TERRACE_COLORS.orange,
-                },
-              ]}
+              style={[styles.checkbox, accepted && styles.checkboxOn]}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: accepted }}
             >
@@ -262,19 +197,27 @@ export default function LoginScreen() {
               <Text style={styles.tcLink} onPress={() => setSheetVisible(true)}>
                 {TERRACE_AUTH.acceptLink}
               </Text>
+              {/* {TERRACE_AUTH.acceptMid} */}
+              {/* <Text style={styles.tcLink} onPress={() => setSheetVisible(true)}>
+                {TERRACE_AUTH.acceptPrivacy}
+              </Text> */}
+              .
             </Text>
           </View>
 
-          <View style={styles.footer}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={getWidth(16)}
-              color={TERRACE_COLORS.textMuted}
-            />
-            <Text style={styles.footerText}>{TERRACE_AUTH.safeFooter}</Text>
-          </View>
+          <ActionButton
+            title={TERRACE_AUTH.continueWithPhone}
+            onPress={handleContinue}
+            variant="primary"
+            size="lg"
+            fullWidth
+            disabled={isSendingOtp}
+            loading={isSendingOtp}
+            containerStyle={styles.continueBtn}
+          />
         </View>
-      </ScrollView>
+        </Animated.View>
+      </View>
 
       <TermsSheet
         visible={sheetVisible}
@@ -286,99 +229,50 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: TERRACE_COLORS.screenBg,
-  },
-  scroll: {
-    flexGrow: 1,
-  },
+  safe: { flex: 1, overflow: "hidden", backgroundColor: TERRACE_COLORS.screenBg },
+  scroll: { flex: 1 },
   top: {
     paddingHorizontal: getWidth(24),
     paddingTop: getHeight(8),
+    paddingBottom: getHeight(10),
+    backgroundColor: TERRACE_COLORS.screenBg,
   },
-  headline: {
-    fontSize: getWidth(27),
-    lineHeight: getHeight(34),
-    
-    fontFamily: manropeFamily('700'),
-    color: TERRACE_COLORS.textDark,
-    textAlign: "center",
-  },
-  headlineAccent: {
-    color: TERRACE_COLORS.orange,
-    
-    fontFamily: manropeFamily('700'),
-  },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginTop: getHeight(18),
-  },
-  feature: {
+  heroWrap: {
     flex: 1,
-    alignItems: "center",
-    paddingHorizontal: getWidth(6),
-  },
-  featureIcon: {
-    width: getWidth(52),
-    height: getWidth(52),
-    borderRadius: getWidth(26),
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: getHeight(5),
-  },
-  featureTitle: {
-    fontSize: getWidth(15),
-    // lineHeight: getHeight(15),
-    fontFamily: manropeFamily('700'),
-    // marginBottom: getHeight(5),
-  },
-  featureDesc: {
-    fontSize: getWidth(11),
-    lineHeight: getHeight(15),
-    color: TERRACE_COLORS.textMuted,
-    textAlign: "center",
-  },
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
-    backgroundColor: TERRACE_COLORS.inputBorder,
-    // marginTop: getHeight(4),
-  },
-  hero: {
-    flex: 1,
-    minHeight: getHeight(200),
-    width: "100%",
-    marginTop: getHeight(0),
+    minHeight: 0,
+    overflow: "hidden",
     backgroundColor: "#EDE7DD",
+  },
+  cardWrap: {
+    marginTop: -getHeight(28),
+    flexShrink: 0,
   },
   card: {
     backgroundColor: TERRACE_COLORS.screenBg,
-    borderTopLeftRadius: getWidth(14),
-    borderTopRightRadius: getWidth(14),
+    borderTopLeftRadius: getWidth(32),
+    borderTopRightRadius: getWidth(32),
     paddingHorizontal: getWidth(24),
-    paddingTop: getHeight(18),
-    marginTop: -getHeight(16),
-    marginHorizontal: getHeight(15),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 8,
+    paddingTop: getHeight(22),
   },
   cardTitle: {
-    fontSize: getWidth(22),
-    // 
-    fontFamily: manropeFamily('700'),
+    fontSize: getWidth(24),
+    lineHeight: getWidth(27),
+    fontFamily: manropeFamily("700"),
     color: TERRACE_COLORS.textDark,
+    textAlign: "center",
   },
-  cardSubtitle: {
-    fontSize: getWidth(14),
-    fontWeight: "400",
-    fontFamily: manropeFamily('400'),
+  separator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: getHeight(10),
+  },
+  sepLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: "#D1D5DB" },
+  sepText: {
+    fontSize: getWidth(12),
+    letterSpacing: 0.5,
+    fontFamily: manropeFamily("600"),
     color: TERRACE_COLORS.textMuted,
-    marginTop: getHeight(4),
+    marginHorizontal: getWidth(12),
   },
   inputRow: {
     flexDirection: "row",
@@ -386,94 +280,80 @@ const styles = StyleSheet.create({
     backgroundColor: TERRACE_COLORS.screenBg,
     borderRadius: getWidth(14),
     borderWidth: 1.5,
-    borderColor: TERRACE_COLORS.inputBorder,
+    borderColor: "#D1D5DB",
     height: getHeight(54),
-    marginTop: getHeight(16),
+    marginTop: getHeight(20),
     overflow: "hidden",
   },
   ccWrap: {
     flexDirection: "row",
     alignItems: "center",
     height: "100%",
-    paddingHorizontal: getWidth(10),
+    paddingHorizontal: getWidth(14),
     borderRightWidth: 1.5,
-    borderRightColor: TERRACE_COLORS.inputBorder,
+    borderRightColor: "#D1D5DB",
   },
-  flag: {
-    fontSize: getWidth(18),
-    marginRight: getWidth(6),
-  },
+  flag: { width: getWidth(30), aspectRatio: 27 / 19, marginRight: getWidth(10), borderRadius: getWidth(4) },
   ccText: {
     fontSize: getWidth(16),
-    // 
-    fontFamily: manropeFamily('700'),
+    fontFamily: manropeFamily("500"),
     color: TERRACE_COLORS.textDark,
-    marginRight: getWidth(4),
+    // borderRadius: getWidth(4)
   },
   input: {
     flex: 1,
     fontSize: getWidth(16),
     color: TERRACE_COLORS.textDark,
-    // Tight horizontal padding + minWidth:0 so the text area keeps enough
-    // width for the one-line placeholder; vertical padding 0 + centered
-    // text keeps it aligned in the fixed-height row.
     minWidth: 0,
-    paddingHorizontal: getWidth(8),
+    paddingHorizontal: getWidth(14),
     paddingVertical: 0,
     textAlignVertical: "center",
     height: "100%",
+    fontFamily: manropeFamily("600"),
   },
   errorText: {
     color: "#DC2626",
     fontSize: getWidth(12),
     marginTop: getHeight(6),
     marginLeft: getWidth(4),
-  },
-  continueBtn: {
-    marginTop: getHeight(16),
-    borderRadius: getWidth(14),
-    paddingVertical: getHeight(15),
+    fontFamily: manropeFamily("600"),
   },
   tcBox: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: getHeight(14),
+    alignItems: "flex-start",
+    marginTop: getHeight(18),
+    paddingHorizontal: getWidth(4),
   },
   checkbox: {
-    width: getWidth(22),
-    height: getWidth(22),
+    width: getWidth(24),
+    height: getWidth(24),
     borderRadius: getWidth(6),
     borderWidth: 1.5,
-    borderColor: "#C7C1B6",
+    borderColor: "#9CA3AF",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: getWidth(10),
+    marginRight: getWidth(12),
     backgroundColor: "#fff",
   },
+  checkboxOn: {
+    backgroundColor: "#000",
+    borderColor: "#000",
+  },
   tcText: {
-    fontSize: getWidth(14),
-    color: TERRACE_COLORS.textDark,
-    
-    fontFamily: manropeFamily('500'),
+    flex: 1,
+    fontSize: getWidth(13),
+    lineHeight: getWidth(20),
+    color: TERRACE_COLORS.textMuted,
+    fontFamily: manropeFamily("500"),
   },
   tcLink: {
-    color: TERRACE_COLORS.orange,
-    
-    fontFamily: manropeFamily('700'),
+    color: TERRACE_COLORS.textDark,
+    fontFamily: manropeFamily("700"),
     textDecorationLine: "underline",
   },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: getHeight(14),
-  },
-  footerText: {
-    fontSize: getWidth(13),
-    fontWeight: "400",
-    fontFamily: manropeFamily('400'),
-    color: TERRACE_COLORS.textMuted,
-    marginLeft: getWidth(8),
+  continueBtn: {
+    marginTop: getHeight(24),
+    borderRadius: 999,
+    paddingVertical: getHeight(15),
   },
 });

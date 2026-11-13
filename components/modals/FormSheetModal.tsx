@@ -35,6 +35,8 @@ export type FormSheetModalProps = {
 
   // Behavior
   dismissOnBackdrop?: boolean; // default true
+  /** Left-aligned title + close button in one tight row. */
+  compactHeader?: boolean;
 };
 
 export default function FormSheetModal({
@@ -47,6 +49,7 @@ export default function FormSheetModal({
   contentContainerStyle,
   footer,
   dismissOnBackdrop = true,
+  compactHeader = false,
 }: FormSheetModalProps) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -67,7 +70,22 @@ export default function FormSheetModal({
       };
     }, []);
 
-  const Header = (
+  const Header = compactHeader ? (
+    <View style={styles.compactHeaderRow}>
+      <Text style={[styles.compactTitle, { color: t.colors.textPrimary }]} numberOfLines={1}>
+        {title}
+      </Text>
+      <TouchableOpacity
+        onPress={onClose}
+        hitSlop={8}
+        style={styles.compactClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+      >
+        <Ionicons name="close" size={22} color={t.colors.textSecondary} />
+      </TouchableOpacity>
+    </View>
+  ) : (
     <View style={styles.headerRow}>
       {/* Spacer to keep title centered relative to close icon */}
       <View style={{ width: 24, height: 24 }} />
@@ -181,6 +199,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
+  compactHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  compactTitle: { flex: 1, fontSize: 18, fontFamily: "Manrope_700Bold" },
+  compactClose: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   footerContainer: {
     marginTop: 16,
     paddingTop: 12,

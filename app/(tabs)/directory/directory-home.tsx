@@ -1,3 +1,4 @@
+import { useBottomNavInset } from "@/hooks/useBottomNavInset";
 import { verificationStatus } from "@/assets/enums/common.enum";
 import ServiceProviderCarousel from "@/components/directory/ServiceProviderCarousel";
 import SocietyCard from "@/components/directory/SocietyCard";
@@ -24,6 +25,7 @@ export default function DirectoryHome() {
   const t = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const navInset = useBottomNavInset();
 
   // Use a selector to only subscribe to productList changes and avoid unnecessary re-renders
   const businessList = useProductStore(
@@ -179,7 +181,7 @@ export default function DirectoryHome() {
         }}
         contentContainerStyle={{
           paddingTop: 16,
-          paddingBottom: insets.bottom + 20,
+          paddingBottom: insets.bottom + 20 + navInset,
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={

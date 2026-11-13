@@ -1,7 +1,7 @@
 import { TERRACE_COLORS } from "@/assets/constants/auth.constant";
 import { getHeight, getWidth, useTheme } from "@/theme/theme";
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 type Props = {
   value: string;
@@ -26,15 +26,39 @@ export default function BoxedOTP({
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
 
-  const focus = () => inputRef.current?.focus();
-  const activeIndex = value.length >= length ? length - 1 : value.length;
+  // Index being edited when the user taps an already-filled box (null = append).
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+
+  const focus = (index?: number) => {
+    setEditIndex(index !== undefined && index < value.length ? index : null);
+    const input = inputRef.current;
+    if (!input) return;
+    // Focused but keyboard dismissed: focus() alone is a no-op, so re-focus.
+    if (input.isFocused() && !Keyboard.isVisible()) input.blur();
+    requestAnimationFrame(() => input.focus());
+  };
+  const activeIndex =
+    editIndex ?? (value.length >= length ? length - 1 : value.length);
 
   const handleChange = (raw: string) => {
-    onChange(raw.replace(/\D/g, "").slice(0, length));
+    const clean = raw.replace(/\D/g, "").slice(0, length);
+    if (editIndex === null) return onChange(clean);
+    if (clean.length > value.length && clean.length - value.length === 1) {
+      // Replace the tapped digit, then move to the next box.
+      const next = value.slice(0, editIndex) + clean.slice(-1) + value.slice(editIndex + 1);
+      setEditIndex(editIndex + 1 < value.length ? editIndex + 1 : null);
+      return onChange(next);
+    }
+    if (clean.length < value.length) {
+      // Backspace: clear the tapped digit.
+      return onChange(value.slice(0, editIndex) + value.slice(editIndex + 1));
+    }
+    setEditIndex(null);
+    onChange(clean); // paste / autofill
   };
 
   return (
-    <Pressable onPress={focus} style={styles.row}>
+    <Pressable onPress={() => focus()} style={styles.row}>
       {Array.from({ length }).map((_, i) => {
         const char = value[i] ?? "";
         const isFilled = char !== "";
@@ -49,8 +73,9 @@ export default function BoxedOTP({
               : TERRACE_COLORS.inputBorder;
 
         return (
-          <View
+          <Pressable
             key={i}
+            onPress={() => focus(i)}
             style={[
               styles.cell,
               {
@@ -61,7 +86,7 @@ export default function BoxedOTP({
             ]}
           >
             <Text style={styles.char}>{char}</Text>
-          </View>
+          </Pressable>
         );
       })}
 
@@ -86,12 +111,12 @@ export default function BoxedOTP({
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: getWidth(10),
   },
   cell: {
-    width: getWidth(48),
-    height: getHeight(58),
+    flex: 1,
+    height: getHeight(54),
     borderRadius: getWidth(12),
     alignItems: "center",
     justifyContent: "center",

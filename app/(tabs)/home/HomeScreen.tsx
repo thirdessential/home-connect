@@ -1,3 +1,4 @@
+import { useBottomNavInset } from "@/hooks/useBottomNavInset";
 import { BUSINESS_LIMITS } from "@/assets/constants/common.constant";
 import { PRODUCTS_CONSTANTS } from "@/assets/constants/products.constant";
 import { verificationStatus } from "@/assets/enums/common.enum";
@@ -32,6 +33,7 @@ const handlePressProductItem = () => {};
 
 function HomeScreen() {
   const t = useTheme();
+  const navInset = useBottomNavInset();
   const { showToast } = useToast();
   const userId = useUserStore((state) => state.user?._id);
   const selectedSocietyId = useSocietyStore((state) => state.selectedSociety?._id);
@@ -393,7 +395,7 @@ function HomeScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         ListHeaderComponent={listHeader}
-        contentPaddingBottom={showVerificationChrome ? 76 : 24}
+        contentPaddingBottom={(showVerificationChrome ? 76 : 24) + navInset}
       />
 
       {/* Role-gated: renders nothing unless the session carries an admin role. */}
@@ -412,7 +414,7 @@ function HomeScreen() {
             </TouchableOpacity>
           )} */}
 
-          <View style={[styles.lockStrip, { backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
+          <View style={[styles.lockStrip, { bottom: navInset, backgroundColor: t.colors.surface, borderColor: t.colors.border }]}>
             <Ionicons name="lock-closed-outline" size={16} color={t.colors.brand} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.lockStripTitle, { color: t.colors.textPrimary }]}>

@@ -1,3 +1,4 @@
+import { useBottomNavInset } from "@/hooks/useBottomNavInset";
 import { useToast } from "@/components/common/Toast";
 import { useImageUploader } from "@/components/image-upload";
 import SuccessModal from "@/components/UI/SuccessModal";
@@ -52,6 +53,7 @@ const OPTIONS: CreateOption[] = [
 export default function CreatePostScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const navInset = useBottomNavInset();
   const { showToast } = useToast();
   const { openImageUploader } = useImageUploader();
 
@@ -205,7 +207,7 @@ export default function CreatePostScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 + navInset }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     aspectRatio: 2.5,
   },
   logoFull: {
-    width: getWidth(200),
+    width: getWidth(250),
   },
   logoCompact: {
     width: getWidth(168),

@@ -5,6 +5,7 @@ import { useTheme } from "@/theme/theme";
 import { HomeFeedComment } from "@/types/homeFeed.type";
 import { Ionicons } from "@expo/vector-icons";
 import { useToast } from "@/components/common/Toast";
+import { hapticLight } from "@/lib/haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -82,22 +83,23 @@ export default function CommentsSheet({ visible, onClose, comments, onSubmit, fe
   }, [comments]);
   const topLevelCount = useMemo(() => comments.filter((c) => !c.parentId).length, [comments]);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(() => {
     const value = text.trim();
     if (!value || submittingRef.current) return;
     submittingRef.current = true;
-    setSending(true);
-    try {
-      await onSubmit(value, replyTo?.id);
-      setText("");
-      setReplyTo(null);
-    } catch (e: any) {
-      // Keep the draft so nothing is lost.
+    hapticLight();
+    const parentId = replyTo?.id;
+    const prevReply = replyTo;
+    // Optimistic: the composer clears and the store already shows the comment; the request runs in
+    // the background. On failure the draft comes back (unless the user has started a new one).
+    setText("");
+    setReplyTo(null);
+    submittingRef.current = false;
+    onSubmit(value, parentId).catch((e: any) => {
+      setText((cur) => (cur ? cur : value));
+      setReplyTo((cur) => cur ?? prevReply);
       showToast(e?.message || "Couldn't post. Please try again.", "error");
-    } finally {
-      submittingRef.current = false;
-      setSending(false);
-    }
+    });
   }, [text, onSubmit, replyTo, showToast]);
 
   if (!visible) return null;

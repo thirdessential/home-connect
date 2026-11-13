@@ -14,6 +14,8 @@ type Props = {
   /** Light text for headers drawn over a photo. */
   onImage?: boolean;
   onMorePress?: () => void;
+  /** Set false when the parent renders the ⋮ itself. */
+  showMore?: boolean;
 };
 
 /**
@@ -28,6 +30,7 @@ function FeedCardHeader({
   badge,
   onImage = false,
   onMorePress,
+  showMore = true,
 }: Props) {
   const t = useTheme();
   const nameColor = onImage ? "#FFFFFF" : t.colors.textPrimary;
@@ -83,7 +86,7 @@ function FeedCardHeader({
         </View>
       </View>
 
-      <TouchableOpacity
+      {showMore && <TouchableOpacity
         onPress={onMorePress}
         hitSlop={8}
         style={styles.more}
@@ -91,7 +94,7 @@ function FeedCardHeader({
         accessibilityLabel="More options"
       >
         <Ionicons name="ellipsis-vertical" size={18} color={moreColor} />
-      </TouchableOpacity>
+      </TouchableOpacity>}
     </View>
   );
 }

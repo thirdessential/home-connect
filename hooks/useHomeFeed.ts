@@ -260,7 +260,7 @@ export function useHomeFeed(): {
         router.navigate(`/(shared)/event-details?eventId=${item.mysqlEventId}`);
       },
       addComment: async (id, text, parentCommentId) => {
-        if (user?._id) await addCommentApi(id, { userId: user._id, text, parentCommentId });
+        if (user?._id) await addCommentApi(id, { userId: user._id, user, text, parentCommentId });
       },
       deleteItem: async (id) => {
         const item = realItems.find((i) => i.id === id);

@@ -2,6 +2,11 @@ const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require('nativewind/metro');
  
 const config = getDefaultConfig(__dirname)
+
+// SVG files (assets/images/icons) import as React components.
+config.transformer.babelTransformerPath = require.resolve("react-native-svg-transformer/expo");
+config.resolver.assetExts = config.resolver.assetExts.filter((ext) => ext !== "svg");
+config.resolver.sourceExts = [...config.resolver.sourceExts, "svg"];
  
 const finalConfig = withNativeWind(config, { input: './global.css' })
 
